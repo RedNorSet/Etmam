@@ -1,0 +1,508 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Admin Dashboard — Etmam</title>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap');
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --bg: #f4f6fb; --white: #ffffff; --blue: #2563eb; --blue-dk: #1d4ed8;
+      --blue-lt: #eff6ff; --blue-bd: #bfdbfe; --border: #e2e8f0;
+      --text: #0f172a; --muted: #64748b; --light: #94a3b8;
+      --green: #16a34a; --orange: #ea580c; --red: #dc2626; --r: 8px;
+    }
+    body { font-family: 'Plus Jakarta Sans', system-ui, sans-serif; background: var(--bg); color: var(--text); font-size: 14px; }
+
+    /* Top nav */
+    .topnav { position: fixed; top: 0; left: 0; right: 0; height: 54px; background: var(--white); border-bottom: 1px solid var(--border); display: flex; align-items: center; padding: 0 28px; gap: 28px; z-index: 10; }
+    .brand { font-size: .9rem; font-weight: 700; color: var(--blue); display: flex; align-items: center; gap: 8px; flex-shrink: 0; }
+    .brand img { height: 28px; }
+    .nav-tabs { display: flex; height: 100%; overflow-x: auto; }
+    .nav-tab { display: flex; align-items: center; gap: 6px; padding: 0 14px; height: 100%; white-space: nowrap; font-size: .82rem; font-weight: 500; color: var(--muted); border: none; background: transparent; cursor: pointer; border-bottom: 2px solid transparent; transition: color .15s; }
+    .nav-tab:hover { color: var(--text); }
+    .nav-tab.active { color: var(--blue); border-bottom-color: var(--blue); }
+    .n-badge { background: var(--red); color: white; font-size: .62rem; font-weight: 700; padding: 1px 5px; border-radius: 999px; }
+    .nav-right { margin-left: auto; display: flex; align-items: center; gap: 10px; }
+    .nav-role { font-size: .75rem; font-weight: 600; color: var(--muted); background: var(--bg); border: 1px solid var(--border); padding: 4px 10px; border-radius: 6px; }
+
+    /* Page layout */
+    .page { margin-top: 54px; padding: 32px 36px; }
+    .panel { display: none; }
+    .panel.active { display: block; }
+
+    /* Panel header */
+    .ph { display: flex; align-items: center; justify-content: space-between; margin-bottom: 28px; gap: 12px; flex-wrap: wrap; }
+    .ph h1 { font-size: 1.15rem; font-weight: 700; }
+    .ph p { font-size: .82rem; color: var(--muted); margin-top: 3px; }
+
+    /* Stat boxes */
+    .stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 14px; margin-bottom: 28px; }
+    .stat-box { background: var(--white); border: 1px solid var(--border); border-radius: var(--r); padding: 18px 20px; }
+    .stat-box .val { font-size: 1.7rem; font-weight: 700; line-height: 1; }
+    .stat-box .val.red { color: var(--red); }
+    .stat-box .val.orange { color: var(--orange); }
+    .stat-box .lbl { font-size: .72rem; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: .4px; margin-top: 6px; }
+
+    /* Cards / Tables */
+    .card { background: var(--white); border: 1px solid var(--border); border-radius: var(--r); margin-bottom: 20px; overflow: hidden; }
+    .card-hdr { display: flex; align-items: center; justify-content: space-between; padding: 14px 20px; border-bottom: 1px solid var(--border); background: #fafbfc; }
+    .card-title { font-size: .84rem; font-weight: 600; }
+    .gt { width: 100%; border-collapse: collapse; font-size: .83rem; }
+    .gt thead tr { background: #fafbfc; border-bottom: 1px solid var(--border); }
+    .gt th { padding: 10px 18px; text-align: left; font-size: .7rem; font-weight: 600; color: var(--light); text-transform: uppercase; letter-spacing: .5px; white-space: nowrap; }
+    .gt td { padding: 13px 18px; border-bottom: 1px solid var(--border); vertical-align: middle; }
+    .gt tbody tr:last-child td { border-bottom: none; }
+    .gt tbody tr:hover td { background: #fafbff; }
+
+    /* Badges */
+    .badge { display: inline-block; padding: 3px 8px; border-radius: 5px; font-size: .72rem; font-weight: 600; white-space: nowrap; }
+    .b-blue { background: var(--blue-lt); color: var(--blue); }
+    .b-green { background: #f0fdf4; color: var(--green); border: 1px solid #bbf7d0; }
+    .b-orange { background: #fff7ed; color: var(--orange); border: 1px solid #fed7aa; }
+    .b-red { background: #fef2f2; color: var(--red); border: 1px solid #fecaca; }
+    .b-gray { background: var(--bg); color: var(--muted); border: 1px solid var(--border); }
+    .b-purple { background: #f5f3ff; color: #7c3aed; border: 1px solid #ddd6fe; }
+
+    /* Buttons */
+    .btn { display: inline-flex; align-items: center; gap: 5px; padding: 6px 14px; border-radius: 6px; font-size: .8rem; font-weight: 600; cursor: pointer; border: none; transition: background .15s; }
+    .btn-blue { background: var(--blue); color: white; }
+    .btn-blue:hover { background: var(--blue-dk); }
+    .btn-out { background: transparent; border: 1px solid var(--border); color: var(--muted); }
+    .btn-out:hover { border-color: var(--blue); color: var(--blue); }
+    .btn-red-out { background: transparent; border: 1px solid #fecaca; color: var(--red); }
+
+    /* Logout */
+    .logout-btn { background: none; border: none; cursor: pointer; color: var(--red); font-size: .8rem; font-weight: 600; padding: 6px 10px; border-radius: 6px; display: flex; align-items: center; gap: 4px; }
+    .logout-btn:hover { background: #fef2f2; }
+
+    /* Avatar */
+    .av { width: 30px; height: 30px; border-radius: 7px; background: var(--blue-lt); border: 1px solid var(--blue-bd); color: var(--blue); font-size: .72rem; font-weight: 700; display: grid; place-items: center; }
+
+    /* Empty state */
+    .empty { text-align: center; padding: 3rem 1rem; color: var(--muted); }
+    .empty .ei { font-size: 2.5rem; margin-bottom: .75rem; }
+
+    /* Responsive */
+    @media (max-width: 640px) {
+      .page { padding: 20px 16px; }
+      .topnav { padding: 0 16px; gap: 16px; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- TOP NAV -->
+<nav class="topnav">
+  <div class="brand">
+    <img src="{% static 'images/logo_trans.png' %}" alt="Etmam" onerror="this.style.display='none'">
+    <span>Etmam</span>
+  </div>
+
+  <div class="nav-tabs">
+    <button class="nav-tab active" onclick="showPanel('overview', this)">Overview</button>
+    <button class="nav-tab" onclick="showPanel('users', this)">
+      Users
+      <span class="n-badge">{{ total_students|add:total_supervisors|add:total_reviewers }}</span>
+    </button>
+    <button class="nav-tab" onclick="showPanel('teams', this)">Teams</button>
+    <button class="nav-tab" onclick="showPanel('projects', this)">Projects</button>
+    <button class="nav-tab" onclick="showPanel('milestones', this)">
+      Milestones
+      {% if overdue %}<span class="n-badge">{{ overdue }}</span>{% endif %}
+    </button>
+    <button class="nav-tab" onclick="showPanel('submissions', this)">Submissions</button>
+    <button class="nav-tab" onclick="showPanel('grades', this)">
+      Grades
+      {% if pending_grades %}<span class="n-badge">{{ pending_grades }}</span>{% endif %}
+    </button>
+  </div>
+
+  <div class="nav-right">
+    <span class="nav-role">Administrator</span>
+    <form method="post" action="{% url 'accounts:logout' %}" style="margin:0">
+      {% csrf_token %}
+      <button type="submit" class="logout-btn">🚪 Sign Out</button>
+    </form>
+  </div>
+</nav>
+
+<div class="page">
+
+  <!-- PANEL: OVERVIEW -->
+  <div class="panel active" id="panel-overview">
+    <div class="ph">
+      <div>
+        <h1>System Overview</h1>
+        <p>Summary of all activity in Etmam</p>
+      </div>
+    </div>
+
+    <div class="stats">
+      <div class="stat-box">
+        <div class="val">{{ total_students }}</div>
+        <div class="lbl">Students</div>
+      </div>
+      <div class="stat-box">
+        <div class="val">{{ total_supervisors }}</div>
+        <div class="lbl">Supervisors</div>
+      </div>
+      <div class="stat-box">
+        <div class="val">{{ total_reviewers }}</div>
+        <div class="lbl">Reviewers</div>
+      </div>
+      <div class="stat-box">
+        <div class="val">{{ total_teams }}</div>
+        <div class="lbl">Teams</div>
+      </div>
+      <div class="stat-box">
+        <div class="val {% if overdue %}red{% endif %}">{{ overdue }}</div>
+        <div class="lbl">Overdue Milestones</div>
+      </div>
+      <div class="stat-box">
+        <div class="val {% if pending_grades %}orange{% endif %}">{{ pending_grades }}</div>
+        <div class="lbl">Pending Grades</div>
+      </div>
+    </div>
+
+    <!-- Recent users -->
+    <div class="card">
+      <div class="card-hdr">
+        <span class="card-title">Recent Users</span>
+        <button class="btn btn-out" onclick="showPanel('users', document.querySelectorAll('.nav-tab')[1])">View All →</button>
+      </div>
+      <table class="gt">
+        <thead>
+          <tr>
+            <th>Name</th><th>Role</th><th>Department</th><th>Joined</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for u in users|slice:":8" %}
+          <tr>
+            <td>
+              <div style="font-weight:600;">{{ u.full_name|default:u.username }}</div>
+              <div style="font-size:.75rem;color:var(--muted);">{{ u.email }}</div>
+            </td>
+            <td>
+              {% if u.role == 'administrator' %}
+                <span class="badge b-purple">Admin</span>
+              {% elif u.role == 'supervisor' %}
+                <span class="badge b-blue">Supervisor{% if u.can_review %} + Reviewer{% endif %}</span>
+              {% elif u.role == 'reviewer' %}
+                <span class="badge b-orange">Reviewer</span>
+              {% else %}
+                <span class="badge b-gray">Student</span>
+              {% endif %}
+            </td>
+            <td>{{ u.department|default:"—" }}</td>
+            <td>{{ u.date_joined|date:"M d, Y" }}</td>
+          </tr>
+          {% empty %}
+          <tr><td colspan="4"><div class="empty"><div class="ei">👤</div>No users yet.</div></td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- PANEL: USERS -->
+  <div class="panel" id="panel-users">
+    <div class="ph">
+      <div>
+        <h1>Users</h1>
+        <p>All registered accounts</p>
+      </div>
+      <a href="{% url 'admin:accounts_user_add' %}" class="btn btn-blue">+ Add User</a>
+    </div>
+
+    <div class="card">
+      <table class="gt">
+        <thead>
+          <tr>
+            <th>Name</th><th>Username</th><th>Role</th><th>Department</th><th>Student ID</th><th>Status</th><th>Joined</th><th></th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for u in users %}
+          <tr>
+            <td>
+              <div style="font-weight:600;">{{ u.full_name|default:"—" }}</div>
+              <div style="font-size:.75rem;color:var(--muted);">{{ u.email }}</div>
+            </td>
+            <td>{{ u.username }}</td>
+            <td>
+              {% if u.role == 'administrator' %}
+                <span class="badge b-purple">Admin</span>
+              {% elif u.role == 'supervisor' %}
+                <span class="badge b-blue">Supervisor{% if u.can_review %} + R{% endif %}</span>
+              {% elif u.role == 'reviewer' %}
+                <span class="badge b-orange">Reviewer</span>
+              {% else %}
+                <span class="badge b-gray">Student</span>
+              {% endif %}
+            </td>
+            <td>{{ u.department|default:"—" }}</td>
+            <td>{{ u.student_id|default:"—" }}</td>
+            <td>
+              {% if u.is_active %}
+                <span class="badge b-green">Active</span>
+              {% else %}
+                <span class="badge b-red">Inactive</span>
+              {% endif %}
+            </td>
+            <td>{{ u.date_joined|date:"M d, Y" }}</td>
+            <td><a href="{% url 'accounts:edit_user' u.pk %}" class="btn btn-out">Edit</a></td>
+          </tr>
+          {% empty %}
+          <tr><td colspan="8"><div class="empty"><div class="ei">👤</div>No users found.</div></td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- PANEL: TEAMS -->
+  <div class="panel" id="panel-teams">
+    <div class="ph">
+      <div>
+        <h1>Teams</h1>
+        <p>All registered teams</p>
+      </div>
+    </div>
+
+    <div class="card">
+      <table class="gt">
+        <thead>
+          <tr>
+            <th>Team Name</th><th>Project</th><th>Members</th><th>Created</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for t in teams %}
+          <tr>
+            <td style="font-weight:600;">{{ t.name }}</td>
+            <td>
+              {% if t.project %}
+                <div style="font-weight:500;">{{ t.project.title|truncatechars:40 }}</div>
+                <span class="badge b-blue">{{ t.project.get_status_display }}</span>
+              {% else %}
+                <span style="color:var(--muted);">No project</span>
+              {% endif %}
+            </td>
+            <td>{{ t.memberships.count }}</td>
+            <td>{{ t.created_at|date:"M d, Y" }}</td>
+          </tr>
+          {% empty %}
+          <tr><td colspan="4"><div class="empty"><div class="ei">👥</div>No teams yet.</div></td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- PANEL: PROJECTS -->
+  <div class="panel" id="panel-projects">
+    <div class="ph">
+      <div>
+        <h1>Projects</h1>
+        <p>All graduation projects</p>
+      </div>
+    </div>
+
+    <div class="card">
+      <table class="gt">
+        <thead>
+          <tr>
+            <th>Title</th><th>Team</th><th>Supervisor</th><th>Reviewer</th><th>Status</th><th>Created</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for p in projects %}
+          <tr>
+            <td>
+              <div style="font-weight:600;">{{ p.title|truncatechars:40 }}</div>
+            </td>
+            <td>{{ p.team.name }}</td>
+            <td>{{ p.supervisor.full_name|default:p.supervisor.username|default:"—" }}</td>
+            <td>{{ p.reviewer.full_name|default:p.reviewer.username|default:"—" }}</td>
+            <td>
+              {% if p.status == 'active' %}
+                <span class="badge b-green">Active</span>
+              {% elif p.status == 'completed' %}
+                <span class="badge b-blue">Completed</span>
+              {% elif p.status == 'draft' %}
+                <span class="badge b-gray">Draft</span>
+              {% else %}
+                <span class="badge b-orange">{{ p.get_status_display }}</span>
+              {% endif %}
+            </td>
+            <td>{{ p.created_at|date:"M d, Y" }}</td>
+          </tr>
+          {% empty %}
+          <tr><td colspan="6"><div class="empty"><div class="ei">📁</div>No projects yet.</div></td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- PANEL: MILESTONES -->
+  <div class="panel" id="panel-milestones">
+    <div class="ph">
+      <div>
+        <h1>Milestones</h1>
+        <p>{% if overdue %}<span style="color:var(--red);font-weight:600;">{{ overdue }} overdue</span> — {% endif %}All project milestones</p>
+      </div>
+    </div>
+
+    <div class="card">
+      <table class="gt">
+        <thead>
+          <tr>
+            <th>Title</th><th>Project</th><th>Type</th><th>Due Date</th><th>Status</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for m in milestones %}
+          <tr>
+            <td style="font-weight:600;">{{ m.title }}</td>
+            <td>{{ m.project.title|truncatechars:30 }}</td>
+            <td>
+              {% if m.type == 'mid' %}
+                <span class="badge b-purple">Mid Review</span>
+              {% elif m.type == 'final' %}
+                <span class="badge b-orange">Final Review</span>
+              {% else %}
+                <span class="badge b-gray">Regular</span>
+              {% endif %}
+            </td>
+            <td>{{ m.due_date|date:"M d, Y" }}</td>
+            <td>
+              {% if m.status == 'approved' %}
+                <span class="badge b-green">Approved</span>
+              {% elif m.status == 'submitted' %}
+                <span class="badge b-blue">Submitted</span>
+              {% elif m.status == 'overdue' %}
+                <span class="badge b-red">Overdue</span>
+              {% elif m.status == 'in_progress' %}
+                <span class="badge b-orange">In Progress</span>
+              {% else %}
+                <span class="badge b-gray">Pending</span>
+              {% endif %}
+            </td>
+          </tr>
+          {% empty %}
+          <tr><td colspan="5"><div class="empty"><div class="ei">📋</div>No milestones yet.</div></td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- PANEL: SUBMISSIONS -->
+  <div class="panel" id="panel-submissions">
+    <div class="ph">
+      <div>
+        <h1>Submissions</h1>
+        <p>Latest submissions per milestone</p>
+      </div>
+    </div>
+
+    <div class="card">
+      <table class="gt">
+        <thead>
+          <tr>
+            <th>Milestone</th><th>Submitted By</th><th>Version</th><th>Submitted At</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for s in submissions %}
+          <tr>
+            <td>
+              <div style="font-weight:600;">{{ s.milestone.title }}</div>
+              <div style="font-size:.75rem;color:var(--muted);">{{ s.milestone.project.title|truncatechars:30 }}</div>
+            </td>
+            <td>{{ s.submitted_by.full_name|default:s.submitted_by.username }}</td>
+            <td><span class="badge b-blue">v{{ s.version }}</span></td>
+            <td>{{ s.submitted_at|date:"M d, Y g:i A" }}</td>
+          </tr>
+          {% empty %}
+          <tr><td colspan="4"><div class="empty"><div class="ei">📤</div>No submissions yet.</div></td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- PANEL: GRADES -->
+  <div class="panel" id="panel-grades">
+    <div class="ph">
+      <div>
+        <h1>Grades</h1>
+        <p>{% if pending_grades %}<span style="color:var(--orange);font-weight:600;">{{ pending_grades }} pending</span> — {% endif %}All project grades</p>
+      </div>
+    </div>
+
+    <div class="card">
+      <table class="gt">
+        <thead>
+          <tr>
+            <th>Project</th><th>Type</th><th>Supervisor</th><th>Reviewer</th><th>Final</th><th>Grade</th><th>Date</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for g in grades %}
+          <tr>
+            <td>
+              <div style="font-weight:600;">{{ g.project.title|truncatechars:30 }}</div>
+              <div style="font-size:.75rem;color:var(--muted);">{{ g.project.team.name }}</div>
+            </td>
+            <td>
+              {% if g.type == 'mid' %}
+                <span class="badge b-purple">Mid</span>
+              {% else %}
+                <span class="badge b-orange">Final</span>
+              {% endif %}
+            </td>
+            <td>{{ g.supervisor_score|default:"—" }}</td>
+            <td>{{ g.reviewer_score|default:"—" }}</td>
+            <td>
+              {% if g.final_score %}
+                <strong>{{ g.final_score }}</strong>
+              {% else %}
+                <span class="badge b-orange">Pending</span>
+              {% endif %}
+            </td>
+            <td>
+              {% if g.letter_grade %}
+                <span class="badge b-green">{{ g.letter_grade }}</span>
+              {% else %}
+                <span style="color:var(--muted);">—</span>
+              {% endif %}
+            </td>
+            <td>{{ g.graded_at|date:"M d, Y" }}</td>
+          </tr>
+          {% empty %}
+          <tr><td colspan="7"><div class="empty"><div class="ei">📊</div>No grades recorded yet.</div></td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+</div><!-- /page -->
+
+<script>
+  function showPanel(id, btn) {
+    document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+    document.querySelectorAll('.nav-tab').forEach(t => t.classList.remove('active'));
+    document.getElementById('panel-' + id).classList.add('active');
+    if (btn) btn.classList.add('active');
+  }
+</script>
+
+</body>
+</html>
