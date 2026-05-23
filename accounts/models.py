@@ -14,10 +14,13 @@ class User(AbstractUser):
     student_id = models.CharField(max_length=20, blank=True, null=True, unique=True)
     department = models.CharField(max_length=100, blank=True)
     avatar     = models.ImageField(upload_to='avatars/', blank=True, null=True)
-    can_review = models.BooleanField(default=False)
-    expertise  = models.TextField(blank=True)
-    max_teams  = models.PositiveIntegerField(default=2)
-    available  = models.BooleanField(default=True)
+    can_review    = models.BooleanField(default=False)
+    expertise     = models.TextField(blank=True)
+    max_teams     = models.PositiveIntegerField(default=2)
+    available     = models.BooleanField(default=True)
+    bio           = models.TextField(blank=True)
+    office_hours  = models.CharField(max_length=200, blank=True)
+    past_projects = models.TextField(blank=True)
 
     def is_student(self):       return self.role == 'student'
     def is_supervisor(self):    return self.role == 'supervisor'

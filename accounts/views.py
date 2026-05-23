@@ -28,6 +28,36 @@ def logout_view(request):
 
 
 @login_required
+def supervisor_profile(request):
+    if not request.user.is_supervisor():
+        return redirect('dashboard:index')
+    user = request.user
+    if request.method == 'POST':
+        user.bio          = request.POST.get('bio', '').strip()
+        user.expertise    = request.POST.get('expertise', '').strip()
+        user.office_hours = request.POST.get('office_hours', '').strip()
+        user.past_projects = request.POST.get('past_projects', '').strip()
+        user.available    = 'available' in request.POST
+        user.max_teams    = int(request.POST.get('max_teams', user.max_teams) or user.max_teams)
+        user.save()
+        messages.success(request, 'Profile updated.')
+        return redirect('accounts:supervisor_profile')
+    return render(request, 'accounts/supervisor_profile.html', {'user': user})
+
+
+@login_required
+def supervisor_list(request):
+    supervisors = User.objects.filter(role='supervisor').order_by('full_name')
+    return render(request, 'accounts/supervisor_list.html', {'supervisors': supervisors})
+
+
+@login_required
+def supervisor_detail(request, user_id):
+    supervisor = get_object_or_404(User, pk=user_id, role='supervisor')
+    return render(request, 'accounts/supervisor_detail.html', {'supervisor': supervisor})
+
+
+@login_required
 def edit_user(request, user_id):
     if not request.user.is_administrator():
         return redirect('dashboard:index')

@@ -9,6 +9,7 @@ class Notification(models.Model):
         ('meeting',  'Meeting'),
         ('approval', 'Approval'),
         ('risk',     'Risk Alert'),
+        ('invite',   'Team Invite'),
         ('general',  'General'),
     ]
     recipient  = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE,

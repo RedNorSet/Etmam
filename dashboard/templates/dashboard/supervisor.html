@@ -57,6 +57,10 @@
     </nav>
 
     <div class="sidebar-bottom">
+      <a href="{% url 'accounts:supervisor_profile' %}" class="nav-item" style="display:flex;align-items:center;gap:.75rem;padding:.65rem 1rem;text-decoration:none;color:inherit;">
+        <span class="nav-icon">✏️</span>
+        <span class="nav-label">Edit Profile</span>
+      </a>
       <form method="post" action="{% url 'accounts:logout' %}">
         {% csrf_token %}
         <button type="submit" class="nav-item" style="color:#ef4444;background:none;border:none;cursor:pointer;width:100%;">
@@ -201,7 +205,6 @@
           <h2>My Teams</h2>
         </div>
 
-        <!-- Pending supervision requests -->
         {% if pending_req %}
         <div class="teams-group-label">📬 Pending Supervision Requests</div>
         {% for req in pending_req %}
@@ -209,20 +212,26 @@
           <div class="team-row-icon" style="background:linear-gradient(135deg,#d97706,#b45309)">📬</div>
           <div class="team-row-info">
             <div class="team-row-name">{{ req.team.name }}</div>
-            <div class="team-row-sub">Requesting supervision · {{ req.team.memberships.count }} members</div>
+            <div class="team-row-sub" style="font-weight:600;">{{ req.title }}</div>
+            <div class="team-row-sub" style="margin-top:4px;opacity:.8;">{{ req.pitch|truncatechars:120 }}</div>
           </div>
           <div class="team-row-right">
             <span class="card-status-tag tag-pending" style="position:static;">Pending</span>
-            <div style="display:inline-flex;gap:.5rem;">
-              <button class="btn btn-primary btn-sm" disabled title="Coming soon">✓ Accept</button>
-              <button class="btn btn-outline btn-sm" style="border-color:#ef4444;color:#ef4444;" disabled title="Coming soon">✕ Decline</button>
+            <div style="display:inline-flex;gap:.5rem;margin-top:.5rem;">
+              <form method="post" action="{% url 'projects:accept_supervision' req.pk %}">
+                {% csrf_token %}
+                <button type="submit" class="btn btn-primary btn-sm">✔ Accept</button>
+              </form>
+              <form method="post" action="{% url 'projects:decline_supervision' req.pk %}">
+                {% csrf_token %}
+                <button type="submit" class="btn btn-outline btn-sm" style="border-color:#ef4444;color:#ef4444;">✕ Decline</button>
+              </form>
             </div>
           </div>
         </div>
         {% endfor %}
         {% endif %}
 
-        <!-- Teams supervised -->
         {% if supervised %}
         <div class="teams-group-label">🎓 Teams I Supervise</div>
         {% for proj in supervised %}
@@ -239,7 +248,6 @@
         {% endfor %}
         {% endif %}
 
-        <!-- Teams reviewed (if can_review) -->
         {% if user.can_review and reviewed %}
         <div class="teams-group-label">📋 Teams I Review</div>
         {% for proj in reviewed %}
@@ -260,7 +268,7 @@
         <div class="team-card-big" style="text-align:center;padding:3rem 2rem;">
           <div style="font-size:3rem;margin-bottom:1rem;">👥</div>
           <h3 style="margin-bottom:.5rem;">No Teams Yet</h3>
-          <p style="color:var(--text-muted);">You haven't been assigned any teams yet.</p>
+          <p style="color:var(--text-muted);">You have not been assigned any teams yet.</p>
         </div>
         {% endif %}
 
@@ -352,9 +360,9 @@
 
       </section>
 
-    </div><!-- /dash-body -->
-  </div><!-- /dash-main -->
-</div><!-- /dash-layout -->
+    </div>
+  </div>
+</div>
 {% endblock %}
 
 {% block extra_js %}

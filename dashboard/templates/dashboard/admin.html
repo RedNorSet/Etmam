@@ -277,7 +277,7 @@
       <table class="gt">
         <thead>
           <tr>
-            <th>Team Name</th><th>Project</th><th>Members</th><th>Created</th>
+            <th>Team Name</th><th>Project</th><th>Members</th><th>Created</th><th></th>
           </tr>
         </thead>
         <tbody>
@@ -294,9 +294,22 @@
             </td>
             <td>{{ t.memberships.count }}</td>
             <td>{{ t.created_at|date:"M d, Y" }}</td>
+            <td>
+              {% if t.is_active %}
+              <form method="post" action="{% url 'teams:dissolve' t.pk %}" style="display:inline;">
+                {% csrf_token %}
+                <button type="submit" class="btn btn-red-out"
+                  onclick="return confirm('Dissolve team {{ t.name }}? This removes all members.')">
+                  Dissolve
+                </button>
+              </form>
+              {% else %}
+                <span class="badge b-gray">Dissolved</span>
+              {% endif %}
+            </td>
           </tr>
           {% empty %}
-          <tr><td colspan="4"><div class="empty"><div class="ei">👥</div>No teams yet.</div></td></tr>
+          <tr><td colspan="5"><div class="empty"><div class="ei">👥</div>No teams yet.</div></td></tr>
           {% endfor %}
         </tbody>
       </table>
@@ -316,7 +329,7 @@
       <table class="gt">
         <thead>
           <tr>
-            <th>Title</th><th>Team</th><th>Supervisor</th><th>Reviewer</th><th>Status</th><th>Created</th>
+            <th>Title</th><th>Team</th><th>Supervisor</th><th>Reviewer</th><th>Status</th><th>Created</th><th></th>
           </tr>
         </thead>
         <tbody>
@@ -326,8 +339,20 @@
               <div style="font-weight:600;">{{ p.title|truncatechars:40 }}</div>
             </td>
             <td>{{ p.team.name }}</td>
-            <td>{{ p.supervisor.full_name|default:p.supervisor.username|default:"—" }}</td>
-            <td>{{ p.reviewer.full_name|default:p.reviewer.username|default:"—" }}</td>
+            <td>
+              {% if p.supervisor %}
+                {{ p.supervisor.full_name|default:p.supervisor.username }}
+              {% else %}
+                <span style="color:var(--muted);">—</span>
+              {% endif %}
+            </td>
+            <td>
+              {% if p.reviewer %}
+                {{ p.reviewer.full_name|default:p.reviewer.username }}
+              {% else %}
+                <span style="color:var(--muted);">—</span>
+              {% endif %}
+            </td>
             <td>
               {% if p.status == 'active' %}
                 <span class="badge b-green">Active</span>
@@ -340,9 +365,31 @@
               {% endif %}
             </td>
             <td>{{ p.created_at|date:"M d, Y" }}</td>
+            <td style="white-space:nowrap;">
+              {% if p.supervisor %}
+              <form method="post" action="{% url 'projects:remove_supervisor' p.pk %}" style="display:inline;">
+                {% csrf_token %}
+                <button type="submit" class="btn btn-red-out btn-sm"
+                  onclick="return confirm('Remove supervisor from {{ p.title }}?')"
+                  style="font-size:.72rem;padding:4px 8px;">
+                  - Supervisor
+                </button>
+              </form>
+              {% endif %}
+              {% if p.reviewer %}
+              <form method="post" action="{% url 'projects:remove_reviewer' p.pk %}" style="display:inline;margin-left:4px;">
+                {% csrf_token %}
+                <button type="submit" class="btn btn-red-out btn-sm"
+                  onclick="return confirm('Remove reviewer from {{ p.title }}?')"
+                  style="font-size:.72rem;padding:4px 8px;">
+                  - Reviewer
+                </button>
+              </form>
+              {% endif %}
+            </td>
           </tr>
           {% empty %}
-          <tr><td colspan="6"><div class="empty"><div class="ei">📁</div>No projects yet.</div></td></tr>
+          <tr><td colspan="7"><div class="empty"><div class="ei">📁</div>No projects yet.</div></td></tr>
           {% endfor %}
         </tbody>
       </table>

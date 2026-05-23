@@ -27,9 +27,10 @@ def index(request):
 @login_required
 def student_dashboard(request):
     user        = request.user
-    membership  = TeamMember.objects.filter(user=user).select_related('team').first()
-    team        = membership.team if membership else None
-    team_members = TeamMember.objects.filter(team=team).select_related('user') if team else []
+    membership     = TeamMember.objects.filter(user=user, status='active').select_related('team').first()
+    team           = membership.team if membership else None
+    team_members   = TeamMember.objects.filter(team=team, status='active').select_related('user') if team else []
+    pending_invite = TeamMember.objects.filter(user=user, status='pending').select_related('team').first()
 
     project    = getattr(team, 'project', None) if team else None
     milestones = project.milestones.all() if project else []
@@ -42,16 +43,17 @@ def student_dashboard(request):
     pending_request = SupervisionRequest.objects.filter(team=team, status='pending').first() if team else None
 
     return render(request, 'dashboard/student.html', {
-        'membership':     membership,
-        'team':           team,
-        'team_members':   team_members,
-        'project':        project,
-        'milestones':     milestones,
-        'notifications':  notifications,
-        'unread_count':   unread_count,
-        'upcoming':       upcoming,
-        'past_meetings':  past_meetings,
-        'supervisors':    supervisors,
+        'membership':      membership,
+        'team':            team,
+        'team_members':    team_members,
+        'pending_invite':  pending_invite,
+        'project':         project,
+        'milestones':      milestones,
+        'notifications':   notifications,
+        'unread_count':    unread_count,
+        'upcoming':        upcoming,
+        'past_meetings':   past_meetings,
+        'supervisors':     supervisors,
         'pending_request': pending_request,
     })
 

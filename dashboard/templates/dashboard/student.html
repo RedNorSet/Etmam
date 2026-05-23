@@ -257,23 +257,79 @@
         <div class="section-hdr" style="margin-top:1.5rem;">
           <h2>Invite a Member</h2>
         </div>
-        <form method="post" action="{% url 'teams:invite' %}" style="display:flex;gap:.75rem;align-items:flex-end;max-width:480px;">
+
+        <style>
+          .invite-wrap { position:relative; max-width:520px; }
+          .invite-row { display:flex; gap:.75rem; align-items:center; }
+          .invite-row .input-wrap { flex:1; margin:0; }
+          .search-dropdown { position:absolute; left:0; right:80px; top:calc(100% + 4px); z-index:100; background:var(--sidebar-bg); border:1px solid var(--nav-border); border-radius:10px; overflow:hidden; box-shadow:0 8px 24px rgba(0,0,0,.35); }
+          .search-option { display:flex; align-items:center; gap:.75rem; padding:.65rem 1rem; cursor:pointer; transition:background .15s; }
+          .search-option:hover { background:rgba(255,255,255,.06); }
+          .search-option-avatar { width:32px; height:32px; border-radius:8px; background:linear-gradient(135deg,#2563eb,#7c3aed); display:grid; place-items:center; font-size:.8rem; font-weight:700; color:white; flex-shrink:0; }
+          .search-option-name { font-size:.85rem; font-weight:600; }
+          .search-option-meta { font-size:.73rem; color:var(--text-muted); }
+          .invite-selected-tag { font-size:.8rem; color:#22c55e; margin-top:.4rem; min-height:1rem; }
+        </style>
+
+        <form method="post" action="{% url 'teams:invite' %}" autocomplete="off">
           {% csrf_token %}
-          <div class="form-group" style="flex:1;margin-bottom:0;">
-            <label>Student Username</label>
-            <div class="input-wrap">
-              <span class="input-icon">👤</span>
-              <input type="text" name="username" placeholder="Enter their username" required />
+          <input type="hidden" name="username" id="invite-username-val" />
+          <div class="invite-wrap">
+            <div class="invite-row">
+              <div class="input-wrap">
+                <span class="input-icon">🔍</span>
+                <input type="text" id="invite-search-input" placeholder="Type a student's name..."
+                  name="q"
+                  hx-get="{% url 'teams:search_students' %}"
+                  hx-trigger="keyup changed delay:300ms"
+                  hx-target="#invite-search-results"
+                  oninput="document.getElementById('invite-username-val').value='';document.getElementById('invite-selected').textContent='';"
+                />
+              </div>
+              <button type="submit" class="btn btn-primary" style="white-space:nowrap;flex-shrink:0;">+ Send Invite</button>
             </div>
+            <div id="invite-search-results"></div>
+            <div class="invite-selected-tag" id="invite-selected"></div>
           </div>
-          <button type="submit" class="btn btn-primary btn-sm" style="height:46px;padding:0 1.25rem;">+ Add</button>
         </form>
 
+        <script>
+          function selectStudent(username, displayName) {
+            document.getElementById('invite-username-val').value = username;
+            document.getElementById('invite-search-input').value = displayName;
+            document.getElementById('invite-selected').textContent = 'Selected: ' + displayName;
+            document.getElementById('invite-search-results').innerHTML = '';
+          }
+        </script>
+
         {% else %}
-        <!-- No team — show create form -->
+        <!-- No team — check for pending invite first -->
         <div class="section-hdr">
           <h2>My Team</h2>
         </div>
+
+        {% if pending_invite %}
+        <!-- Pending invite card -->
+        <div class="team-card-big" style="text-align:center;padding:2.5rem 2rem;margin-bottom:1.5rem;border:2px solid rgba(37,99,235,.4);">
+          <div style="font-size:2.5rem;margin-bottom:.75rem;">📬</div>
+          <h3 style="margin-bottom:.4rem;">Team Invitation</h3>
+          <p style="color:var(--text-muted);margin-bottom:1.5rem;">
+            You have been invited to join <strong>{{ pending_invite.team.name }}</strong>.
+          </p>
+          <div style="display:flex;gap:.75rem;justify-content:center;flex-wrap:wrap;">
+            <form method="post" action="{% url 'teams:accept_invite' pending_invite.pk %}">
+              {% csrf_token %}
+              <button type="submit" class="btn btn-primary">Accept</button>
+            </form>
+            <form method="post" action="{% url 'teams:decline_invite' pending_invite.pk %}">
+              {% csrf_token %}
+              <button type="submit" class="btn btn-outline" style="border-color:#ef4444;color:#ef4444;">Decline</button>
+            </form>
+          </div>
+        </div>
+
+        {% else %}
+        <!-- No invite — show create form -->
         <div class="team-card-big" style="text-align:center;padding:3rem 2rem;margin-bottom:1.5rem;">
           <div style="font-size:3rem;margin-bottom:1rem;">👥</div>
           <h3 style="margin-bottom:.5rem;">No Team Yet</h3>
@@ -287,6 +343,8 @@
             <button type="submit" class="btn btn-primary">Create Team</button>
           </form>
         </div>
+        {% endif %}
+
         {% endif %}
 
       </section>
@@ -406,7 +464,7 @@
               {% elif sup.is_at_capacity %}
                 <button class="btn btn-outline btn-sm" disabled style="opacity:.5;">Full</button>
               {% else %}
-                <button class="btn btn-outline btn-sm" disabled title="Coming soon">Request</button>
+                <button class="btn btn-outline btn-sm" onclick="openRequestModal('{{ sup.pk }}', '{{ sup.full_name|default:sup.username }}')">Request</button>
               {% endif %}
             </div>
           </div>
@@ -506,10 +564,52 @@
     </div><!-- /dash-body -->
   </div><!-- /dash-main -->
 </div><!-- /dash-layout -->
+
+<!-- Supervision Request Modal -->
+<div id="request-modal" style="display:none;position:fixed;inset:0;z-index:1000;background:rgba(0,0,0,.6);align-items:center;justify-content:center;">
+  <div style="background:#1e2433;border:1px solid rgba(255,255,255,.1);border-radius:14px;padding:28px;width:100%;max-width:480px;margin:20px;">
+    <h3 style="font-size:1rem;font-weight:700;margin-bottom:4px;">Request Supervision</h3>
+    <p id="modal-supervisor-name" style="font-size:.83rem;color:var(--text-muted);margin-bottom:20px;"></p>
+
+    <form id="request-form" method="post" action="">
+      {% csrf_token %}
+      <div class="form-group">
+        <label>Project Title</label>
+        <div class="input-wrap">
+          <input type="text" name="title" placeholder="e.g. AI-powered attendance system" required />
+        </div>
+      </div>
+      <div class="form-group" style="margin-top:12px;">
+        <label>Pitch — why this supervisor?</label>
+        <textarea name="pitch" rows="4" placeholder="Describe your project idea and why you'd like this supervisor..." required
+          style="width:100%;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.1);border-radius:10px;padding:.75rem 1rem;color:var(--text-primary);font-family:inherit;font-size:.875rem;resize:vertical;outline:none;"></textarea>
+      </div>
+      <div style="display:flex;gap:.75rem;margin-top:20px;">
+        <button type="submit" class="btn btn-primary">Send Request</button>
+        <button type="button" class="btn btn-outline" onclick="closeRequestModal()">Cancel</button>
+      </div>
+    </form>
+  </div>
+</div>
 {% endblock %}
 
 {% block extra_js %}
 <script>
+  function openRequestModal(supervisorId, supervisorName) {
+    document.getElementById('modal-supervisor-name').textContent = 'Supervisor: ' + supervisorName;
+    document.getElementById('request-form').action = '/projects/request/' + supervisorId + '/';
+    const modal = document.getElementById('request-modal');
+    modal.style.display = 'flex';
+  }
+
+  function closeRequestModal() {
+    document.getElementById('request-modal').style.display = 'none';
+  }
+
+  document.getElementById('request-modal').addEventListener('click', function(e) {
+    if (e.target === this) closeRequestModal();
+  });
+
   const sections = {
     dashboard:     'Dashboard',
     team:          'My Team',
