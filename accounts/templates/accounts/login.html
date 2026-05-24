@@ -1,0 +1,76 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Sign In — Etmam{% endblock %}
+
+{% block content %}
+<div class="login-page">
+
+  <!-- Left panel -->
+  <div class="login-panel">
+    <div class="login-brand">
+      <img src="{% static 'images/logo_trans.png' %}" alt="Etmam" style="height:36px;" onerror="this.style.display='none'">
+      <span>Etmam</span>
+    </div>
+    <div class="login-illustration">
+      <div class="big-icon">🎓</div>
+      <h2>Graduate Project Management</h2>
+      <p>Track milestones, collaborate with your team, and manage every stage of your graduation project — all in one platform.</p>
+      <div class="login-roles-list">
+        <span class="role-chip"><span>🎓</span> Student</span>
+        <span class="role-chip"><span>🧑‍🏫</span> Supervisor</span>
+        <span class="role-chip"><span>📋</span> Reviewer</span>
+        <span class="role-chip"><span>⚙️</span> Admin</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Right panel — form -->
+  <div class="login-form-panel">
+    <div class="login-form-header">
+      <h1>Welcome back</h1>
+      <p>Sign in to your Etmam account to continue</p>
+    </div>
+
+    {% if messages %}
+      {% for message in messages %}
+        <div style="background:rgba(239,68,68,.1);border:1px solid rgba(239,68,68,.3);color:#fca5a5;padding:.75rem 1rem;border-radius:10px;margin-bottom:1.25rem;font-size:.9rem;">
+          {{ message }}
+        </div>
+      {% endfor %}
+    {% endif %}
+
+    <form method="post" action="{% url 'accounts:login' %}">
+      {% csrf_token %}
+      {% if request.GET.next %}
+        <input type="hidden" name="next" value="{{ request.GET.next }}">
+      {% endif %}
+
+      <div class="form-group">
+        <label for="id_username">Username</label>
+        <div class="input-wrap">
+          <span class="input-icon">👤</span>
+          <input id="id_username" type="text" name="username" placeholder="Enter your username" required autofocus />
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label for="id_password">Password</label>
+        <div class="input-wrap">
+          <span class="input-icon">🔒</span>
+          <input id="id_password" type="password" name="password" placeholder="••••••••" required />
+        </div>
+      </div>
+
+      <button type="submit" class="btn btn-primary btn-full btn-lg" style="margin-top:.5rem">
+        Sign In &rarr;
+      </button>
+    </form>
+
+    <p class="login-footer-note" style="margin-top:2rem;">
+      Contact your administrator if you need an account.
+    </p>
+  </div>
+
+</div>
+{% endblock %}

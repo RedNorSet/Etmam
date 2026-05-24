@@ -1,0 +1,585 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Dashboard — Etmam{% endblock %}
+
+{% block content %}
+<div class="dash-layout">
+
+  <!-- SIDEBAR -->
+  <aside class="sidebar">
+    <div class="sidebar-brand">
+      <img src="{% static 'images/logo_trans.png' %}" alt="Etmam" style="height:28px;" onerror="this.style.display='none'">
+      <span class="brand-text">Etmam</span>
+    </div>
+
+    <div class="sidebar-user">
+      <div class="user-avatar">
+        {% if user.avatar %}
+          <img src="{{ user.avatar.url }}" alt="" style="width:100%;height:100%;object-fit:cover;border-radius:50%;">
+        {% else %}
+          🎓
+        {% endif %}
+      </div>
+      <div class="user-info">
+        <div class="user-name">{{ user.full_name|default:user.username }}</div>
+        <div class="user-role">Student{% if user.department %} · {{ user.department }}{% endif %}</div>
+      </div>
+    </div>
+
+    <nav class="sidebar-nav">
+      <span class="nav-section-label">Main</span>
+
+      <button class="nav-item active" onclick="showSection('dashboard', this)">
+        <span class="nav-icon">🏠</span>
+        <span class="nav-label">Dashboard</span>
+      </button>
+
+      <button class="nav-item" onclick="showSection('team', this)">
+        <span class="nav-icon">👥</span>
+        <span class="nav-label">My Team</span>
+      </button>
+
+      <button class="nav-item" onclick="showSection('project', this)">
+        <span class="nav-icon">📁</span>
+        <span class="nav-label">My Project</span>
+      </button>
+
+      <button class="nav-item" onclick="showSection('supervisors', this)">
+        <span class="nav-icon">🧑‍🏫</span>
+        <span class="nav-label">Supervisors</span>
+      </button>
+
+      <span class="nav-section-label">Other</span>
+
+      <button class="nav-item" onclick="showSection('meetings', this)">
+        <span class="nav-icon">📅</span>
+        <span class="nav-label">Meetings</span>
+      </button>
+
+      <button class="nav-item" onclick="showSection('notifications', this)">
+        <span class="nav-icon">🔔</span>
+        <span class="nav-label">Notifications</span>
+        {% if unread_count %}<span class="nav-badge">{{ unread_count }}</span>{% endif %}
+      </button>
+
+    </nav>
+
+    <div class="sidebar-bottom">
+      <form method="post" action="{% url 'accounts:logout' %}">
+        {% csrf_token %}
+        <button type="submit" class="nav-item" style="color:#ef4444;background:none;border:none;cursor:pointer;width:100%;">
+          <span class="nav-icon">🚪</span>
+          <span class="nav-label">Sign Out</span>
+        </button>
+      </form>
+    </div>
+  </aside>
+
+  <!-- MAIN -->
+  <div class="dash-main">
+
+    <header class="dash-topbar">
+      <span class="topbar-title" id="topbar-title">Dashboard</span>
+      <div class="topbar-right">
+        <button class="topbar-icon-btn" onclick="showSection('notifications', document.querySelector('[onclick*=notifications]'))">
+          🔔
+          {% if unread_count %}<span class="topbar-notif-dot"></span>{% endif %}
+        </button>
+        <div class="user-avatar" style="width:34px;height:34px;font-size:.85rem;">🎓</div>
+      </div>
+    </header>
+
+    <div class="dash-body">
+
+      <!-- SECTION: DASHBOARD -->
+      <section class="dash-section active" id="sec-dashboard">
+
+        <div class="welcome-banner">
+          <div class="welcome-text">
+            <h2>Hello, {{ user.full_name|default:user.username }} 👋</h2>
+            {% if project %}
+              <p>Project: <strong>{{ project.title }}</strong> — status: <strong>{{ project.get_status_display }}</strong></p>
+            {% else %}
+              <p>You don't have a project yet. Join a team or request a supervisor to get started.</p>
+            {% endif %}
+          </div>
+          <div class="welcome-emoji">🚀</div>
+        </div>
+
+        <div class="stats-row">
+          <div class="stat-card">
+            <div class="stat-card-icon" style="background:rgba(37,99,235,.15)">👥</div>
+            <div class="stat-card-info">
+              <div class="value">{{ team_members|length|default:"—" }}</div>
+              <div class="label">Team Members</div>
+            </div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-card-icon" style="background:rgba(16,185,129,.15)">✅</div>
+            <div class="stat-card-info">
+              <div class="value">
+                {% with done=milestones|length %}{{ done }}{% endwith %} total
+              </div>
+              <div class="label">Milestones</div>
+            </div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-card-icon" style="background:rgba(245,158,11,.15)">📋</div>
+            <div class="stat-card-info">
+              <div class="value">{{ project.get_status_display|default:"—" }}</div>
+              <div class="label">Project Status</div>
+            </div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-card-icon" style="background:rgba(124,58,237,.15)">🧑‍🏫</div>
+            <div class="stat-card-info">
+              <div class="value">{% if project.supervisor %}Assigned{% else %}—{% endif %}</div>
+              <div class="label">Supervisor</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="section-hdr">
+          <h2>Quick Overview</h2>
+          <button class="btn btn-outline btn-sm" onclick="showSection('project', document.querySelector('[onclick*=project]'))">View Project →</button>
+        </div>
+
+        <div class="cards-grid">
+
+          {% if project %}
+          <div class="dash-card" onclick="showSection('project', document.querySelector('[onclick*=project]'))">
+            <div class="card-thumb" style="background:linear-gradient(135deg,#1e3a8a,#312e81)">
+              📁
+              <span class="card-status-tag tag-active">{{ project.get_status_display }}</span>
+            </div>
+            <div class="card-body">
+              <div class="card-title">{{ project.title }}</div>
+              <div class="card-sub">{{ project.description|truncatechars:60 }}</div>
+              <div class="card-meta">
+                <span>{{ milestones|length }} milestones</span>
+              </div>
+            </div>
+          </div>
+          {% endif %}
+
+          {% if team %}
+          <div class="dash-card" onclick="showSection('team', document.querySelector('[onclick*=team]'))">
+            <div class="card-thumb" style="background:linear-gradient(135deg,#064e3b,#1e3a8a)">
+              👥
+              <span class="card-status-tag tag-open">{{ team_members|length }} Members</span>
+            </div>
+            <div class="card-body">
+              <div class="card-title">{{ team.name }}</div>
+              <div class="card-sub">{{ user.department|default:"Your Team" }}</div>
+              <div class="card-meta">
+                <span>Active</span>
+              </div>
+            </div>
+          </div>
+          {% endif %}
+
+          {% if project.supervisor %}
+          <div class="dash-card" onclick="showSection('supervisors', document.querySelector('[onclick*=supervisors]'))">
+            <div class="card-thumb" style="background:linear-gradient(135deg,#4c1d95,#1e1b4b)">
+              🧑‍🏫
+              <span class="card-status-tag tag-done">Assigned</span>
+            </div>
+            <div class="card-body">
+              <div class="card-title">{{ project.supervisor.full_name|default:project.supervisor.username }}</div>
+              <div class="card-sub">Supervisor · {{ project.supervisor.department|default:"" }}</div>
+              <div class="card-meta">
+                <span>{{ project.supervisor.current_load }} team(s) supervised</span>
+              </div>
+            </div>
+          </div>
+          {% endif %}
+
+          <div class="dash-card" onclick="showSection('notifications', document.querySelector('[onclick*=notifications]'))">
+            <div class="card-thumb" style="background:linear-gradient(135deg,#7c2d12,#78350f)">
+              🔔
+              <span class="card-status-tag tag-pending">{{ unread_count }} New</span>
+            </div>
+            <div class="card-body">
+              <div class="card-title">Notifications</div>
+              <div class="card-sub">{% if unread_count %}{{ unread_count }} unread alert{{ unread_count|pluralize }}{% else %}All caught up{% endif %}</div>
+              <div class="card-meta">
+                {% if notifications %}<span>{{ notifications.0.created_at|timesince }} ago</span>{% endif %}
+              </div>
+            </div>
+          </div>
+
+        </div>
+      </section>
+
+      <!-- SECTION: MY TEAM -->
+      <section class="dash-section" id="sec-team">
+
+        {% if team %}
+        <div class="section-hdr">
+          <h2>My Team</h2>
+        </div>
+
+        <div class="team-card-big">
+          <div class="team-name-row">
+            <h3>🏷️ {{ team.name }}</h3>
+            <span class="card-status-tag tag-active" style="position:static">Active</span>
+          </div>
+          <div class="member-list">
+            {% for m in team_members %}
+            <div class="member-row">
+              <div class="member-avatar" style="background:linear-gradient(135deg,#2563eb,#7c3aed)">👤</div>
+              <div>
+                <div class="member-name">{{ m.user.full_name|default:m.user.username }}</div>
+                <div class="member-id">{{ m.user.student_id|default:"" }}{% if m.user.department %} · {{ m.user.department }}{% endif %}</div>
+              </div>
+              {% if m.user == user %}
+                <span class="member-role-badge badge-leader">You ({{ m.role }})</span>
+              {% else %}
+                <span class="member-role-badge badge-member">{{ m.role|capfirst }}</span>
+                {% if membership.role == 'leader' %}
+                <form method="post" action="{% url 'teams:remove_member' m.pk %}" style="margin-left:.5rem;">
+                  {% csrf_token %}
+                  <button type="submit" class="btn btn-outline btn-sm"
+                    style="border-color:#ef4444;color:#ef4444;padding:.25rem .6rem;"
+                    onclick="return confirm('Remove {{ m.user.full_name|default:m.user.username }} from the team?')">
+                    ✕
+                  </button>
+                </form>
+                {% endif %}
+              {% endif %}
+            </div>
+            {% endfor %}
+          </div>
+        </div>
+
+        <!-- Invite member -->
+        <div class="section-hdr" style="margin-top:1.5rem;">
+          <h2>Invite a Member</h2>
+        </div>
+
+        <style>
+          .invite-wrap { position:relative; max-width:520px; }
+          .invite-row { display:flex; gap:.75rem; align-items:center; }
+          .invite-row .input-wrap { flex:1; margin:0; }
+          .search-dropdown { position:absolute; left:0; right:80px; top:calc(100% + 4px); z-index:100; background:var(--sidebar-bg); border:1px solid var(--nav-border); border-radius:10px; overflow:hidden; box-shadow:0 8px 24px rgba(0,0,0,.35); }
+          .search-option { display:flex; align-items:center; gap:.75rem; padding:.65rem 1rem; cursor:pointer; transition:background .15s; }
+          .search-option:hover { background:rgba(255,255,255,.06); }
+          .search-option-avatar { width:32px; height:32px; border-radius:8px; background:linear-gradient(135deg,#2563eb,#7c3aed); display:grid; place-items:center; font-size:.8rem; font-weight:700; color:white; flex-shrink:0; }
+          .search-option-name { font-size:.85rem; font-weight:600; }
+          .search-option-meta { font-size:.73rem; color:var(--text-muted); }
+          .invite-selected-tag { font-size:.8rem; color:#22c55e; margin-top:.4rem; min-height:1rem; }
+        </style>
+
+        <form method="post" action="{% url 'teams:invite' %}" autocomplete="off">
+          {% csrf_token %}
+          <input type="hidden" name="username" id="invite-username-val" />
+          <div class="invite-wrap">
+            <div class="invite-row">
+              <div class="input-wrap">
+                <span class="input-icon">🔍</span>
+                <input type="text" id="invite-search-input" placeholder="Type a student's name..."
+                  name="q"
+                  hx-get="{% url 'teams:search_students' %}"
+                  hx-trigger="keyup changed delay:300ms"
+                  hx-target="#invite-search-results"
+                  oninput="document.getElementById('invite-username-val').value='';document.getElementById('invite-selected').textContent='';"
+                />
+              </div>
+              <button type="submit" class="btn btn-primary" style="white-space:nowrap;flex-shrink:0;">+ Send Invite</button>
+            </div>
+            <div id="invite-search-results"></div>
+            <div class="invite-selected-tag" id="invite-selected"></div>
+          </div>
+        </form>
+
+        <script>
+          function selectStudent(username, displayName) {
+            document.getElementById('invite-username-val').value = username;
+            document.getElementById('invite-search-input').value = displayName;
+            document.getElementById('invite-selected').textContent = 'Selected: ' + displayName;
+            document.getElementById('invite-search-results').innerHTML = '';
+          }
+        </script>
+
+        {% else %}
+        <!-- No team — check for pending invite first -->
+        <div class="section-hdr">
+          <h2>My Team</h2>
+        </div>
+
+        {% if pending_invite %}
+        <!-- Pending invite card -->
+        <div class="team-card-big" style="text-align:center;padding:2.5rem 2rem;margin-bottom:1.5rem;border:2px solid rgba(37,99,235,.4);">
+          <div style="font-size:2.5rem;margin-bottom:.75rem;">📬</div>
+          <h3 style="margin-bottom:.4rem;">Team Invitation</h3>
+          <p style="color:var(--text-muted);margin-bottom:1.5rem;">
+            You have been invited to join <strong>{{ pending_invite.team.name }}</strong>.
+          </p>
+          <div style="display:flex;gap:.75rem;justify-content:center;flex-wrap:wrap;">
+            <form method="post" action="{% url 'teams:accept_invite' pending_invite.pk %}">
+              {% csrf_token %}
+              <button type="submit" class="btn btn-primary">Accept</button>
+            </form>
+            <form method="post" action="{% url 'teams:decline_invite' pending_invite.pk %}">
+              {% csrf_token %}
+              <button type="submit" class="btn btn-outline" style="border-color:#ef4444;color:#ef4444;">Decline</button>
+            </form>
+          </div>
+        </div>
+
+        {% else %}
+        <!-- No invite — show create form -->
+        <div class="team-card-big" style="text-align:center;padding:3rem 2rem;margin-bottom:1.5rem;">
+          <div style="font-size:3rem;margin-bottom:1rem;">👥</div>
+          <h3 style="margin-bottom:.5rem;">No Team Yet</h3>
+          <p style="color:var(--text-muted);margin-bottom:1.5rem;">Create a team and invite your classmates.</p>
+          <form method="post" action="{% url 'teams:create' %}" style="display:flex;gap:.75rem;justify-content:center;flex-wrap:wrap;">
+            {% csrf_token %}
+            <div class="input-wrap" style="width:260px;">
+              <span class="input-icon">🏷️</span>
+              <input type="text" name="name" placeholder="Team name" required />
+            </div>
+            <button type="submit" class="btn btn-primary">Create Team</button>
+          </form>
+        </div>
+        {% endif %}
+
+        {% endif %}
+
+      </section>
+
+      <!-- SECTION: MY PROJECT -->
+      <section class="dash-section" id="sec-project">
+
+        <div class="section-hdr">
+          <h2>My Project</h2>
+        </div>
+
+        {% if project %}
+        <div class="team-card-big" style="margin-bottom:1.25rem">
+          <div class="team-name-row">
+            <div>
+              <h3>{{ project.title }}</h3>
+              <p style="font-size:.85rem;color:var(--text-muted);margin-top:.25rem">{{ project.description }}</p>
+            </div>
+            <span class="card-status-tag tag-active" style="position:static;white-space:nowrap">{{ project.get_status_display }}</span>
+          </div>
+          <div style="display:flex;gap:2rem;font-size:.85rem;color:var(--text-muted);flex-wrap:wrap;margin-top:1rem;">
+            {% if project.supervisor %}
+              <span>🧑‍🏫 Supervisor: {{ project.supervisor.full_name|default:project.supervisor.username }}</span>
+            {% endif %}
+            {% for r in project.reviewers.all %}
+              <span>📋 Reviewer: {{ r.full_name|default:r.username }}</span>
+            {% endfor %}
+            <span>📌 {{ milestones|length }} milestones</span>
+          </div>
+        </div>
+
+        <div class="section-hdr"><h2>Milestones</h2></div>
+        <div class="cards-grid">
+          {% for m in milestones %}
+          <div class="dash-card">
+            {% if m.status == 'approved' %}
+              <div class="card-thumb" style="background:linear-gradient(135deg,#064e3b,#065f46);font-size:2rem">
+                ✅ <span class="card-status-tag tag-done">Done</span>
+              </div>
+            {% elif m.status == 'submitted' %}
+              <div class="card-thumb" style="background:linear-gradient(135deg,#1e3a8a,#312e81);font-size:2rem">
+                📤 <span class="card-status-tag tag-active">Submitted</span>
+              </div>
+            {% elif m.status == 'overdue' %}
+              <div class="card-thumb" style="background:linear-gradient(135deg,#7f1d1d,#991b1b);font-size:2rem">
+                ⚠️ <span class="card-status-tag" style="position:static;background:rgba(239,68,68,.2);color:#fca5a5;">Overdue</span>
+              </div>
+            {% elif m.status == 'in_progress' %}
+              <div class="card-thumb" style="background:linear-gradient(135deg,#78350f,#92400e);font-size:2rem">
+                ⏳ <span class="card-status-tag tag-pending">In Progress</span>
+              </div>
+            {% else %}
+              <div class="card-thumb" style="background:linear-gradient(135deg,#1e293b,#0f172a);font-size:2rem">
+                🔒 <span class="card-status-tag tag-pending" style="background:rgba(255,255,255,.07);color:#64748b;">Pending</span>
+              </div>
+            {% endif %}
+            <div class="card-body">
+              <div class="card-title">{{ m.title }}</div>
+              <div class="card-sub">{{ m.get_type_display }}</div>
+              <div class="card-meta"><span>Due: {{ m.due_date|date:"M d, Y" }}</span></div>
+            </div>
+          </div>
+          {% empty %}
+          <p style="color:var(--text-muted);">No milestones defined yet.</p>
+          {% endfor %}
+        </div>
+
+        {% else %}
+        <div class="team-card-big" style="text-align:center;padding:3rem 2rem;">
+          <div style="font-size:3rem;margin-bottom:1rem;">📁</div>
+          <h3 style="margin-bottom:.5rem;">No Project Yet</h3>
+          <p style="color:var(--text-muted);">Your team needs a supervisor and an approved project to get started.</p>
+        </div>
+        {% endif %}
+
+      </section>
+
+      <!-- SECTION: SUPERVISORS -->
+      <section class="dash-section" id="sec-supervisors">
+
+        <div class="section-hdr">
+          <h2>Available Supervisors</h2>
+          {% if not project.supervisor and team %}
+            <span style="font-size:.85rem;color:var(--text-muted);">Request a supervisor for your team</span>
+          {% endif %}
+        </div>
+
+        {% if pending_request %}
+        <div style="background:rgba(245,158,11,.1);border:1px solid rgba(245,158,11,.3);border-radius:var(--radius);padding:1rem 1.25rem;margin-bottom:1.5rem;font-size:.9rem;color:#fcd34d;">
+          ⏳ Your supervision request is pending a response from
+          <strong>{{ pending_request.supervisor.full_name|default:pending_request.supervisor.username }}</strong>.
+        </div>
+        {% endif %}
+
+        <div class="supervisor-grid">
+          {% for sup in supervisors %}
+          <div class="supervisor-card {% if project.supervisor == sup %}{% endif %}"
+               {% if project.supervisor == sup %}style="border-color:var(--primary)"{% endif %}>
+            <div class="sup-header">
+              <div class="sup-avatar" style="background:linear-gradient(135deg,#1d4ed8,#7c3aed)">🧑‍🏫</div>
+              <div>
+                <div class="sup-name">{{ sup.full_name|default:sup.username }}</div>
+                <div class="sup-dept">{{ sup.department|default:"Faculty" }}</div>
+              </div>
+            </div>
+            {% if sup.expertise %}
+              <p class="sup-expertise">{{ sup.expertise|truncatechars:120 }}</p>
+            {% endif %}
+            <div class="sup-footer">
+              <span class="sup-slots">Load: <span>{{ sup.current_load }} / {{ sup.max_teams }}</span></span>
+              {% if project.supervisor == sup %}
+                <button class="btn btn-primary btn-sm" disabled style="opacity:.6;cursor:default;">✓ Your Supervisor</button>
+              {% elif not team %}
+                <span style="font-size:.8rem;color:var(--text-muted);">Join a team first</span>
+              {% elif pending_request %}
+                <button class="btn btn-outline btn-sm" disabled style="opacity:.5;">Request Pending</button>
+              {% elif sup.is_at_capacity %}
+                <button class="btn btn-outline btn-sm" disabled style="opacity:.5;">Full</button>
+              {% else %}
+                <button class="btn btn-outline btn-sm" onclick="openRequestModal('{{ sup.pk }}', '{{ sup.full_name|default:sup.username }}')">Request</button>
+              {% endif %}
+            </div>
+          </div>
+          {% empty %}
+          <p style="color:var(--text-muted);">No supervisors available at the moment.</p>
+          {% endfor %}
+        </div>
+
+      </section>
+
+      <!-- SECTION: MEETINGS -->
+      <section class="dash-section" id="sec-meetings">
+        {% include 'meetings/_calendar_section.html' %}
+      </section>
+
+      <!-- SECTION: NOTIFICATIONS -->
+      <section class="dash-section" id="sec-notifications">
+
+        <div class="section-hdr">
+          <h2>Notifications</h2>
+        </div>
+
+        <div class="notif-list">
+          {% for n in notifications %}
+          <a href="{% url 'notifications:open' n.pk %}" class="notif-item {% if not n.is_read %}unread{% endif %}">
+            <span class="notif-icon">🔔</span>
+            <div class="notif-body">
+              <div class="notif-title">{{ n.title }}</div>
+              <div class="notif-desc">{{ n.message }}</div>
+              <div class="notif-time">{{ n.created_at|timesince }} ago</div>
+            </div>
+          </a>
+          {% empty %}
+          <div style="text-align:center;padding:2rem;color:var(--text-muted);">No notifications yet.</div>
+          {% endfor %}
+        </div>
+
+      </section>
+
+    </div><!-- /dash-body -->
+  </div><!-- /dash-main -->
+</div><!-- /dash-layout -->
+
+<!-- Supervision Request Modal -->
+<div id="request-modal" style="display:none;position:fixed;inset:0;z-index:1000;background:rgba(0,0,0,.6);align-items:center;justify-content:center;">
+  <div style="background:#1e2433;border:1px solid rgba(255,255,255,.1);border-radius:14px;padding:28px;width:100%;max-width:480px;margin:20px;">
+    <h3 style="font-size:1rem;font-weight:700;margin-bottom:4px;">Request Supervision</h3>
+    <p id="modal-supervisor-name" style="font-size:.83rem;color:var(--text-muted);margin-bottom:20px;"></p>
+
+    <form id="request-form" method="post" action="">
+      {% csrf_token %}
+      <div class="form-group">
+        <label>Project Title</label>
+        <div class="input-wrap">
+          <input type="text" name="title" placeholder="e.g. AI-powered attendance system" required />
+        </div>
+      </div>
+      <div class="form-group" style="margin-top:12px;">
+        <label>Pitch — why this supervisor?</label>
+        <textarea name="pitch" rows="4" placeholder="Describe your project idea and why you'd like this supervisor..." required
+          style="width:100%;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.1);border-radius:10px;padding:.75rem 1rem;color:var(--text-primary);font-family:inherit;font-size:.875rem;resize:vertical;outline:none;"></textarea>
+      </div>
+      <div style="display:flex;gap:.75rem;margin-top:20px;">
+        <button type="submit" class="btn btn-primary">Send Request</button>
+        <button type="button" class="btn btn-outline" onclick="closeRequestModal()">Cancel</button>
+      </div>
+    </form>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.15/index.global.min.js"></script>
+<script src="{% static 'js/meetings_calendar.js' %}"></script>
+<script>
+  function openRequestModal(supervisorId, supervisorName) {
+    document.getElementById('modal-supervisor-name').textContent = 'Supervisor: ' + supervisorName;
+    document.getElementById('request-form').action = '/projects/request/' + supervisorId + '/';
+    const modal = document.getElementById('request-modal');
+    modal.style.display = 'flex';
+  }
+
+  function closeRequestModal() {
+    document.getElementById('request-modal').style.display = 'none';
+  }
+
+  document.getElementById('request-modal').addEventListener('click', function(e) {
+    if (e.target === this) closeRequestModal();
+  });
+
+  const sections = {
+    dashboard:     'Dashboard',
+    team:          'My Team',
+    project:       'My Project',
+    supervisors:   'Supervisors',
+    meetings:      'Meetings',
+    notifications: 'Notifications',
+  };
+
+  function showSection(id, btn) {
+    document.querySelectorAll('.dash-section').forEach(s => s.classList.remove('active'));
+    document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+    document.getElementById('sec-' + id).classList.add('active');
+    if (btn) btn.classList.add('active');
+    document.getElementById('topbar-title').textContent = sections[id] || id;
+  }
+
+  function switchTab(btn, targetId) {
+    btn.closest('.dash-section').querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    const section = btn.closest('.dash-section');
+    section.querySelectorAll('.meeting-list').forEach(l => l.style.display = 'none');
+    const target = section.querySelector('#' + targetId);
+    target.style.display = 'flex';
+    target.style.flexDirection = 'column';
+  }
+</script>
+{% endblock %}

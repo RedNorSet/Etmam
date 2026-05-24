@@ -1,0 +1,227 @@
+{% load static %}
+{# Calendar section — embedded inside the dashboard's "Meetings" section. #}
+
+<div class="section-hdr">
+  <h2>Meetings Calendar</h2>
+  {% if eligible_participants %}
+    <button type="button" class="btn btn-primary btn-sm" onclick="openScheduleModal()">
+      + Schedule Meeting
+    </button>
+  {% endif %}
+</div>
+
+{% if not eligible_participants %}
+  <div class="info-banner">
+    You need to be in a team with a project (and a supervisor) before you can schedule meetings.
+  </div>
+{% endif %}
+
+{# ── Inbox: pending invitations & open proposals ────────────────── #}
+{% if pending_invitations or pending_proposals %}
+<div class="meeting-inbox">
+
+  {% for p in pending_invitations %}
+  <div class="inbox-item">
+    <div class="inbox-icon">📅</div>
+    <div class="inbox-body">
+      <div class="inbox-title">Invitation: {{ p.meeting.title }}</div>
+      <div class="inbox-meta">
+        {{ p.meeting.datetime|date:"D, M j · g:i A" }}
+        · from {{ p.meeting.scheduled_by.full_name|default:p.meeting.scheduled_by.username }}
+      </div>
+    </div>
+    <button type="button" class="btn btn-outline btn-sm" onclick="openMeetingModal({{ p.meeting.id }})">
+      Open
+    </button>
+  </div>
+  {% endfor %}
+
+  {% for proposal in pending_proposals %}
+  <div class="inbox-item">
+    <div class="inbox-icon">🔁</div>
+    <div class="inbox-body">
+      <div class="inbox-title">Reschedule proposed: {{ proposal.meeting.title }}</div>
+      <div class="inbox-meta">
+        by {{ proposal.proposed_by.full_name|default:proposal.proposed_by.username }}
+        · {{ proposal.created_at|timesince }} ago
+      </div>
+    </div>
+    <button type="button" class="btn btn-primary btn-sm" onclick="openMeetingModal({{ proposal.meeting.id }})">
+      Choose time
+    </button>
+  </div>
+  {% endfor %}
+
+</div>
+{% endif %}
+
+{# ── Legend ─────────────────────────────────────────────────────── #}
+<div class="cal-legend">
+  <span><i style="background:#f59e0b"></i> Pending</span>
+  <span><i style="background:#10b981"></i> Confirmed</span>
+  <span><i style="background:#3b82f6"></i> Rescheduling</span>
+  <span><i style="background:#ef4444"></i> Declined</span>
+  <span><i style="background:#6b7280"></i> Cancelled</span>
+</div>
+
+{# ── Calendar mount ─────────────────────────────────────────────── #}
+<div id="meetings-calendar"></div>
+
+{# ── Modal: meeting detail (HTMX-loaded) ────────────────────────── #}
+<div id="meeting-modal" class="meeting-modal" onclick="if(event.target===this) closeMeetingModal()">
+  <div class="meeting-modal-card">
+    <button type="button" class="modal-close" onclick="closeMeetingModal()">✕</button>
+    <div id="meeting-modal-content">
+      <p class="muted" style="padding:2rem;text-align:center;">Loading…</p>
+    </div>
+  </div>
+</div>
+
+{# ── Modal: schedule new meeting ────────────────────────────────── #}
+<div id="schedule-modal" class="meeting-modal" onclick="if(event.target===this) closeScheduleModal()">
+  <div class="meeting-modal-card">
+    <button type="button" class="modal-close" onclick="closeScheduleModal()">✕</button>
+    <h3 style="font-size:1.05rem;font-weight:700;margin-bottom:1rem;">Schedule a Meeting</h3>
+
+    <form method="post" action="{% url 'meetings:create' %}">
+      {% csrf_token %}
+
+      <div class="form-group">
+        <label>Title</label>
+        <input type="text" name="title" required placeholder="e.g. Weekly check-in"
+               class="form-input">
+      </div>
+
+      <div class="form-row">
+        <div class="form-group">
+          <label>Date</label>
+          <input type="date" name="date" id="schedule-date" required class="form-input">
+        </div>
+        <div class="form-group">
+          <label>Start time</label>
+          <input type="time" name="time" id="schedule-time" required class="form-input" value="10:00">
+        </div>
+        <div class="form-group">
+          <label>Duration</label>
+          <div class="cdd" id="cdd-duration">
+            <div class="cdd-trigger">30 min <span class="cdd-arrow">▾</span></div>
+            <div class="cdd-options">
+              <div class="cdd-option" data-value="15">15 min</div>
+              <div class="cdd-option cdd-selected" data-value="30">30 min</div>
+              <div class="cdd-option" data-value="45">45 min</div>
+              <div class="cdd-option" data-value="60">1 hour</div>
+              <div class="cdd-option" data-value="90">1.5 hours</div>
+              <div class="cdd-option" data-value="120">2 hours</div>
+            </div>
+            <input type="hidden" name="duration" value="30">
+          </div>
+        </div>
+      </div>
+
+      <div class="form-row">
+        <div class="form-group">
+          <label>Importance</label>
+          <div class="cdd" id="cdd-importance">
+            <div class="cdd-trigger">Medium <span class="cdd-arrow">▾</span></div>
+            <div class="cdd-options">
+              <div class="cdd-option" data-value="low">Low</div>
+              <div class="cdd-option cdd-selected" data-value="medium">Medium</div>
+              <div class="cdd-option" data-value="high">High</div>
+            </div>
+            <input type="hidden" name="importance" value="medium">
+          </div>
+        </div>
+        <div class="form-group" style="flex:2;">
+          <label>Location (optional)</label>
+          <input type="text" name="location" class="form-input" placeholder="Room / link">
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label>Participants</label>
+        <div class="participant-picker">
+          {% for u in eligible_participants %}
+            <label class="participant-chip">
+              <input type="checkbox" name="participants" value="{{ u.id }}">
+              <span class="chip-avatar">
+                {% if u.is_supervisor %}🧑‍🏫{% else %}🎓{% endif %}
+              </span>
+              <span class="chip-text">
+                <span class="chip-name">{{ u.full_name|default:u.username }}</span>
+                <span class="chip-role muted">{{ u.get_role_display }}</span>
+              </span>
+            </label>
+          {% endfor %}
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label>Notes (optional)</label>
+        <textarea name="notes" rows="3" class="form-input" placeholder="Agenda, prep, etc."></textarea>
+      </div>
+
+      <div style="display:flex;gap:.75rem;margin-top:1rem;">
+        <button type="submit" class="btn btn-primary">Send Invitations</button>
+        <button type="button" class="btn btn-outline" onclick="closeScheduleModal()">Cancel</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+{# ── Modal: propose reschedule (2-3 slots) ──────────────────────── #}
+<div id="reschedule-modal" class="meeting-modal" onclick="if(event.target===this) closeRescheduleModal()">
+  <div class="meeting-modal-card">
+    <button type="button" class="modal-close" onclick="closeRescheduleModal()">✕</button>
+    <h3 style="font-size:1.05rem;font-weight:700;margin-bottom:.4rem;">Propose New Times</h3>
+    <p class="muted small" style="margin-bottom:1rem;">Pick 2 or 3 alternative times. The organizer will choose one.</p>
+
+    <form method="post" id="reschedule-form" action="">
+      {% csrf_token %}
+      <div class="form-group">
+        <label>Option 1</label>
+        <input type="datetime-local" name="slots" required class="form-input reschedule-slot">
+      </div>
+      <div class="form-group">
+        <label>Option 2</label>
+        <input type="datetime-local" name="slots" required class="form-input reschedule-slot">
+      </div>
+      <div class="form-group">
+        <label>Option 3 <span class="muted small">(optional)</span></label>
+        <input type="datetime-local" name="slots" class="form-input reschedule-slot">
+      </div>
+
+      <div style="display:flex;gap:.75rem;margin-top:1rem;">
+        <button type="submit" class="btn btn-primary">Send Proposal</button>
+        <button type="button" class="btn btn-outline" onclick="closeRescheduleModal()">Cancel</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<script>
+document.querySelectorAll('.cdd').forEach(function(cdd) {
+  var trigger = cdd.querySelector('.cdd-trigger');
+  var options = cdd.querySelectorAll('.cdd-option');
+  var hidden  = cdd.querySelector('input[type=hidden]');
+
+  trigger.addEventListener('click', function(e) {
+    e.stopPropagation();
+    document.querySelectorAll('.cdd.open').forEach(function(o) { if (o !== cdd) o.classList.remove('open'); });
+    cdd.classList.toggle('open');
+  });
+
+  options.forEach(function(opt) {
+    opt.addEventListener('click', function() {
+      options.forEach(function(o) { o.classList.remove('cdd-selected'); });
+      opt.classList.add('cdd-selected');
+      hidden.value = opt.dataset.value;
+      trigger.childNodes[0].textContent = opt.textContent + ' ';
+      cdd.classList.remove('open');
+    });
+  });
+});
+
+document.addEventListener('click', function() {
+  document.querySelectorAll('.cdd.open').forEach(function(o) { o.classList.remove('open'); });
+});
+</script>

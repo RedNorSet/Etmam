@@ -1,0 +1,164 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>{{ project.team.name }} — Etmam</title>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap');
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root { --bg:#f4f6fb; --white:#fff; --blue:#2563eb; --border:#e2e8f0; --text:#0f172a; --muted:#64748b; --r:10px; }
+    body { font-family:'Plus Jakarta Sans',system-ui,sans-serif; background:var(--bg); color:var(--text); font-size:14px; min-height:100vh; }
+
+    .topbar { background:var(--white); border-bottom:1px solid var(--border); padding:0 28px; height:54px; display:flex; align-items:center; gap:12px; position:sticky; top:0; z-index:10; }
+    .topbar a { font-size:.82rem; color:var(--muted); text-decoration:none; }
+    .topbar a:hover { color:var(--blue); }
+    .topbar .sep { color:var(--border); }
+
+    .page { max-width:800px; margin:36px auto; padding:0 20px 60px; }
+
+    .hero { background:linear-gradient(135deg,#1d4ed8,#7c3aed); border-radius:14px; padding:28px 32px; margin-bottom:24px; color:white; }
+    .hero-name { font-size:1.3rem; font-weight:700; }
+    .hero-meta { font-size:.82rem; opacity:.7; margin-top:4px; }
+    .hero-status { display:inline-block; margin-top:10px; padding:4px 12px; border-radius:20px; font-size:.75rem; font-weight:600; background:rgba(255,255,255,.2); }
+
+    .card { background:var(--white); border:1px solid var(--border); border-radius:var(--r); margin-bottom:16px; overflow:hidden; }
+    .card-header { padding:16px 20px; border-bottom:1px solid var(--border); font-size:.8rem; font-weight:700; color:var(--muted); text-transform:uppercase; letter-spacing:.5px; display:flex; align-items:center; justify-content:space-between; }
+    .card-header .count { background:#eff6ff; color:var(--blue); border-radius:20px; padding:2px 10px; font-size:.75rem; }
+    .card-body { padding:20px; }
+
+    table { width:100%; border-collapse:collapse; }
+    th { padding:10px 16px; font-size:.72rem; font-weight:700; color:var(--muted); text-transform:uppercase; letter-spacing:.4px; text-align:left; border-bottom:1px solid var(--border); }
+    td { padding:12px 16px; font-size:.875rem; border-bottom:1px solid var(--border); vertical-align:middle; }
+    tr:last-child td { border-bottom:none; }
+
+    .avatar { width:32px; height:32px; border-radius:8px; background:#eff6ff; color:var(--blue); display:inline-grid; place-items:center; font-weight:700; font-size:.85rem; }
+    .user-cell { display:flex; align-items:center; gap:10px; }
+    .role-badge { padding:2px 8px; border-radius:4px; font-size:.72rem; font-weight:600; }
+    .role-leader { background:#fef3c7; color:#92400e; }
+    .role-member { background:#f1f5f9; color:var(--muted); }
+
+    .project-field { margin-bottom:16px; }
+    .project-field:last-child { margin-bottom:0; }
+    .project-label { font-size:.72rem; font-weight:700; color:var(--muted); text-transform:uppercase; letter-spacing:.4px; margin-bottom:4px; }
+    .project-value { font-size:.9rem; color:var(--text); line-height:1.6; }
+
+    .status-badge { display:inline-block; padding:3px 10px; border-radius:4px; font-size:.75rem; font-weight:600; }
+    .status-active { background:#dcfce7; color:#16a34a; }
+    .status-draft { background:#f1f5f9; color:var(--muted); }
+    .status-submitted { background:#dbeafe; color:#1d4ed8; }
+
+    .wip { text-align:center; padding:32px; color:var(--muted); }
+    .wip-icon { font-size:2rem; margin-bottom:8px; }
+    .wip-label { font-size:.85rem; font-weight:600; }
+    .wip-sub { font-size:.78rem; margin-top:4px; opacity:.7; }
+  </style>
+</head>
+<body>
+
+{% if messages %}
+<div style="position:fixed;top:16px;right:16px;z-index:9999;display:flex;flex-direction:column;gap:8px;max-width:360px;">
+  {% for message in messages %}
+  <div style="background:#1e2433;border:1px solid rgba(255,255,255,.12);border-radius:10px;padding:12px 16px;font-size:.85rem;color:#f1f5f9;box-shadow:0 8px 24px rgba(0,0,0,.4);">{{ message }}</div>
+  {% endfor %}
+</div>
+{% endif %}
+
+<div class="topbar">
+  <a href="{% url 'dashboard:supervisor' %}">← My Teams</a>
+  <span class="sep">/</span>
+  <span style="font-size:.85rem;font-weight:600;">{{ project.team.name }}</span>
+</div>
+
+<div class="page">
+
+  <!-- Hero -->
+  <div class="hero">
+    <div class="hero-name">{{ project.team.name }}</div>
+    <div class="hero-meta">{{ project.title }}</div>
+    <div class="hero-status">{{ project.get_status_display }}</div>
+  </div>
+
+  <!-- Project Details -->
+  <div class="card">
+    <div class="card-header">Project Details</div>
+    <div class="card-body">
+      <div class="project-field">
+        <div class="project-label">Title</div>
+        <div class="project-value" style="font-weight:600;">{{ project.title }}</div>
+      </div>
+      {% if project.description %}
+      <div class="project-field">
+        <div class="project-label">Description</div>
+        <div class="project-value">{{ project.description }}</div>
+      </div>
+      {% endif %}
+      <div class="project-field">
+        <div class="project-label">Status</div>
+        <span class="status-badge {% if project.status == 'active' %}status-active{% elif project.status == 'submitted' %}status-submitted{% else %}status-draft{% endif %}">
+          {{ project.get_status_display }}
+        </span>
+      </div>
+      <div class="project-field">
+        <div class="project-label">Created</div>
+        <div class="project-value">{{ project.created_at|date:"M d, Y" }}</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Team Members -->
+  <div class="card">
+    <div class="card-header">
+      Team Members
+      <span class="count">{{ members.count }}</span>
+    </div>
+    <table>
+      <thead>
+        <tr><th>Name</th><th>Username</th><th>Role</th></tr>
+      </thead>
+      <tbody>
+        {% for m in members %}
+        <tr>
+          <td>
+            <div class="user-cell">
+              <div class="avatar">{{ m.user.full_name|default:m.user.username|first|upper }}</div>
+              <div>
+                <div style="font-weight:600;">{{ m.user.full_name|default:m.user.username }}</div>
+                <div style="font-size:.75rem;color:var(--muted);">{{ m.user.email }}</div>
+              </div>
+            </div>
+          </td>
+          <td style="color:var(--muted);">{{ m.user.username }}</td>
+          <td><span class="role-badge {% if m.role == 'leader' %}role-leader{% else %}role-member{% endif %}">{{ m.role|capfirst }}</span></td>
+        </tr>
+        {% empty %}
+        <tr><td colspan="3" style="text-align:center;color:var(--muted);padding:24px;">No members.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+
+  <!-- Milestones -->
+  <div class="card">
+    <div class="card-header">Milestones</div>
+    <div class="wip">
+      <div class="wip-icon">🚧</div>
+      <div class="wip-label">Work in Progress</div>
+      <div class="wip-sub">Milestone tracking coming soon.</div>
+    </div>
+  </div>
+
+  <!-- Submissions -->
+  <div class="card">
+    <div class="card-header">Recent Submissions</div>
+    <div class="wip">
+      <div class="wip-icon">🚧</div>
+      <div class="wip-label">Work in Progress</div>
+      <div class="wip-sub">Submission history coming soon.</div>
+    </div>
+  </div>
+
+</div>
+</body>
+</html>

@@ -1,0 +1,341 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Supervisor Dashboard — Etmam{% endblock %}
+
+{% block content %}
+<div class="dash-layout">
+
+  <!-- SIDEBAR -->
+  <aside class="sidebar">
+    <div class="sidebar-brand">
+      <img src="{% static 'images/logo_trans.png' %}" alt="Etmam" style="height:28px;" onerror="this.style.display='none'">
+      <span class="brand-text">Etmam</span>
+    </div>
+
+    <div class="sidebar-user">
+      <div class="user-avatar">
+        {% if user.avatar %}
+          <img src="{{ user.avatar.url }}" alt="" style="width:100%;height:100%;object-fit:cover;border-radius:50%;">
+        {% else %}
+          🧑‍🏫
+        {% endif %}
+      </div>
+      <div class="user-info">
+        <div class="user-name">{{ user.full_name|default:user.username }}</div>
+        <div class="user-role">Supervisor{% if user.department %} · {{ user.department }}{% endif %}</div>
+      </div>
+    </div>
+
+    <nav class="sidebar-nav">
+      <span class="nav-section-label">Main</span>
+
+      <button class="nav-item active" onclick="showSection('dashboard', this)">
+        <span class="nav-icon">🏠</span>
+        <span class="nav-label">Dashboard</span>
+      </button>
+
+      <button class="nav-item" onclick="showSection('teams', this)">
+        <span class="nav-icon">👥</span>
+        <span class="nav-label">My Teams</span>
+      </button>
+
+      <button class="nav-item" onclick="showSection('meetings', this)">
+        <span class="nav-icon">📅</span>
+        <span class="nav-label">Meetings</span>
+        {% if upcoming|length %}<span class="nav-badge">{{ upcoming|length }}</span>{% endif %}
+      </button>
+
+      <span class="nav-section-label">Other</span>
+
+      <button class="nav-item" onclick="showSection('notifications', this)">
+        <span class="nav-icon">🔔</span>
+        <span class="nav-label">Notifications</span>
+        {% if unread_count %}<span class="nav-badge">{{ unread_count }}</span>{% endif %}
+      </button>
+
+    </nav>
+
+    <div class="sidebar-bottom">
+      <a href="{% url 'accounts:supervisor_profile' %}" class="nav-item" style="display:flex;align-items:center;gap:.75rem;padding:.65rem 1rem;text-decoration:none;color:inherit;">
+        <span class="nav-icon">✏️</span>
+        <span class="nav-label">Edit Profile</span>
+      </a>
+      <form method="post" action="{% url 'accounts:logout' %}">
+        {% csrf_token %}
+        <button type="submit" class="nav-item" style="color:#ef4444;background:none;border:none;cursor:pointer;width:100%;">
+          <span class="nav-icon">🚪</span>
+          <span class="nav-label">Sign Out</span>
+        </button>
+      </form>
+    </div>
+  </aside>
+
+  <!-- MAIN -->
+  <div class="dash-main">
+
+    <header class="dash-topbar">
+      <span class="topbar-title" id="topbar-title">Dashboard</span>
+      <div class="topbar-right">
+        <button class="topbar-icon-btn" onclick="showSection('notifications', document.querySelector('[onclick*=notifications]'))">
+          🔔
+          {% if unread_count %}<span class="topbar-notif-dot"></span>{% endif %}
+        </button>
+        <div class="user-avatar" style="width:34px;height:34px;font-size:.85rem;">🧑‍🏫</div>
+      </div>
+    </header>
+
+    <div class="dash-body">
+
+      <!-- SECTION: DASHBOARD -->
+      <section class="dash-section active" id="sec-dashboard">
+
+        <div class="welcome-banner">
+          <div class="welcome-text">
+            <h2>Hello, {{ user.full_name|default:user.username }} 👋</h2>
+            <p>
+              You are supervising <strong>{{ supervised|length }}</strong> team{{ supervised|length|pluralize }}
+              {% if pending_req|length %} and have <strong>{{ pending_req|length }}</strong> pending supervision request{{ pending_req|length|pluralize }}{% endif %}.
+            </p>
+          </div>
+          <div class="welcome-emoji">🧑‍🏫</div>
+        </div>
+
+        <div class="stats-row">
+          <div class="stat-card">
+            <div class="stat-card-icon" style="background:rgba(37,99,235,.15)">🎓</div>
+            <div class="stat-card-info">
+              <div class="value">{{ supervised|length }}</div>
+              <div class="label">Teams Supervised</div>
+            </div>
+          </div>
+          {% if user.can_review %}
+          <div class="stat-card">
+            <div class="stat-card-icon" style="background:rgba(124,58,237,.15)">📋</div>
+            <div class="stat-card-info">
+              <div class="value">{{ reviewed|length }}</div>
+              <div class="label">Teams Reviewing</div>
+            </div>
+          </div>
+          {% endif %}
+          <div class="stat-card">
+            <div class="stat-card-icon" style="background:rgba(245,158,11,.15)">📬</div>
+            <div class="stat-card-info">
+              <div class="value">{{ pending_req|length }}</div>
+              <div class="label">Pending Requests</div>
+            </div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-card-icon" style="background:rgba(16,185,129,.15)">✅</div>
+            <div class="stat-card-info">
+              <div class="value">{{ user.current_load }} / {{ user.max_teams }}</div>
+              <div class="label">Slots Used</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="section-hdr">
+          <h2>Quick Overview</h2>
+          <button class="btn btn-outline btn-sm" onclick="showSection('teams', document.querySelector('[onclick*=teams]'))">All Teams →</button>
+        </div>
+
+        <div class="cards-grid">
+
+          <div class="dash-card" onclick="showSection('teams', document.querySelector('[onclick*=teams]'))">
+            <div class="card-thumb" style="background:linear-gradient(135deg,#1e3a8a,#312e81)">
+              👥
+              <span class="card-status-tag tag-active">{{ supervised|length }} Team{{ supervised|length|pluralize }}</span>
+            </div>
+            <div class="card-body">
+              <div class="card-title">My Teams</div>
+              <div class="card-sub">{{ supervised|length }} supervised{% if user.can_review %} · {{ reviewed|length }} reviewing{% endif %}</div>
+              <div class="card-meta"><span>{{ user.department|default:"Faculty" }}</span></div>
+            </div>
+          </div>
+
+          {% if pending_req %}
+          <div class="dash-card" onclick="showSection('teams', document.querySelector('[onclick*=teams]'))">
+            <div class="card-thumb" style="background:linear-gradient(135deg,#78350f,#92400e)">
+              📬
+              <span class="card-status-tag tag-pending">{{ pending_req|length }} Pending</span>
+            </div>
+            <div class="card-body">
+              <div class="card-title">Supervision Requests</div>
+              <div class="card-sub">Teams awaiting your response</div>
+              <div class="card-meta"><span>Review in Teams section</span></div>
+            </div>
+          </div>
+          {% endif %}
+
+          {% if upcoming %}
+          <div class="dash-card" onclick="showSection('meetings', document.querySelector('[onclick*=meetings]'))">
+            <div class="card-thumb" style="background:linear-gradient(135deg,#4c1d95,#1e1b4b)">
+              📅
+              <span class="card-status-tag tag-active">{{ upcoming|length }} Upcoming</span>
+            </div>
+            <div class="card-body">
+              <div class="card-title">Meetings</div>
+              <div class="card-sub">Next: {{ upcoming.0.title }}</div>
+              <div class="card-meta"><span>{{ upcoming.0.datetime|date:"M d, Y" }}</span></div>
+            </div>
+          </div>
+          {% endif %}
+
+          <div class="dash-card" onclick="showSection('notifications', document.querySelector('[onclick*=notifications]'))">
+            <div class="card-thumb" style="background:linear-gradient(135deg,#7c2d12,#78350f)">
+              🔔
+              <span class="card-status-tag tag-pending">{{ unread_count }} New</span>
+            </div>
+            <div class="card-body">
+              <div class="card-title">Notifications</div>
+              <div class="card-sub">{% if unread_count %}{{ unread_count }} unread{% else %}All caught up{% endif %}</div>
+              <div class="card-meta">
+                {% if notifications %}<span>{{ notifications.0.created_at|timesince }} ago</span>{% endif %}
+              </div>
+            </div>
+          </div>
+
+        </div>
+      </section>
+
+      <!-- SECTION: MY TEAMS -->
+      <section class="dash-section" id="sec-teams">
+
+        <div class="section-hdr">
+          <h2>My Teams</h2>
+        </div>
+
+        {% if pending_req %}
+        <div class="teams-group-label">📬 Pending Supervision Requests</div>
+        {% for req in pending_req %}
+        <div class="team-row-card" style="border-color:rgba(245,158,11,.4)">
+          <div class="team-row-icon" style="background:linear-gradient(135deg,#d97706,#b45309)">📬</div>
+          <div class="team-row-info">
+            <div class="team-row-name">{{ req.team.name }}</div>
+            <div class="team-row-sub" style="font-weight:600;">{{ req.title }}</div>
+            <div class="team-row-sub" style="margin-top:4px;opacity:.8;">{{ req.pitch|truncatechars:120 }}</div>
+          </div>
+          <div class="team-row-right">
+            <span class="card-status-tag tag-pending" style="position:static;">Pending</span>
+            <div style="display:inline-flex;gap:.5rem;margin-top:.5rem;">
+              <form method="post" action="{% url 'projects:accept_supervision' req.pk %}">
+                {% csrf_token %}
+                <button type="submit" class="btn btn-primary btn-sm">✔ Accept</button>
+              </form>
+              <form method="post" action="{% url 'projects:decline_supervision' req.pk %}">
+                {% csrf_token %}
+                <button type="submit" class="btn btn-outline btn-sm" style="border-color:#ef4444;color:#ef4444;">✕ Decline</button>
+              </form>
+            </div>
+          </div>
+        </div>
+        {% endfor %}
+        {% endif %}
+
+        {% if supervised %}
+        <div class="teams-group-label">🎓 Teams I Supervise</div>
+        {% for proj in supervised %}
+        <div class="team-row-card" style="cursor:pointer;" onclick="window.location='{% url 'dashboard:supervisor_team_detail' proj.pk %}'">
+          <div class="team-row-icon" style="background:linear-gradient(135deg,#1d4ed8,#7c3aed)">🏷️</div>
+          <div class="team-row-info">
+            <div class="team-row-name">{{ proj.team.name }}</div>
+            <div class="team-row-sub">{{ proj.title }} · {{ proj.team.memberships.count }} members</div>
+          </div>
+          <div class="team-row-right">
+            <span class="card-status-tag tag-active" style="position:static;">{{ proj.get_status_display }}</span>
+            <span style="color:#64748b;margin-left:12px;">›</span>
+          </div>
+        </div>
+        {% endfor %}
+        {% endif %}
+
+        {% if user.can_review and reviewed %}
+        <div class="teams-group-label">📋 Teams I Review</div>
+        {% for proj in reviewed %}
+        <div class="team-row-card">
+          <div class="team-row-icon" style="background:linear-gradient(135deg,#059669,#0284c7)">📋</div>
+          <div class="team-row-info">
+            <div class="team-row-name">{{ proj.team.name }}</div>
+            <div class="team-row-sub">{{ proj.title }} · Supervised by {{ proj.supervisor.full_name|default:proj.supervisor.username }}</div>
+          </div>
+          <div class="team-row-right">
+            <span class="card-status-tag tag-active" style="position:static;">{{ proj.get_status_display }}</span>
+          </div>
+        </div>
+        {% endfor %}
+        {% endif %}
+
+        {% if not supervised and not pending_req %}
+        <div class="team-card-big" style="text-align:center;padding:3rem 2rem;">
+          <div style="font-size:3rem;margin-bottom:1rem;">👥</div>
+          <h3 style="margin-bottom:.5rem;">No Teams Yet</h3>
+          <p style="color:var(--text-muted);">You have not been assigned any teams yet.</p>
+        </div>
+        {% endif %}
+
+      </section>
+
+      <!-- SECTION: MEETINGS -->
+      <section class="dash-section" id="sec-meetings">
+        {% include 'meetings/_calendar_section.html' %}
+      </section>
+
+      <!-- SECTION: NOTIFICATIONS -->
+      <section class="dash-section" id="sec-notifications">
+
+        <div class="section-hdr">
+          <h2>Notifications</h2>
+        </div>
+
+        <div class="notif-list">
+          {% for n in notifications %}
+          <a href="{% url 'notifications:open' n.pk %}" class="notif-item {% if not n.is_read %}unread{% endif %}">
+            <span class="notif-icon">🔔</span>
+            <div class="notif-body">
+              <div class="notif-title">{{ n.title }}</div>
+              <div class="notif-desc">{{ n.message }}</div>
+              <div class="notif-time">{{ n.created_at|timesince }} ago</div>
+            </div>
+          </a>
+          {% empty %}
+          <div style="text-align:center;padding:2rem;color:var(--text-muted);">No notifications yet.</div>
+          {% endfor %}
+        </div>
+
+      </section>
+
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.15/index.global.min.js"></script>
+<script src="{% static 'js/meetings_calendar.js' %}"></script>
+<script>
+  const sections = {
+    dashboard:     'Dashboard',
+    teams:         'My Teams',
+    meetings:      'Meetings',
+    notifications: 'Notifications',
+  };
+
+  function showSection(id, btn) {
+    document.querySelectorAll('.dash-section').forEach(s => s.classList.remove('active'));
+    document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+    document.getElementById('sec-' + id).classList.add('active');
+    if (btn) btn.classList.add('active');
+    document.getElementById('topbar-title').textContent = sections[id] || id;
+  }
+
+  function switchTab(btn, targetId) {
+    btn.closest('.dash-section').querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    const section = btn.closest('.dash-section');
+    section.querySelectorAll('.meeting-list').forEach(l => l.style.display = 'none');
+    const target = section.querySelector('#' + targetId);
+    target.style.display = 'flex';
+    target.style.flexDirection = 'column';
+  }
+</script>
+{% endblock %}
