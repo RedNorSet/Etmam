@@ -477,64 +477,7 @@
 
       <!-- SECTION: MEETINGS -->
       <section class="dash-section" id="sec-meetings">
-
-        <div class="section-hdr">
-          <h2>Meetings</h2>
-        </div>
-
-        <div class="tab-bar">
-          <button class="tab-btn active" onclick="switchTab(this,'upcoming-meetings')">Upcoming</button>
-          <button class="tab-btn" onclick="switchTab(this,'past-meetings')">Past</button>
-        </div>
-
-        <div id="upcoming-meetings" class="meeting-list">
-          {% for mtg in upcoming %}
-          <div class="meeting-card">
-            <div class="meeting-date-block">
-              <div class="meeting-day">{{ mtg.datetime|date:"d" }}</div>
-              <div class="meeting-month">{{ mtg.datetime|date:"M" }}</div>
-            </div>
-            <div class="meeting-info">
-              <div class="meeting-title">{{ mtg.title }}</div>
-              <div class="meeting-meta">
-                <span>🕙 {{ mtg.datetime|date:"g:i A" }}</span>
-                {% if mtg.scheduled_by %}<span>🧑‍🏫 {{ mtg.scheduled_by.full_name|default:mtg.scheduled_by.username }}</span>{% endif %}
-                {% if mtg.location %}<span>📍 {{ mtg.location }}</span>{% endif %}
-              </div>
-            </div>
-            <div class="meeting-actions">
-              <span class="card-status-tag tag-pending" style="position:static">Scheduled</span>
-            </div>
-          </div>
-          {% empty %}
-          <div style="text-align:center;padding:2rem;color:var(--text-muted);">No upcoming meetings.</div>
-          {% endfor %}
-        </div>
-
-        <div id="past-meetings" class="meeting-list" style="display:none">
-          {% for mtg in past_meetings %}
-          <div class="meeting-card" style="opacity:.7">
-            <div class="meeting-date-block" style="background:rgba(255,255,255,.05);border-color:var(--border)">
-              <div class="meeting-day" style="color:var(--text-muted)">{{ mtg.datetime|date:"d" }}</div>
-              <div class="meeting-month">{{ mtg.datetime|date:"M" }}</div>
-            </div>
-            <div class="meeting-info">
-              <div class="meeting-title">{{ mtg.title }}</div>
-              <div class="meeting-meta">
-                <span>🕙 {{ mtg.datetime|date:"g:i A" }}</span>
-                {% if mtg.scheduled_by %}<span>🧑‍🏫 {{ mtg.scheduled_by.full_name|default:mtg.scheduled_by.username }}</span>{% endif %}
-                {% if mtg.location %}<span>📍 {{ mtg.location }}</span>{% endif %}
-              </div>
-            </div>
-            <div class="meeting-actions">
-              <span class="card-status-tag tag-done" style="position:static">Done</span>
-            </div>
-          </div>
-          {% empty %}
-          <div style="text-align:center;padding:2rem;color:var(--text-muted);">No past meetings.</div>
-          {% endfor %}
-        </div>
-
+        {% include 'meetings/_calendar_section.html' %}
       </section>
 
       <!-- SECTION: NOTIFICATIONS -->
@@ -546,14 +489,14 @@
 
         <div class="notif-list">
           {% for n in notifications %}
-          <div class="notif-item {% if not n.is_read %}unread{% endif %}">
+          <a href="{% url 'notifications:open' n.pk %}" class="notif-item {% if not n.is_read %}unread{% endif %}">
             <span class="notif-icon">🔔</span>
             <div class="notif-body">
               <div class="notif-title">{{ n.title }}</div>
               <div class="notif-desc">{{ n.message }}</div>
               <div class="notif-time">{{ n.created_at|timesince }} ago</div>
             </div>
-          </div>
+          </a>
           {% empty %}
           <div style="text-align:center;padding:2rem;color:var(--text-muted);">No notifications yet.</div>
           {% endfor %}
@@ -594,6 +537,8 @@
 {% endblock %}
 
 {% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.15/index.global.min.js"></script>
+<script src="{% static 'js/meetings_calendar.js' %}"></script>
 <script>
   function openRequestModal(supervisorId, supervisorName) {
     document.getElementById('modal-supervisor-name').textContent = 'Supervisor: ' + supervisorName;

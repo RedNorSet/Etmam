@@ -9,7 +9,8 @@ from milestones.models import Milestone
 from submissions.models import Submission
 from reviews.models import Grade
 from notifications.models import Notification
-from meetings.models import Meeting
+from meetings.models import Meeting, MeetingParticipant, RescheduleProposal
+from meetings.views import eligible_participants
 
 
 @login_required
@@ -42,19 +43,36 @@ def student_dashboard(request):
     supervisors    = User.objects.filter(role='supervisor', available=True).order_by('full_name')
     pending_request = SupervisionRequest.objects.filter(team=team, status='pending').first() if team else None
 
+    pending_invitations = (
+        MeetingParticipant.objects
+        .filter(user=user, response='pending')
+        .exclude(meeting__status__in=['cancelled', 'completed'])
+        .select_related('meeting', 'meeting__scheduled_by')
+        .order_by('meeting__datetime')
+    )
+    pending_proposals = (
+        RescheduleProposal.objects
+        .filter(meeting__scheduled_by=user, status='open')
+        .select_related('meeting', 'proposed_by')
+        .order_by('-created_at')
+    )
+
     return render(request, 'dashboard/student.html', {
-        'membership':      membership,
-        'team':            team,
-        'team_members':    team_members,
-        'pending_invite':  pending_invite,
-        'project':         project,
-        'milestones':      milestones,
-        'notifications':   notifications,
-        'unread_count':    unread_count,
-        'upcoming':        upcoming,
-        'past_meetings':   past_meetings,
-        'supervisors':     supervisors,
-        'pending_request': pending_request,
+        'membership':           membership,
+        'team':                 team,
+        'team_members':         team_members,
+        'pending_invite':       pending_invite,
+        'project':              project,
+        'milestones':           milestones,
+        'notifications':        notifications,
+        'unread_count':         unread_count,
+        'upcoming':             upcoming,
+        'past_meetings':        past_meetings,
+        'supervisors':          supervisors,
+        'pending_request':      pending_request,
+        'eligible_participants':eligible_participants(user),
+        'pending_invitations':  pending_invitations,
+        'pending_proposals':    pending_proposals,
     })
 
 
@@ -69,14 +87,31 @@ def supervisor_dashboard(request):
     notifications = Notification.objects.filter(recipient=user).order_by('-created_at')[:15]
     unread_count  = Notification.objects.filter(recipient=user, is_read=False).count()
 
+    pending_invitations = (
+        MeetingParticipant.objects
+        .filter(user=user, response='pending')
+        .exclude(meeting__status__in=['cancelled', 'completed'])
+        .select_related('meeting', 'meeting__scheduled_by')
+        .order_by('meeting__datetime')
+    )
+    pending_proposals = (
+        RescheduleProposal.objects
+        .filter(meeting__scheduled_by=user, status='open')
+        .select_related('meeting', 'proposed_by')
+        .order_by('-created_at')
+    )
+
     return render(request, 'dashboard/supervisor.html', {
-        'supervised':    supervised,
-        'reviewed':      reviewed,
-        'pending_req':   pending_req,
-        'upcoming':      upcoming,
-        'past':          past,
-        'notifications': notifications,
-        'unread_count':  unread_count,
+        'supervised':           supervised,
+        'reviewed':             reviewed,
+        'pending_req':          pending_req,
+        'upcoming':             upcoming,
+        'past':                 past,
+        'notifications':        notifications,
+        'unread_count':         unread_count,
+        'eligible_participants':eligible_participants(user),
+        'pending_invitations':  pending_invitations,
+        'pending_proposals':    pending_proposals,
     })
 
 
