@@ -103,25 +103,33 @@
         </div>
         <div class="form-group">
           <label>Duration</label>
-          <select name="duration" class="form-input">
-            <option value="15">15 min</option>
-            <option value="30" selected>30 min</option>
-            <option value="45">45 min</option>
-            <option value="60">1 hour</option>
-            <option value="90">1.5 hours</option>
-            <option value="120">2 hours</option>
-          </select>
+          <div class="cdd" id="cdd-duration">
+            <div class="cdd-trigger">30 min <span class="cdd-arrow">▾</span></div>
+            <div class="cdd-options">
+              <div class="cdd-option" data-value="15">15 min</div>
+              <div class="cdd-option cdd-selected" data-value="30">30 min</div>
+              <div class="cdd-option" data-value="45">45 min</div>
+              <div class="cdd-option" data-value="60">1 hour</div>
+              <div class="cdd-option" data-value="90">1.5 hours</div>
+              <div class="cdd-option" data-value="120">2 hours</div>
+            </div>
+            <input type="hidden" name="duration" value="30">
+          </div>
         </div>
       </div>
 
       <div class="form-row">
         <div class="form-group">
           <label>Importance</label>
-          <select name="importance" class="form-input">
-            <option value="low">Low</option>
-            <option value="medium" selected>Medium</option>
-            <option value="high">High</option>
-          </select>
+          <div class="cdd" id="cdd-importance">
+            <div class="cdd-trigger">Medium <span class="cdd-arrow">▾</span></div>
+            <div class="cdd-options">
+              <div class="cdd-option" data-value="low">Low</div>
+              <div class="cdd-option cdd-selected" data-value="medium">Medium</div>
+              <div class="cdd-option" data-value="high">High</div>
+            </div>
+            <input type="hidden" name="importance" value="medium">
+          </div>
         </div>
         <div class="form-group" style="flex:2;">
           <label>Location (optional)</label>
@@ -189,3 +197,31 @@
     </form>
   </div>
 </div>
+
+<script>
+document.querySelectorAll('.cdd').forEach(function(cdd) {
+  var trigger = cdd.querySelector('.cdd-trigger');
+  var options = cdd.querySelectorAll('.cdd-option');
+  var hidden  = cdd.querySelector('input[type=hidden]');
+
+  trigger.addEventListener('click', function(e) {
+    e.stopPropagation();
+    document.querySelectorAll('.cdd.open').forEach(function(o) { if (o !== cdd) o.classList.remove('open'); });
+    cdd.classList.toggle('open');
+  });
+
+  options.forEach(function(opt) {
+    opt.addEventListener('click', function() {
+      options.forEach(function(o) { o.classList.remove('cdd-selected'); });
+      opt.classList.add('cdd-selected');
+      hidden.value = opt.dataset.value;
+      trigger.childNodes[0].textContent = opt.textContent + ' ';
+      cdd.classList.remove('open');
+    });
+  });
+});
+
+document.addEventListener('click', function() {
+  document.querySelectorAll('.cdd.open').forEach(function(o) { o.classList.remove('open'); });
+});
+</script>

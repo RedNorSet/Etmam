@@ -39,12 +39,14 @@
     .ph p { font-size: .82rem; color: var(--muted); margin-top: 3px; }
 
     /* Stat boxes */
-    .stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 14px; margin-bottom: 28px; }
-    .stat-box { background: var(--white); border: 1px solid var(--border); border-radius: var(--r); padding: 18px 20px; }
-    .stat-box .val { font-size: 1.7rem; font-weight: 700; line-height: 1; }
+    .stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin-bottom: 32px; }
+    .stat-box { background: var(--white); border: 1px solid var(--border); border-radius: var(--r); padding: 36px 28px; cursor: pointer; transition: box-shadow .15s, border-color .15s; position: relative; min-height: 140px; }
+    .stat-box:hover { box-shadow: 0 4px 16px rgba(37,99,235,.1); border-color: var(--blue); }
+    .stat-box .val { font-size: 3rem; font-weight: 700; line-height: 1; }
     .stat-box .val.red { color: var(--red); }
     .stat-box .val.orange { color: var(--orange); }
-    .stat-box .lbl { font-size: .72rem; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: .4px; margin-top: 6px; }
+    .stat-box .lbl { font-size: .78rem; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: .4px; margin-top: 10px; }
+    .stat-box .arrow { position: absolute; bottom: 16px; right: 20px; font-size: 1rem; color: var(--light); }
 
     /* Cards / Tables */
     .card { background: var(--white); border: 1px solid var(--border); border-radius: var(--r); margin-bottom: 20px; overflow: hidden; }
@@ -141,70 +143,36 @@
     </div>
 
     <div class="stats">
-      <div class="stat-box">
+      <div class="stat-box" onclick="showPanelSection('users', 'section-students')">
         <div class="val">{{ total_students }}</div>
         <div class="lbl">Students</div>
+        <div class="arrow">→</div>
       </div>
-      <div class="stat-box">
+      <div class="stat-box" onclick="showPanelSection('users', 'section-staff')">
         <div class="val">{{ total_supervisors }}</div>
         <div class="lbl">Supervisors</div>
+        <div class="arrow">→</div>
       </div>
-      <div class="stat-box">
+      <div class="stat-box" onclick="showPanelSection('users', 'section-staff')">
         <div class="val">{{ total_reviewers }}</div>
         <div class="lbl">Reviewers</div>
+        <div class="arrow">→</div>
       </div>
-      <div class="stat-box">
+      <div class="stat-box" onclick="showPanel('teams', document.querySelectorAll('.nav-tab')[2])">
         <div class="val">{{ total_teams }}</div>
-        <div class="lbl">Teams</div>
+        <div class="lbl">Active Teams</div>
+        <div class="arrow">→</div>
       </div>
-      <div class="stat-box">
+      <div class="stat-box" onclick="showPanel('milestones', document.querySelectorAll('.nav-tab')[4])">
         <div class="val {% if overdue %}red{% endif %}">{{ overdue }}</div>
         <div class="lbl">Overdue Milestones</div>
+        <div class="arrow">→</div>
       </div>
-      <div class="stat-box">
+      <div class="stat-box" onclick="showPanel('grades', document.querySelectorAll('.nav-tab')[6])">
         <div class="val {% if pending_grades %}orange{% endif %}">{{ pending_grades }}</div>
         <div class="lbl">Pending Grades</div>
+        <div class="arrow">→</div>
       </div>
-    </div>
-
-    <!-- Recent users -->
-    <div class="card">
-      <div class="card-hdr">
-        <span class="card-title">Recent Users</span>
-        <button class="btn btn-out" onclick="showPanel('users', document.querySelectorAll('.nav-tab')[1])">View All →</button>
-      </div>
-      <table class="gt">
-        <thead>
-          <tr>
-            <th>Name</th><th>Role</th><th>Department</th><th>Joined</th>
-          </tr>
-        </thead>
-        <tbody>
-          {% for u in users|slice:":8" %}
-          <tr>
-            <td>
-              <div style="font-weight:600;">{{ u.full_name|default:u.username }}</div>
-              <div style="font-size:.75rem;color:var(--muted);">{{ u.email }}</div>
-            </td>
-            <td>
-              {% if u.role == 'administrator' %}
-                <span class="badge b-purple">Admin</span>
-              {% elif u.role == 'supervisor' %}
-                <span class="badge b-blue">Supervisor{% if u.can_review %} + Reviewer{% endif %}</span>
-              {% elif u.role == 'reviewer' %}
-                <span class="badge b-orange">Reviewer</span>
-              {% else %}
-                <span class="badge b-gray">Student</span>
-              {% endif %}
-            </td>
-            <td>{{ u.department|default:"—" }}</td>
-            <td>{{ u.date_joined|date:"M d, Y" }}</td>
-          </tr>
-          {% empty %}
-          <tr><td colspan="4"><div class="empty"><div class="ei">👤</div>No users yet.</div></td></tr>
-          {% endfor %}
-        </tbody>
-      </table>
     </div>
   </div>
 
@@ -215,52 +183,101 @@
         <h1>Users</h1>
         <p>All registered accounts</p>
       </div>
-      <a href="{% url 'admin:accounts_user_add' %}" class="btn btn-blue">+ Add User</a>
+      <a href="{% url 'accounts:add_user' %}" class="btn btn-blue">+ Add User</a>
     </div>
 
-    <div class="card">
-      <table class="gt">
-        <thead>
-          <tr>
-            <th>Name</th><th>Username</th><th>Role</th><th>Department</th><th>Student ID</th><th>Status</th><th>Joined</th><th></th>
-          </tr>
-        </thead>
-        <tbody>
-          {% for u in users %}
-          <tr>
-            <td>
-              <div style="font-weight:600;">{{ u.full_name|default:"—" }}</div>
-              <div style="font-size:.75rem;color:var(--muted);">{{ u.email }}</div>
-            </td>
-            <td>{{ u.username }}</td>
-            <td>
-              {% if u.role == 'administrator' %}
-                <span class="badge b-purple">Admin</span>
-              {% elif u.role == 'supervisor' %}
-                <span class="badge b-blue">Supervisor{% if u.can_review %} + R{% endif %}</span>
-              {% elif u.role == 'reviewer' %}
-                <span class="badge b-orange">Reviewer</span>
-              {% else %}
-                <span class="badge b-gray">Student</span>
-              {% endif %}
-            </td>
-            <td>{{ u.department|default:"—" }}</td>
-            <td>{{ u.student_id|default:"—" }}</td>
-            <td>
-              {% if u.is_active %}
-                <span class="badge b-green">Active</span>
-              {% else %}
-                <span class="badge b-red">Inactive</span>
-              {% endif %}
-            </td>
-            <td>{{ u.date_joined|date:"M d, Y" }}</td>
-            <td><a href="{% url 'accounts:edit_user' u.pk %}" class="btn btn-out">Edit</a></td>
-          </tr>
-          {% empty %}
-          <tr><td colspan="8"><div class="empty"><div class="ei">👤</div>No users found.</div></td></tr>
-          {% endfor %}
-        </tbody>
-      </table>
+    <!-- Students -->
+    <div id="section-students" style="margin-bottom:28px;">
+      <div style="font-size:.8rem;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:10px;">
+        Students <span style="background:var(--bg);border:1px solid var(--border);border-radius:20px;padding:1px 8px;font-size:.72rem;margin-left:4px;">{{ total_students }}</span>
+      </div>
+      <div class="card">
+        <table class="gt">
+          <thead>
+            <tr><th>Name</th><th>Username</th><th>ID</th><th>Department</th><th>Status</th><th>Joined</th><th></th></tr>
+          </thead>
+          <tbody>
+            {% for u in students %}
+            <tr>
+              <td>
+                <div style="font-weight:600;">{{ u.full_name|default:"—" }}</div>
+                <div style="font-size:.75rem;color:var(--muted);">{{ u.email }}</div>
+              </td>
+              <td>{{ u.username }}</td>
+              <td>{{ u.student_id|default:"—" }}</td>
+              <td>{{ u.department|default:"—" }}</td>
+              <td>{% if u.is_active %}<span class="badge b-green">Active</span>{% else %}<span class="badge b-red">Inactive</span>{% endif %}</td>
+              <td>{{ u.date_joined|date:"M d, Y" }}</td>
+              <td><a href="{% url 'accounts:edit_user' u.pk %}" class="btn btn-out">Edit</a></td>
+            </tr>
+            {% empty %}
+            <tr><td colspan="7"><div class="empty"><div class="ei">👤</div>No students yet.</div></td></tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Supervisors & Reviewers -->
+    <div id="section-staff" style="margin-bottom:28px;">
+      <div style="font-size:.8rem;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:10px;">
+        Supervisors &amp; Reviewers <span style="background:var(--bg);border:1px solid var(--border);border-radius:20px;padding:1px 8px;font-size:.72rem;margin-left:4px;">{{ staff.count }}</span>
+      </div>
+      <div class="card">
+        <table class="gt">
+          <thead>
+            <tr><th>Name</th><th>Username</th><th>ID</th><th>Department</th><th>Teams</th><th>Available</th><th>Can Review</th><th>Status</th><th></th></tr>
+          </thead>
+          <tbody>
+            {% for u in staff %}
+            <tr>
+              <td>
+                <div style="font-weight:600;">{{ u.full_name|default:"—" }}</div>
+                <div style="font-size:.75rem;color:var(--muted);">{{ u.email }}</div>
+              </td>
+              <td>{{ u.username }}</td>
+              <td>{{ u.student_id|default:"—" }}</td>
+              <td>{{ u.department|default:"—" }}</td>
+              <td>{{ u.current_load }}/{{ u.max_teams }}</td>
+              <td>{% if u.available %}<span class="badge b-green">Yes</span>{% else %}<span class="badge b-gray">No</span>{% endif %}</td>
+              <td>{% if u.can_review %}<span class="badge b-blue">Yes</span>{% else %}<span class="badge b-gray">No</span>{% endif %}</td>
+              <td>{% if u.is_active %}<span class="badge b-green">Active</span>{% else %}<span class="badge b-red">Inactive</span>{% endif %}</td>
+              <td><a href="{% url 'accounts:edit_user' u.pk %}" class="btn btn-out">Edit</a></td>
+            </tr>
+            {% empty %}
+            <tr><td colspan="9"><div class="empty"><div class="ei">👤</div>No supervisors or reviewers yet.</div></td></tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Administrators -->
+    <div id="section-admins">
+      <div style="font-size:.8rem;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:10px;">
+        Administrators <span style="background:var(--bg);border:1px solid var(--border);border-radius:20px;padding:1px 8px;font-size:.72rem;margin-left:4px;">{{ admins.count }}</span>
+      </div>
+      <div class="card">
+        <table class="gt">
+          <thead>
+            <tr><th>Name</th><th>Username</th><th>ID</th><th>Email</th><th>Joined</th><th></th></tr>
+          </thead>
+          <tbody>
+            {% for u in admins %}
+            <tr>
+              <td style="font-weight:600;">{{ u.full_name|default:"—" }}</td>
+              <td>{{ u.username }}</td>
+              <td>{{ u.student_id|default:"—" }}</td>
+              <td>{{ u.email|default:"—" }}</td>
+              <td>{{ u.date_joined|date:"M d, Y" }}</td>
+              <td><a href="{% url 'accounts:edit_user' u.pk %}" class="btn btn-out">Edit</a></td>
+            </tr>
+            {% empty %}
+            <tr><td colspan="6"><div class="empty"><div class="ei">👤</div>No administrators yet.</div></td></tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
     </div>
   </div>
 
@@ -282,7 +299,7 @@
         </thead>
         <tbody>
           {% for t in teams %}
-          <tr>
+          <tr style="cursor:pointer;" onclick="window.location='{% url 'dashboard:admin_team_detail' t.pk %}'">
             <td style="font-weight:600;">{{ t.name }}</td>
             <td>
               {% if t.project %}
@@ -294,18 +311,8 @@
             </td>
             <td>{{ t.memberships.count }}</td>
             <td>{{ t.created_at|date:"M d, Y" }}</td>
-            <td>
-              {% if t.is_active %}
-              <form method="post" action="{% url 'teams:dissolve' t.pk %}" style="display:inline;">
-                {% csrf_token %}
-                <button type="submit" class="btn btn-red-out"
-                  onclick="return confirm('Dissolve team {{ t.name }}? This removes all members.')">
-                  Dissolve
-                </button>
-              </form>
-              {% else %}
-                <span class="badge b-gray">Dissolved</span>
-              {% endif %}
+            <td style="text-align:right;">
+              <span style="color:var(--light);">›</span>
             </td>
           </tr>
           {% empty %}
@@ -548,6 +555,16 @@
     document.querySelectorAll('.nav-tab').forEach(t => t.classList.remove('active'));
     document.getElementById('panel-' + id).classList.add('active');
     if (btn) btn.classList.add('active');
+  }
+  function showPanelSection(panelId, sectionId) {
+    var tabs = document.querySelectorAll('.nav-tab');
+    var panels = ['overview','users','teams','projects','milestones','submissions','grades'];
+    var idx = panels.indexOf(panelId);
+    showPanel(panelId, idx >= 0 ? tabs[idx] : null);
+    setTimeout(function() {
+      var el = document.getElementById(sectionId);
+      if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }, 50);
   }
 </script>
 

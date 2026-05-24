@@ -58,6 +58,46 @@ def supervisor_detail(request, user_id):
 
 
 @login_required
+def add_user(request):
+    if not request.user.is_administrator():
+        return redirect('dashboard:index')
+
+    if request.method == 'POST':
+        username = request.POST.get('username', '').strip()
+        password = request.POST.get('password', '').strip()
+
+        if not username or not password:
+            messages.error(request, 'Username and password are required.')
+            return render(request, 'accounts/add_user.html')
+
+        if User.objects.filter(username=username).exists():
+            messages.error(request, f'Username "{username}" is already taken.')
+            return render(request, 'accounts/add_user.html')
+
+        user = User(
+            username   = username,
+            full_name  = request.POST.get('full_name', '').strip(),
+            email      = request.POST.get('email', '').strip(),
+            role       = request.POST.get('role', 'student'),
+            department = request.POST.get('department', '').strip(),
+            student_id = request.POST.get('student_id', '').strip() or None,
+            expertise  = request.POST.get('expertise', '').strip(),
+            can_review = 'can_review' in request.POST,
+            available  = 'available' in request.POST,
+            is_active  = True,
+        )
+        max_teams = request.POST.get('max_teams', '').strip()
+        if max_teams.isdigit():
+            user.max_teams = int(max_teams)
+        user.set_password(password)
+        user.save()
+        messages.success(request, f'User "{username}" created successfully.')
+        return redirect('accounts:edit_user', user_id=user.pk)
+
+    return render(request, 'accounts/add_user.html')
+
+
+@login_required
 def edit_user(request, user_id):
     if not request.user.is_administrator():
         return redirect('dashboard:index')

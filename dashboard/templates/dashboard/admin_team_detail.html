@@ -1,0 +1,246 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>{{ team.name }} — Etmam Admin</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" />
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap');
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root { --bg:#f4f6fb; --white:#fff; --blue:#2563eb; --border:#e2e8f0; --text:#0f172a; --muted:#64748b; --r:10px; --red:#dc2626; }
+    body { font-family:'Plus Jakarta Sans',system-ui,sans-serif; background:var(--bg); color:var(--text); font-size:14px; min-height:100vh; }
+
+    .topbar { background:var(--white); border-bottom:1px solid var(--border); padding:0 28px; height:54px; display:flex; align-items:center; gap:12px; position:sticky; top:0; z-index:10; }
+    .topbar a { font-size:.82rem; color:var(--muted); text-decoration:none; }
+    .topbar a:hover { color:var(--blue); }
+    .topbar .sep { color:var(--border); }
+
+    .page { max-width:800px; margin:36px auto; padding:0 20px 60px; }
+
+    .hero { background:linear-gradient(135deg,#1e3a8a,#312e81); border-radius:14px; padding:28px 32px; margin-bottom:24px; color:white; display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:12px; }
+    .hero-name { font-size:1.3rem; font-weight:700; }
+    .hero-meta { font-size:.82rem; opacity:.7; margin-top:4px; }
+    .status-badge { padding:4px 12px; border-radius:20px; font-size:.75rem; font-weight:600; }
+    .status-active { background:rgba(34,197,94,.2); color:#86efac; }
+    .status-dissolved { background:rgba(239,68,68,.2); color:#fca5a5; }
+
+    .card { background:var(--white); border:1px solid var(--border); border-radius:var(--r); margin-bottom:16px; overflow:hidden; }
+    .card-header { padding:16px 20px; border-bottom:1px solid var(--border); font-size:.8rem; font-weight:700; color:var(--muted); text-transform:uppercase; letter-spacing:.5px; display:flex; align-items:center; justify-content:space-between; }
+    .card-header .count { background:#eff6ff; color:var(--blue); border-radius:20px; padding:2px 10px; font-size:.75rem; }
+
+    table { width:100%; border-collapse:collapse; }
+    th { padding:10px 16px; font-size:.75rem; font-weight:700; color:var(--muted); text-transform:uppercase; letter-spacing:.4px; text-align:left; border-bottom:1px solid var(--border); }
+    td { padding:12px 16px; font-size:.875rem; border-bottom:1px solid var(--border); vertical-align:middle; }
+    tr:last-child td { border-bottom:none; }
+
+    .avatar { width:32px; height:32px; border-radius:8px; background:#eff6ff; color:var(--blue); display:inline-grid; place-items:center; font-weight:700; font-size:.85rem; flex-shrink:0; }
+    .user-cell { display:flex; align-items:center; gap:10px; }
+    .user-name { font-weight:600; }
+    .user-meta { font-size:.75rem; color:var(--muted); }
+
+    .role-badge { padding:2px 8px; border-radius:4px; font-size:.72rem; font-weight:600; }
+    .role-leader { background:#fef3c7; color:#92400e; }
+    .role-member { background:#f1f5f9; color:var(--muted); }
+    .role-pending { background:#fef3c7; color:#92400e; }
+
+    .btn { display:inline-flex; align-items:center; gap:5px; padding:6px 14px; border-radius:6px; font-size:.8rem; font-weight:600; cursor:pointer; border:none; transition:background .15s; text-decoration:none; }
+    .btn-red { background:#fee2e2; color:var(--red); }
+    .btn-red:hover { background:#fecaca; }
+    .btn-blue { background:#2563eb; color:white; }
+    .btn-blue:hover { background:#1d4ed8; }
+    .btn-dissolve { background:#dc2626; color:white; }
+    .btn-dissolve:hover { background:#b91c1c; }
+
+    .empty-row td { text-align:center; color:var(--muted); font-style:italic; padding:24px; }
+
+    .project-card { padding:20px; display:flex; align-items:flex-start; justify-content:space-between; flex-wrap:wrap; gap:12px; }
+    .project-title { font-weight:700; font-size:1rem; }
+    .project-meta { font-size:.82rem; color:var(--muted); margin-top:4px; }
+    .proj-status { display:inline-block; padding:3px 10px; border-radius:4px; font-size:.75rem; font-weight:600; margin-top:6px; }
+    .proj-active  { background:#dcfce7; color:#16a34a; }
+    .proj-draft   { background:#f1f5f9; color:var(--muted); }
+    .proj-submitted { background:#dbeafe; color:#1d4ed8; }
+
+    .no-project { padding:24px; text-align:center; color:var(--muted); font-style:italic; font-size:.875rem; }
+
+    .supervisor-row { display:flex; align-items:center; gap:10px; }
+  </style>
+</head>
+<body>
+
+{% if messages %}
+<div style="position:fixed;top:16px;right:16px;z-index:9999;display:flex;flex-direction:column;gap:8px;max-width:360px;">
+  {% for message in messages %}
+  <div class="django-toast" style="background:#1e2433;border:1px solid rgba(255,255,255,.12);border-radius:10px;padding:12px 16px;font-size:.85rem;color:#f1f5f9;box-shadow:0 8px 24px rgba(0,0,0,.4);display:flex;align-items:flex-start;gap:10px;">
+    {% if message.tags == 'error' %}<span style="color:#f87171;flex-shrink:0;">✕</span><span style="border-left:3px solid #f87171;padding-left:10px;">{{ message }}</span>
+    {% elif message.tags == 'success' %}<span style="color:#4ade80;flex-shrink:0;">✔</span><span style="border-left:3px solid #4ade80;padding-left:10px;">{{ message }}</span>
+    {% else %}<span style="color:#60a5fa;flex-shrink:0;">ℹ</span><span style="border-left:3px solid #60a5fa;padding-left:10px;">{{ message }}</span>{% endif %}
+  </div>
+  {% endfor %}
+</div>
+<script>setTimeout(function(){document.querySelectorAll('.django-toast').forEach(function(el){el.style.transition='opacity .4s';el.style.opacity='0';setTimeout(function(){el.remove();},400);});},3500);</script>
+{% endif %}
+
+<div class="topbar">
+  <a href="{% url 'dashboard:admin' %}">← Admin Dashboard</a>
+  <span class="sep">/</span>
+  <span style="font-size:.85rem;color:var(--muted);">Teams</span>
+  <span class="sep">/</span>
+  <span style="font-size:.85rem;font-weight:600;">{{ team.name }}</span>
+</div>
+
+<div class="page">
+
+  <!-- Hero -->
+  <div class="hero">
+    <div>
+      <div class="hero-name">{{ team.name }}</div>
+      <div class="hero-meta">Created {{ team.created_at|date:"M d, Y" }}{% if team.created_by %} by {{ team.created_by.full_name|default:team.created_by.username }}{% endif %}</div>
+      <div style="margin-top:10px;">
+        <span class="status-badge {% if team.is_active %}status-active{% else %}status-dissolved{% endif %}">
+          {% if team.is_active %}Active{% else %}Dissolved{% endif %}
+        </span>
+      </div>
+    </div>
+    {% if team.is_active %}
+    <form method="post" action="{% url 'teams:dissolve' team.pk %}">
+      {% csrf_token %}
+      <button type="submit" class="btn btn-dissolve" onclick="return confirm('Dissolve {{ team.name }}? This removes all members.')">
+        Dissolve Team
+      </button>
+    </form>
+    {% endif %}
+  </div>
+
+  <!-- Active Members -->
+  <div class="card">
+    <div class="card-header">
+      Active Members
+      <span class="count">{{ members.count }}</span>
+    </div>
+    <table>
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Username</th>
+          <th>Role</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for m in members %}
+        <tr>
+          <td>
+            <div class="user-cell">
+              <div class="avatar">{{ m.user.full_name|default:m.user.username|first|upper }}</div>
+              <div>
+                <div class="user-name">{{ m.user.full_name|default:m.user.username }}</div>
+                <div class="user-meta">{{ m.user.email }}</div>
+              </div>
+            </div>
+          </td>
+          <td style="color:var(--muted);">{{ m.user.username }}</td>
+          <td><span class="role-badge {% if m.role == 'leader' %}role-leader{% else %}role-member{% endif %}">{{ m.role|capfirst }}</span></td>
+          <td style="text-align:right;">
+            {% if team.is_active %}
+            <form method="post" action="{% url 'teams:admin_remove_member' m.pk %}" style="display:inline;">
+              {% csrf_token %}
+              <button type="submit" class="btn btn-red" onclick="return confirm('Remove {{ m.user.full_name|default:m.user.username }} from this team?')">Remove</button>
+            </form>
+            {% endif %}
+          </td>
+        </tr>
+        {% empty %}
+        <tr class="empty-row"><td colspan="4">No active members.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+
+  <!-- Pending Invites -->
+  {% if pending %}
+  <div class="card">
+    <div class="card-header">
+      Pending Invites
+      <span class="count">{{ pending.count }}</span>
+    </div>
+    <table>
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Username</th>
+          <th>Status</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for m in pending %}
+        <tr>
+          <td>
+            <div class="user-cell">
+              <div class="avatar">{{ m.user.full_name|default:m.user.username|first|upper }}</div>
+              <div>
+                <div class="user-name">{{ m.user.full_name|default:m.user.username }}</div>
+                <div class="user-meta">{{ m.user.email }}</div>
+              </div>
+            </div>
+          </td>
+          <td style="color:var(--muted);">{{ m.user.username }}</td>
+          <td><span class="role-badge role-pending">Pending</span></td>
+          <td style="text-align:right;">
+            <form method="post" action="{% url 'teams:admin_cancel_invite' m.pk %}" style="display:inline;">
+              {% csrf_token %}
+              <button type="submit" class="btn btn-red" onclick="return confirm('Cancel invite for {{ m.user.full_name|default:m.user.username }}?')">Cancel Invite</button>
+            </form>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% endif %}
+
+  <!-- Project -->
+  <div class="card">
+    <div class="card-header">Project</div>
+    {% if project %}
+    <div class="project-card">
+      <div>
+        <div class="project-title">{{ project.title }}</div>
+        <div class="project-meta">{{ project.description|truncatechars:120 }}</div>
+        <span class="proj-status {% if project.status == 'active' %}proj-active{% elif project.status == 'submitted' %}proj-submitted{% else %}proj-draft{% endif %}">
+          {{ project.status|capfirst }}
+        </span>
+      </div>
+      <div style="text-align:right;">
+        {% if project.supervisor %}
+        <div style="margin-bottom:12px;">
+          <div style="font-size:.75rem;color:var(--muted);font-weight:700;text-transform:uppercase;letter-spacing:.4px;margin-bottom:6px;">Supervisor</div>
+          <div class="supervisor-row">
+            <div class="avatar">{{ project.supervisor.full_name|default:project.supervisor.username|first|upper }}</div>
+            <div>
+              <div style="font-weight:600;">{{ project.supervisor.full_name|default:project.supervisor.username }}</div>
+              <div style="font-size:.75rem;color:var(--muted);">{{ project.supervisor.department|default:"—" }}</div>
+            </div>
+          </div>
+          <form method="post" action="{% url 'projects:remove_supervisor' project.pk %}" style="margin-top:8px;">
+            {% csrf_token %}
+            <button type="submit" class="btn btn-red" onclick="return confirm('Remove supervisor from this project?')">Remove Supervisor</button>
+          </form>
+        </div>
+        {% else %}
+        <div style="font-size:.82rem;color:var(--muted);font-style:italic;">No supervisor assigned</div>
+        {% endif %}
+      </div>
+    </div>
+    {% else %}
+    <div class="no-project">No project created yet for this team.</div>
+    {% endif %}
+  </div>
+
+</div>
+
+</body>
+</html>

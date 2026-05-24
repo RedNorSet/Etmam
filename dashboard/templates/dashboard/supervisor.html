@@ -235,7 +235,7 @@
         {% if supervised %}
         <div class="teams-group-label">🎓 Teams I Supervise</div>
         {% for proj in supervised %}
-        <div class="team-row-card">
+        <div class="team-row-card" style="cursor:pointer;" onclick="window.location='{% url 'dashboard:supervisor_team_detail' proj.pk %}'">
           <div class="team-row-icon" style="background:linear-gradient(135deg,#1d4ed8,#7c3aed)">🏷️</div>
           <div class="team-row-info">
             <div class="team-row-name">{{ proj.team.name }}</div>
@@ -243,6 +243,7 @@
           </div>
           <div class="team-row-right">
             <span class="card-status-tag tag-active" style="position:static;">{{ proj.get_status_display }}</span>
+            <span style="color:#64748b;margin-left:12px;">›</span>
           </div>
         </div>
         {% endfor %}

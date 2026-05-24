@@ -10,5 +10,7 @@ urlpatterns = [
     path('decline/<int:member_id>/',     views.decline_invite,     name='decline_invite'),
     path('remove/<int:member_id>/',      views.remove_member,      name='remove_member'),
     path('search-students/',             views.search_students,    name='search_students'),
-    path('dissolve/<int:team_id>/',      views.admin_dissolve_team, name='dissolve'),
+    path('dissolve/<int:team_id>/',           views.admin_dissolve_team,  name='dissolve'),
+    path('admin-remove/<int:member_id>/',     views.admin_remove_member,  name='admin_remove_member'),
+    path('admin-cancel-invite/<int:member_id>/', views.admin_cancel_invite, name='admin_cancel_invite'),
 ]

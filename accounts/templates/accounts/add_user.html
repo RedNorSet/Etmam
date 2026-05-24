@@ -4,7 +4,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Edit {{ target.username }} — Etmam</title>
+  <title>Add User — Etmam</title>
   <style>
     @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap');
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
@@ -49,9 +49,6 @@
     .btn-out { background: transparent; border: 1px solid var(--border); color: var(--muted); text-decoration: none; }
     .btn-out:hover { border-color: var(--blue); color: var(--blue); }
 
-    .alert { padding: .75rem 1rem; border-radius: 6px; margin-bottom: 20px; font-size: .875rem; }
-    .alert-success { background: #f0fdf4; border: 1px solid #bbf7d0; color: #16a34a; }
-
     .pass-note { font-size: .75rem; color: var(--muted); margin-top: 4px; }
 
     @media (max-width: 600px) { .grid2 { grid-template-columns: 1fr; } }
@@ -59,20 +56,26 @@
 </head>
 <body>
 
+{% if messages %}
+<div style="position:fixed;top:16px;right:16px;z-index:9999;display:flex;flex-direction:column;gap:8px;max-width:360px;">
+  {% for message in messages %}
+  <div class="django-toast" style="background:#1e2433;border:1px solid rgba(255,255,255,.12);border-radius:10px;padding:12px 16px;font-size:.85rem;color:#f1f5f9;box-shadow:0 8px 24px rgba(0,0,0,.4);display:flex;align-items:flex-start;gap:10px;">
+    {% if message.tags == 'error' %}<span style="color:#f87171;flex-shrink:0;">✕</span><span style="border-left:3px solid #f87171;padding-left:10px;">{{ message }}</span>
+    {% elif message.tags == 'success' %}<span style="color:#4ade80;flex-shrink:0;">✔</span><span style="border-left:3px solid #4ade80;padding-left:10px;">{{ message }}</span>
+    {% else %}<span style="color:#60a5fa;flex-shrink:0;">ℹ</span><span style="border-left:3px solid #60a5fa;padding-left:10px;">{{ message }}</span>{% endif %}
+  </div>
+  {% endfor %}
+</div>
+<script>setTimeout(function(){document.querySelectorAll('.django-toast').forEach(function(el){el.style.transition='opacity .4s';el.style.opacity='0';setTimeout(function(){el.remove();},400);});},3500);</script>
+{% endif %}
+
 <div class="topbar">
   <a href="{% url 'dashboard:admin' %}">← Admin Dashboard</a>
   <span class="sep">/</span>
-  <strong>Edit User: {{ target.username }}</strong>
+  <strong>Add New User</strong>
 </div>
 
 <div class="page">
-
-  {% if messages %}
-    {% for message in messages %}
-      <div class="alert alert-success">{{ message }}</div>
-    {% endfor %}
-  {% endif %}
-
   <form method="post">
     {% csrf_token %}
 
@@ -81,34 +84,44 @@
       <h2>Basic Information</h2>
       <div class="grid2">
         <div class="field">
-          <label>Username</label>
-          <input type="text" name="username" value="{{ target.username }}" required />
+          <label>Username <span style="color:var(--red);">*</span></label>
+          <input type="text" name="username" required autofocus />
         </div>
         <div class="field">
           <label>Full Name</label>
-          <input type="text" name="full_name" value="{{ target.full_name }}" />
+          <input type="text" name="full_name" />
         </div>
         <div class="field">
           <label>Email</label>
-          <input type="email" name="email" value="{{ target.email }}" />
+          <input type="email" name="email" />
         </div>
         <div class="field">
           <label>Role</label>
           <select name="role" id="role-select" onchange="toggleSupervisorSection()">
-            <option value="student"       {% if target.role == 'student' %}selected{% endif %}>Student</option>
-            <option value="supervisor"    {% if target.role == 'supervisor' %}selected{% endif %}>Supervisor</option>
-            <option value="reviewer"      {% if target.role == 'reviewer' %}selected{% endif %}>Reviewer</option>
-            <option value="administrator" {% if target.role == 'administrator' %}selected{% endif %}>Administrator</option>
+            <option value="student">Student</option>
+            <option value="supervisor">Supervisor</option>
+            <option value="reviewer">Reviewer</option>
+            <option value="administrator">Administrator</option>
           </select>
         </div>
         <div class="field">
           <label>Department</label>
-          <input type="text" name="department" value="{{ target.department }}" />
+          <input type="text" name="department" />
         </div>
         <div class="field">
           <label>ID</label>
-          <input type="text" name="student_id" value="{{ target.student_id|default:'' }}" />
+          <input type="text" name="student_id" />
         </div>
+      </div>
+    </div>
+
+    <!-- Password -->
+    <div class="card">
+      <h2>Password</h2>
+      <div class="field" style="max-width:320px;">
+        <label>Password <span style="color:var(--red);">*</span></label>
+        <input type="password" name="password" required />
+        <span class="pass-note">Required to create the account.</span>
       </div>
     </div>
 
@@ -118,41 +131,27 @@
       <div class="grid2">
         <div class="field">
           <label>Max Teams</label>
-          <input type="number" name="max_teams" value="{{ target.max_teams }}" min="1" max="20" />
+          <input type="number" name="max_teams" value="2" min="1" max="20" />
         </div>
         <div class="field span2">
           <label>Expertise</label>
-          <textarea name="expertise">{{ target.expertise }}</textarea>
+          <textarea name="expertise"></textarea>
         </div>
       </div>
       <div class="checks" style="margin-top:16px;">
         <label class="check-row">
-          <input type="checkbox" name="can_review" id="can-review-check" {% if target.can_review %}checked{% endif %} />
+          <input type="checkbox" name="can_review" id="can-review-check" />
           Can review other teams
         </label>
         <label class="check-row">
-          <input type="checkbox" name="available" {% if target.available %}checked{% endif %} />
+          <input type="checkbox" name="available" checked />
           Available for new assignments
         </label>
-        <label class="check-row">
-          <input type="checkbox" name="is_active" {% if target.is_active %}checked{% endif %} />
-          Account active
-        </label>
-      </div>
-    </div>
-
-    <!-- Reset Password -->
-    <div class="card">
-      <h2>Reset Password</h2>
-      <div class="field" style="max-width:320px;">
-        <label>New Password</label>
-        <input type="password" name="new_password" placeholder="Leave blank to keep current" />
-        <span class="pass-note">Only fill this in if you want to change the password.</span>
       </div>
     </div>
 
     <div style="display:flex;gap:12px;align-items:center;">
-      <button type="submit" class="btn btn-blue">Save Changes</button>
+      <button type="submit" class="btn btn-blue">Create User</button>
       <a href="{% url 'dashboard:admin' %}" class="btn btn-out">Cancel</a>
     </div>
 

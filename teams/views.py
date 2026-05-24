@@ -15,11 +15,12 @@ def search_students(request):
     q = request.GET.get('q', '').strip()
     results = []
     if q:
+        already_in_team = TeamMember.objects.values_list('user_id', flat=True)
         results = (
             User.objects
             .filter(role='student')
             .filter(Q(full_name__icontains=q) | Q(username__icontains=q))
-            .exclude(team_memberships__isnull=False)
+            .exclude(pk__in=already_in_team)
             .order_by('full_name', 'username')[:8]
         )
     return render(request, 'teams/partials/student_search_results.html', {
@@ -164,3 +165,27 @@ def remove_member(request, member_id):
     target.delete()
     messages.success(request, 'Member removed from team.')
     return redirect('dashboard:student')
+
+
+@login_required
+@require_POST
+def admin_remove_member(request, member_id):
+    if not request.user.is_administrator():
+        return redirect('dashboard:admin')
+    member = get_object_or_404(TeamMember, pk=member_id)
+    team_id = member.team.pk
+    member.delete()
+    messages.success(request, 'Member removed.')
+    return redirect('dashboard:admin_team_detail', team_id=team_id)
+
+
+@login_required
+@require_POST
+def admin_cancel_invite(request, member_id):
+    if not request.user.is_administrator():
+        return redirect('dashboard:admin')
+    invite = get_object_or_404(TeamMember, pk=member_id, status='pending')
+    team_id = invite.team.pk
+    invite.delete()
+    messages.success(request, 'Invite cancelled.')
+    return redirect('dashboard:admin_team_detail', team_id=team_id)

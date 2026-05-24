@@ -1641,6 +1641,45 @@ footer {
 .form-input[type="datetime-local"] { color-scheme: dark; }
 textarea.form-input { resize: vertical; min-height: 70px; }
 
+/* Custom dropdown (cdd) */
+.cdd { position: relative; width: 100%; user-select: none; }
+.cdd-trigger {
+  display: flex; align-items: center; justify-content: space-between;
+  background: rgba(255,255,255,.05);
+  border: 1px solid rgba(255,255,255,.12);
+  border-radius: 8px;
+  padding: .55rem .75rem;
+  color: var(--text);
+  font-size: .87rem;
+  cursor: pointer;
+  transition: border-color .15s;
+}
+.cdd.open .cdd-trigger { border-color: var(--primary); }
+.cdd-arrow { font-size: .65rem; color: var(--text-muted); transition: transform .15s; }
+.cdd.open .cdd-arrow { transform: rotate(180deg); }
+.cdd-options {
+  display: none;
+  position: absolute;
+  top: calc(100% + 4px);
+  left: 0; right: 0;
+  background: var(--bg-card);
+  border: 1px solid rgba(255,255,255,.15);
+  border-radius: 8px;
+  overflow: hidden;
+  z-index: 100;
+  box-shadow: 0 8px 24px rgba(0,0,0,.4);
+}
+.cdd.open .cdd-options { display: block; }
+.cdd-option {
+  padding: .55rem .75rem;
+  font-size: .87rem;
+  color: var(--text);
+  cursor: pointer;
+  transition: background .1s;
+}
+.cdd-option:hover { background: rgba(255,255,255,.08); }
+.cdd-option.cdd-selected { color: var(--primary); font-weight: 600; }
+
 /* Participant picker */
 .participant-picker {
   display: grid;

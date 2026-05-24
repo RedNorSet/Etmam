@@ -112,22 +112,6 @@
       </div>
     </div>
 
-    <!-- Availability -->
-    <div class="card">
-      <h2>Availability</h2>
-      <div class="grid2">
-        <div class="field">
-          <label>Max Teams</label>
-          <input type="number" name="max_teams" value="{{ user.max_teams }}" min="1" max="20" />
-        </div>
-      </div>
-      <div style="margin-top:14px;">
-        <label class="check-row">
-          <input type="checkbox" name="available" {% if user.available %}checked{% endif %} />
-          Currently accepting new students
-        </label>
-      </div>
-    </div>
 
     <div style="display:flex;gap:12px;">
       <button type="submit" class="btn btn-blue">Save Profile</button>

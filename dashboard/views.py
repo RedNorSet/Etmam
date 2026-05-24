@@ -1,5 +1,5 @@
 from django.contrib.auth.decorators import login_required
-from django.shortcuts import render, redirect
+from django.shortcuts import render, redirect, get_object_or_404
 from django.utils import timezone
 
 from accounts.models import User
@@ -117,15 +117,17 @@ def supervisor_dashboard(request):
 
 @login_required
 def admin_dashboard(request):
-    total_teams       = Team.objects.count()
+    total_teams       = Team.objects.filter(is_active=True).count()
     total_students    = User.objects.filter(role='student').count()
     total_supervisors = User.objects.filter(role='supervisor').count()
     total_reviewers   = User.objects.filter(role='reviewer').count()
     overdue           = Milestone.objects.filter(due_date__lt=timezone.now().date(), status__in=['pending', 'in_progress']).count()
     pending_grades    = Grade.objects.filter(final_score__isnull=True).count()
 
-    users       = User.objects.order_by('-date_joined')
-    teams       = Team.objects.select_related('project').order_by('-created_at')
+    students = User.objects.filter(role='student').order_by('full_name', 'username')
+    staff    = User.objects.filter(role__in=['supervisor', 'reviewer']).order_by('full_name', 'username')
+    admins   = User.objects.filter(role='administrator').order_by('full_name', 'username')
+    teams       = Team.objects.filter(is_active=True).select_related('project').order_by('-created_at')
     projects    = Project.objects.select_related('team', 'supervisor', 'reviewer').order_by('-created_at')
     milestones  = Milestone.objects.select_related('project').order_by('due_date')
     submissions = Submission.objects.filter(is_latest=True).select_related('milestone', 'submitted_by').order_by('-submitted_at')
@@ -138,12 +140,42 @@ def admin_dashboard(request):
         'total_reviewers':   total_reviewers,
         'overdue':           overdue,
         'pending_grades':    pending_grades,
-        'users':             users,
+        'students':          students,
+        'staff':             staff,
+        'admins':            admins,
         'teams':             teams,
         'projects':          projects,
         'milestones':        milestones,
         'submissions':       submissions,
         'grades':            grades,
+    })
+
+
+@login_required
+def supervisor_team_detail(request, project_id):
+    if not request.user.is_supervisor():
+        return redirect('dashboard:index')
+    project = get_object_or_404(Project, pk=project_id, supervisor=request.user)
+    members = TeamMember.objects.filter(team=project.team, status='active').select_related('user')
+    return render(request, 'dashboard/supervisor_team_detail.html', {
+        'project': project,
+        'members': members,
+    })
+
+
+@login_required
+def admin_team_detail(request, team_id):
+    if not request.user.is_administrator():
+        return redirect('dashboard:admin')
+    team    = get_object_or_404(Team, pk=team_id)
+    members = TeamMember.objects.filter(team=team, status='active').select_related('user')
+    pending = TeamMember.objects.filter(team=team, status='pending').select_related('user')
+    project = getattr(team, 'project', None)
+    return render(request, 'dashboard/admin_team_detail.html', {
+        'team':    team,
+        'members': members,
+        'pending': pending,
+        'project': project,
     })
 
 
