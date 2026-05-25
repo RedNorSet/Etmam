@@ -184,6 +184,21 @@
     .dissolved-banner-text { font-size: .83rem; color: var(--red); font-weight: 600; }
     .dissolved-banner-sub { font-size: .75rem; color: #b91c1c; margin-top: 2px; }
 
+    /* ── Submissions panel — pending header ── */
+    .pending-sub-header { padding: 10px 18px; font-size: .72rem; font-weight: 600; color: var(--light); text-transform: uppercase; letter-spacing: .4px; background: #fffbeb; }
+    .pending-sub-header--bordered { border-top: 1px solid var(--border); }
+
+    /* ── Milestone panel ── */
+    .ms-overdue { color: var(--red); font-weight: 600; }
+
+    /* ── Grades panel ── */
+    .wt-badge { font-size: .82rem; padding: 3px 12px; border-radius: 12px; font-weight: 600; }
+    .wt-badge--ok  { background: #d1fae5; color: #065f46; }
+    .wt-badge--err { background: #fee2e2; color: #991b1b; }
+    .split-block { display: none; }
+    .grade-cell { text-align: center; padding: 8px 6px; border-bottom: 1px solid var(--border); border-left: 1px solid var(--border); }
+    .grade-cell--new-ms { border-left: 2px solid var(--border); }
+
     /* ══════════════════════════════════════
        DISSOLVE UNDO TOAST
        ══════════════════════════════════════ */
@@ -827,76 +842,443 @@
        PANEL: MILESTONES
        ═══════════════════════════════════ -->
   <div class="panel" id="panel-milestones">
-    <div class="ph"><div><h1>Milestones</h1><p>{% if overdue %}<span style="color:var(--red);font-weight:600;">{{ overdue }} overdue</span> — {% endif %}All project milestones</p></div></div>
-    <div class="card">
-      <table class="gt">
-        <thead><tr><th>Title</th><th>Project</th><th>Type</th><th>Due Date</th><th>Status</th></tr></thead>
-        <tbody>
-          {% for m in milestones %}
-          <tr>
-            <td style="font-weight:600;">{{ m.title }}</td>
-            <td>{{ m.project.title|truncatechars:30 }}</td>
-            <td>{% if m.type == 'mid' %}<span class="badge b-purple">Mid Review</span>{% elif m.type == 'final' %}<span class="badge b-orange">Final Review</span>{% else %}<span class="badge b-gray">Regular</span>{% endif %}</td>
-            <td>{{ m.due_date|date:"M d, Y" }}</td>
-            <td>{% if m.status == 'approved' %}<span class="badge b-green">Approved</span>{% elif m.status == 'submitted' %}<span class="badge b-blue">Submitted</span>{% elif m.status == 'overdue' %}<span class="badge b-red">Overdue</span>{% elif m.status == 'in_progress' %}<span class="badge b-orange">In Progress</span>{% else %}<span class="badge b-gray">Pending</span>{% endif %}</td>
-          </tr>
-          {% empty %}
-          <tr><td colspan="5"><div class="empty"><div class="ei">📋</div>No milestones yet.</div></td></tr>
-          {% endfor %}
-        </tbody>
-      </table>
+    <div class="ph">
+      <div>
+        <h1>Milestones</h1>
+        <p>{{ milestones|length }} global objective{{ milestones|length|pluralize }}{% if overdue %} · <span style="color:var(--red);font-weight:600;">{{ overdue }} past due date</span>{% endif %}</p>
+      </div>
+      <div class="ph-actions">
+        <button class="btn btn-blue" onclick="toggleAddMilestone()">＋ Add Objective</button>
+      </div>
     </div>
+
+    <!-- Add milestone form (hidden) -->
+    <div class="create-team-card" id="add-milestone-card" style="display:none;margin-bottom:20px;">
+      <div class="create-team-title">
+        <span>＋ New Objective</span>
+        <button type="button" class="btn btn-ghost btn-sm" onclick="toggleAddMilestone()">✕ Close</button>
+      </div>
+      <form method="post" action="{% url 'dashboard:admin_create_milestone' %}">
+        {% csrf_token %}
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;">
+          <div class="det-field" style="grid-column:1/-1;">
+            <label class="det-label">Title *</label>
+            <input type="text" name="title" class="det-input" placeholder="e.g. Literature Review" required>
+          </div>
+          <div class="det-field" style="grid-column:1/-1;">
+            <label class="det-label">Description</label>
+            <textarea name="description" class="det-textarea" rows="2" placeholder="What should teams deliver for this objective?"></textarea>
+          </div>
+          <div class="det-field">
+            <label class="det-label">Start Date</label>
+            <input type="date" name="start_date" class="det-input">
+          </div>
+          <div class="det-field">
+            <label class="det-label">Due Date</label>
+            <input type="date" name="due_date" class="det-input">
+          </div>
+          <div class="det-field">
+            <label class="det-label">Weight (% of final grade)</label>
+            <input type="number" name="weight" class="det-input" value="10" min="0" max="100">
+          </div>
+          <div style="display:flex;align-items:flex-end;">
+            <button type="submit" class="btn btn-blue" style="width:100%;justify-content:center;">✔ Create Objective</button>
+          </div>
+        </div>
+      </form>
+    </div>
+
+    <!-- Milestone cards (accordion) -->
+    {% for m in milestones %}
+    <div class="card" style="margin-bottom:12px;overflow:visible;">
+      <!-- Summary row -->
+      <div style="display:flex;align-items:center;gap:14px;padding:14px 20px;cursor:pointer;"
+           onclick="toggleMilestoneEdit('mcard-{{ m.pk }}')">
+        <div style="width:28px;height:28px;border-radius:50%;background:var(--blue-lt);border:1px solid var(--blue-bd);display:flex;align-items:center;justify-content:center;font-size:.8rem;font-weight:700;color:var(--blue);flex-shrink:0;">{{ m.order }}</div>
+        <div style="flex:1;min-width:0;">
+          <div style="font-weight:600;font-size:.9rem;">{{ m.title }}</div>
+          <div style="font-size:.75rem;color:var(--muted);margin-top:2px;">
+            {% if m.start_date %}{{ m.start_date|date:"M d" }} →{% endif %}
+            {% if m.due_date %}<span class="{% if m.due_date < today %}ms-overdue{% endif %}">{{ m.due_date|date:"M d, Y" }}</span>{% else %}<span style="color:var(--light);">No due date</span>{% endif %}
+            · Weight: <strong>{{ m.weight }}%</strong>
+          </div>
+        </div>
+        {% if m.due_date and m.due_date < today %}
+        <span class="badge b-red">Past Due</span>
+        {% endif %}
+        <span style="color:var(--light);font-size:1rem;" id="mi-icon-{{ m.pk }}">›</span>
+      </div>
+
+      <!-- Edit form (hidden) -->
+      <div id="mcard-{{ m.pk }}" style="display:none;border-top:1px solid var(--border);padding:18px 20px;background:#fafbfc;">
+        <form method="post" action="{% url 'dashboard:admin_update_milestone' m.pk %}">
+          {% csrf_token %}
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;">
+            <div class="det-field" style="grid-column:1/-1;">
+              <label class="det-label">Title</label>
+              <input type="text" name="title" class="det-input" value="{{ m.title }}" required>
+            </div>
+            <div class="det-field" style="grid-column:1/-1;">
+              <label class="det-label">Description</label>
+              <textarea name="description" class="det-textarea" rows="3">{{ m.description }}</textarea>
+            </div>
+            <div class="det-field">
+              <label class="det-label">Start Date</label>
+              <input type="date" name="start_date" class="det-input" value="{{ m.start_date|date:'Y-m-d'|default:'' }}">
+            </div>
+            <div class="det-field">
+              <label class="det-label">Due Date</label>
+              <input type="date" name="due_date" class="det-input" value="{{ m.due_date|date:'Y-m-d'|default:'' }}">
+            </div>
+            <div class="det-field">
+              <label class="det-label">Weight (%)</label>
+              <input type="number" name="weight" class="det-input" value="{{ m.weight }}" min="0" max="100">
+            </div>
+            <div class="det-field">
+              <label class="det-label">Display Order</label>
+              <input type="number" name="order" class="det-input" value="{{ m.order }}" min="1">
+            </div>
+          </div>
+          <div style="display:flex;gap:10px;margin-top:14px;">
+            <button type="submit" class="btn btn-blue">💾 Save Changes</button>
+          </div>
+        </form>
+        <form method="post" action="{% url 'dashboard:admin_delete_milestone' m.pk %}" style="margin-top:8px;"
+              data-milestone-name="{{ m.title }}"
+              onsubmit="return confirm('Delete \'' + this.dataset.milestoneName + '\'? All submissions linked to this milestone will also be deleted.');">
+          {% csrf_token %}
+          <button type="submit" class="btn btn-ghost" style="color:var(--red);border-color:var(--red);">🗑 Delete Milestone</button>
+        </form>
+      </div>
+    </div>
+    {% empty %}
+    <div class="card"><div class="empty"><div class="ei">📋</div>No milestones yet. Click "Add Objective" to create the first one.</div></div>
+    {% endfor %}
   </div>
 
   <!-- ═══════════════════════════════════
        PANEL: SUBMISSIONS
        ═══════════════════════════════════ -->
   <div class="panel" id="panel-submissions">
-    <div class="ph"><div><h1>Submissions</h1><p>Latest submissions per milestone</p></div></div>
-    <div class="card">
-      <table class="gt">
-        <thead><tr><th>Milestone</th><th>Submitted By</th><th>Version</th><th>Submitted At</th></tr></thead>
-        <tbody>
-          {% for s in submissions %}
-          <tr>
-            <td><div style="font-weight:600;">{{ s.milestone.title }}</div><div style="font-size:.75rem;color:var(--muted);">{{ s.milestone.project.title|truncatechars:30 }}</div></td>
-            <td>{% if s.submitted_by.full_name %}{{ s.submitted_by.full_name }}{% else %}{{ s.submitted_by.username }}{% endif %}</td>
-            <td><span class="badge b-blue">v{{ s.version }}</span></td>
-            <td>{{ s.submitted_at|date:"M d, Y g:i A" }}</td>
-          </tr>
-          {% empty %}
-          <tr><td colspan="4"><div class="empty"><div class="ei">📤</div>No submissions yet.</div></td></tr>
-          {% endfor %}
-        </tbody>
-      </table>
+    <div class="ph">
+      <div>
+        <h1>Submissions</h1>
+        <p>File deliverables by milestone — see who submitted and who hasn't</p>
+      </div>
     </div>
+
+    {% for item in submissions_data %}
+    {% with m=item.milestone subs=item.submissions pending=item.not_submitted %}
+    <div class="card" style="margin-bottom:14px;overflow:visible;">
+      <!-- Milestone header row -->
+      <div style="display:flex;align-items:center;gap:14px;padding:14px 20px;cursor:pointer;background:#fafbfc;border-bottom:1px solid var(--border);"
+           onclick="toggleSubSection('sub-{{ m.pk }}')">
+        <div style="width:26px;height:26px;border-radius:50%;background:var(--blue-lt);border:1px solid var(--blue-bd);display:flex;align-items:center;justify-content:center;font-size:.78rem;font-weight:700;color:var(--blue);flex-shrink:0;">{{ m.order }}</div>
+        <div style="flex:1;font-weight:600;font-size:.88rem;">{{ m.title }}</div>
+        <span class="badge {% if item.submitted_count == item.total_count and item.total_count > 0 %}b-green{% elif item.submitted_count > 0 %}b-blue{% else %}b-gray{% endif %}">
+          {{ item.submitted_count }} / {{ item.total_count }} submitted
+        </span>
+        {% if m.due_date %}<span style="font-size:.75rem;color:var(--muted);">Due {{ m.due_date|date:"M d, Y" }}</span>{% endif %}
+        <span style="color:var(--light);" id="sub-icon-{{ m.pk }}">›</span>
+      </div>
+
+      <!-- Submissions detail -->
+      <div id="sub-{{ m.pk }}" style="display:none;">
+
+        {% if subs %}
+        <table class="gt">
+          <thead>
+            <tr>
+              <th>Team</th><th>Submitted By</th><th>Date</th><th>Ver.</th>
+              <th>Files</th><th>Grade (/100)</th><th>Status</th><th>Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+          {% for s in subs %}
+          <tr>
+            <td>
+              <div style="font-weight:600;">{{ s.project.team.name|default:"—" }}</div>
+              <div style="font-size:.72rem;color:var(--muted);">{{ s.project.title|truncatechars:28 }}</div>
+            </td>
+            <td>{{ s.submitted_by.full_name|default:s.submitted_by.username|default:"—" }}</td>
+            <td style="white-space:nowrap;font-size:.78rem;">{{ s.submitted_at|date:"M d, Y" }}<br><span style="color:var(--muted);">{{ s.submitted_at|date:"g:i A" }}</span></td>
+            <td><span class="badge b-blue">v{{ s.version }}</span></td>
+            <td>
+              {% for f in s.files.all %}
+              <a href="{{ f.file.url }}" target="_blank" style="display:block;font-size:.75rem;color:var(--blue);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:140px;" title="{{ f.file_name }}">📎 {{ f.file_name|truncatechars:22 }}</a>
+              {% empty %}<span style="font-size:.75rem;color:var(--light);">No files</span>{% endfor %}
+            </td>
+            <td>
+              <form method="post" action="{% url 'dashboard:admin_grade_submission' s.pk %}" style="display:flex;gap:6px;align-items:center;">
+                {% csrf_token %}
+                <input type="number" name="grade" class="det-input" style="width:70px;padding:4px 8px;font-size:.82rem;"
+                       value="{{ s.grade|default:'' }}" placeholder="—" min="0" max="100" step="0.5">
+                <button type="submit" class="btn btn-ghost btn-sm" title="Save grade">💾</button>
+              </form>
+            </td>
+            <td>
+              <span class="badge {% if s.status == 'approved' %}b-green{% elif s.status == 'revision' %}b-orange{% elif s.status == 'reviewed' %}b-blue{% else %}b-gray{% endif %}">
+                {{ s.get_status_display }}
+              </span>
+            </td>
+            <td>
+              <div style="display:flex;gap:6px;flex-wrap:wrap;">
+                <form method="post" action="{% url 'dashboard:admin_submission_status' s.pk %}">
+                  {% csrf_token %}
+                  <input type="hidden" name="status" value="approved">
+                  <button type="submit" class="btn btn-ghost btn-sm" style="color:var(--green);" title="Approve">✔ Approve</button>
+                </form>
+                <form method="post" action="{% url 'dashboard:admin_submission_status' s.pk %}">
+                  {% csrf_token %}
+                  <input type="hidden" name="status" value="revision">
+                  <button type="submit" class="btn btn-ghost btn-sm" style="color:var(--orange);" title="Request revision">↺ Revise</button>
+                </form>
+                <form method="post" action="{% url 'dashboard:admin_delete_submission' s.pk %}"
+                      onsubmit="return confirm('Delete this submission? This cannot be undone.');">
+                  {% csrf_token %}
+                  <button type="submit" class="btn btn-ghost btn-sm" style="color:var(--red);" title="Delete">🗑</button>
+                </form>
+              </div>
+            </td>
+          </tr>
+          {% endfor %}
+          </tbody>
+        </table>
+        {% endif %}
+
+        {% if pending %}
+        <div>
+          <div class="pending-sub-header {% if subs %}pending-sub-header--bordered{% endif %}">
+            ⏳ Not yet submitted ({{ pending|length }})
+          </div>
+          {% for p in pending %}
+          <div style="display:flex;align-items:center;gap:12px;padding:10px 18px;border-top:1px solid var(--border);">
+            <span style="flex:1;font-size:.83rem;">{{ p.team.name }}</span>
+            <span style="font-size:.75rem;color:var(--muted);">{{ p.title|truncatechars:35 }}</span>
+            <span class="badge b-gray">Pending</span>
+          </div>
+          {% endfor %}
+        </div>
+        {% endif %}
+
+        {% if not subs and not pending %}
+        <div class="empty" style="padding:2rem;"><div class="ei">📤</div>No active projects yet.</div>
+        {% endif %}
+      </div>
+    </div>
+    {% endwith %}
+    {% empty %}
+    <div class="card"><div class="empty"><div class="ei">📤</div>No milestones defined yet.</div></div>
+    {% endfor %}
   </div>
 
   <!-- ═══════════════════════════════════
        PANEL: GRADES
        ═══════════════════════════════════ -->
   <div class="panel" id="panel-grades">
-    <div class="ph"><div><h1>Grades</h1><p>{% if pending_grades %}<span style="color:var(--orange);font-weight:600;">{{ pending_grades }} pending</span> — {% endif %}All project grades</p></div></div>
-    <div class="card">
-      <table class="gt">
-        <thead><tr><th>Project</th><th>Type</th><th>Supervisor</th><th>Reviewer</th><th>Final</th><th>Grade</th><th>Date</th></tr></thead>
-        <tbody>
-          {% for g in grades %}
-          <tr>
-            <td><div style="font-weight:600;">{{ g.project.title|truncatechars:30 }}</div><div style="font-size:.75rem;color:var(--muted);">{{ g.project.team.name }}</div></td>
-            <td>{% if g.type == 'mid' %}<span class="badge b-purple">Mid</span>{% else %}<span class="badge b-orange">Final</span>{% endif %}</td>
-            <td>{{ g.supervisor_score|default:"—" }}</td>
-            <td>{{ g.reviewer_score|default:"—" }}</td>
-            <td>{% if g.final_score %}<strong>{{ g.final_score }}</strong>{% else %}<span class="badge b-orange">Pending</span>{% endif %}</td>
-            <td>{% if g.letter_grade %}<span class="badge b-green">{{ g.letter_grade }}</span>{% else %}<span style="color:var(--muted);">—</span>{% endif %}</td>
-            <td>{{ g.graded_at|date:"M d, Y" }}</td>
-          </tr>
-          {% empty %}
-          <tr><td colspan="7"><div class="empty"><div class="ei">📊</div>No grades recorded yet.</div></td></tr>
-          {% endfor %}
-        </tbody>
-      </table>
+    <div class="ph">
+      <div>
+        <h1>Grades</h1>
+        <p>{% if pending_grades %}<span style="color:var(--orange);font-weight:600;">{{ pending_grades }} slot(s) ungraded</span> — {% endif %}Milestone grade sheet · weights must total 100%</p>
+      </div>
     </div>
+
+    <!-- ── Weight editor ──────────────────────────────────────────────────── -->
+    <form method="post" action="{% url 'dashboard:admin_update_grade_weights' %}">
+      {% csrf_token %}
+      <div class="card" style="margin-bottom:18px;">
+        <div style="padding:16px 20px 14px;">
+          <div style="display:flex;align-items:center;gap:14px;flex-wrap:wrap;margin-bottom:14px;">
+            <span style="font-weight:700;font-size:.95rem;">Milestone Weights</span>
+            <span id="wt-total-badge"
+                  class="wt-badge {% if total_milestone_weight == 100 %}wt-badge--ok{% else %}wt-badge--err{% endif %}">
+              Total: <strong id="wt-total-val">{{ total_milestone_weight }}</strong>%{% if total_milestone_weight != 100 %} ⚠{% endif %}
+            </span>
+          </div>
+          <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:12px;">
+            {% for m in grade_milestones %}
+            <div style="border:1px solid var(--border);border-radius:8px;padding:12px 14px;background:#fafbfc;">
+              <div style="font-weight:600;font-size:.85rem;margin-bottom:10px;color:var(--text);">
+                {{ m.order }}. {{ m.title }}
+              </div>
+              <!-- Overall weight -->
+              <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px;">
+                <label style="font-size:.78rem;color:var(--muted);width:55px;">Weight:</label>
+                <input type="number" name="weight_{{ m.pk }}" value="{{ m.weight }}"
+                       min="0" max="100" class="det-input wt-input" style="width:62px;"
+                       oninput="updateWeightTotal()">
+                <span style="font-size:.78rem;color:var(--muted);">%</span>
+              </div>
+              <!-- Split toggle -->
+              <div style="display:flex;align-items:center;gap:6px;margin-bottom:6px;">
+                <input type="checkbox" name="has_split_{{ m.pk }}" id="hs_{{ m.pk }}"
+                       {% if m.has_split %}checked{% endif %}
+                       onchange="toggleSplitInputs({{ m.pk }}, this.checked)">
+                <label for="hs_{{ m.pk }}" style="font-size:.78rem;cursor:pointer;color:var(--text);">
+                  Split: Report + Presentation
+                </label>
+              </div>
+              <!-- Split sub-weights (visible when has_split) -->
+              <div id="split-block-{{ m.pk }}"
+                   class="split-block"
+                   data-split="{{ m.has_split|yesno:'true,false' }}"
+                   style="background:#f0f4ff;border-radius:6px;padding:8px 10px;margin-top:6px;">
+                <div style="display:flex;align-items:center;gap:6px;margin-bottom:6px;">
+                  <label style="font-size:.75rem;color:var(--muted);width:100px;">Report %:</label>
+                  <input type="number" name="report_weight_{{ m.pk }}" value="{{ m.report_weight }}"
+                         min="0" max="100" class="det-input" style="width:58px;"
+                         oninput="checkSplitTotal({{ m.pk }})">
+                </div>
+                <div style="display:flex;align-items:center;gap:6px;margin-bottom:6px;">
+                  <label style="font-size:.75rem;color:var(--muted);width:100px;">Presentation %:</label>
+                  <input type="number" name="presentation_weight_{{ m.pk }}" value="{{ m.presentation_weight }}"
+                         min="0" max="100" class="det-input" style="width:58px;"
+                         oninput="checkSplitTotal({{ m.pk }})">
+                </div>
+                <div id="split-sum-{{ m.pk }}" style="font-size:.72rem;font-weight:600;"></div>
+              </div>
+            </div>
+            {% empty %}
+            <div style="color:var(--muted);font-size:.85rem;">No milestones yet.</div>
+            {% endfor %}
+          </div>
+        </div>
+        <div style="padding:10px 20px;border-top:1px solid var(--border);background:#f9fafb;">
+          <button type="submit" class="btn btn-blue">💾 Save Weights</button>
+        </div>
+      </div>
+    </form>
+
+    <!-- ── Grade sheet table ──────────────────────────────────────────────── -->
+    <form method="post" action="{% url 'dashboard:admin_save_all_grades' %}">
+      {% csrf_token %}
+      <div class="card" style="overflow:hidden;">
+        <div style="padding:14px 20px;border-bottom:1px solid var(--border);
+                    display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;">
+          <span style="font-weight:700;font-size:.95rem;">Grade Sheet</span>
+          <button type="submit" class="btn btn-blue">💾 Save All Grades</button>
+        </div>
+        <div style="overflow-x:auto;">
+          <table style="border-collapse:collapse;min-width:max-content;width:100%;">
+            <thead>
+              <!-- Row 1: milestone group headers -->
+              <tr style="background:#f8fafc;">
+                <th rowspan="2" style="
+                  min-width:180px;position:sticky;left:0;z-index:3;
+                  background:#f8fafc;text-align:left;padding:10px 16px;
+                  border-bottom:2px solid var(--border);border-right:2px solid var(--border);">
+                  Team / Project
+                </th>
+                {% for m in grade_milestones %}
+                  {% if m.has_split %}
+                  <th colspan="2" style="
+                    text-align:center;padding:8px 12px;
+                    border-left:2px solid var(--border);
+                    border-bottom:1px solid var(--border);
+                    background:#eef2ff;">
+                    <div style="font-size:.82rem;font-weight:700;">{{ m.order }}. {{ m.title }}</div>
+                    <div style="font-size:.72rem;color:var(--muted);">{{ m.weight }}% total</div>
+                  </th>
+                  {% else %}
+                  <th rowspan="2" style="
+                    text-align:center;padding:8px 12px;min-width:110px;
+                    border-left:2px solid var(--border);
+                    border-bottom:2px solid var(--border);">
+                    <div style="font-size:.82rem;font-weight:700;">{{ m.order }}. {{ m.title }}</div>
+                    <div style="font-size:.72rem;color:var(--blue);font-weight:600;">{{ m.weight }}%</div>
+                  </th>
+                  {% endif %}
+                {% endfor %}
+                <th rowspan="2" style="
+                  text-align:center;padding:8px 12px;min-width:80px;
+                  border-left:2px solid var(--border);
+                  border-bottom:2px solid var(--border);
+                  background:#f8fafc;">
+                  Total
+                </th>
+              </tr>
+              <!-- Row 2: sub-component headers for split milestones -->
+              <tr style="background:#f8fafc;">
+                {% for m in grade_milestones %}
+                  {% if m.has_split %}
+                  <th style="
+                    text-align:center;padding:6px 8px;min-width:110px;
+                    border-left:2px solid var(--border);
+                    border-bottom:2px solid var(--border);
+                    font-size:.75rem;color:var(--muted);background:#eef2ff;">
+                    📄 Report<br>
+                    <span style="font-weight:700;color:var(--blue);">{{ m.report_weight }}%</span>
+                  </th>
+                  <th style="
+                    text-align:center;padding:6px 8px;min-width:110px;
+                    border-left:1px solid var(--border);
+                    border-bottom:2px solid var(--border);
+                    font-size:.75rem;color:var(--muted);background:#eef2ff;">
+                    🎤 Presentation<br>
+                    <span style="font-weight:700;color:var(--blue);">{{ m.presentation_weight }}%</span>
+                  </th>
+                  {% endif %}
+                {% endfor %}
+              </tr>
+            </thead>
+            <tbody>
+              {% for row in grade_rows %}
+              <tr>
+                <td style="
+                  position:sticky;left:0;z-index:1;background:#fff;
+                  padding:10px 16px;border-bottom:1px solid var(--border);
+                  border-right:2px solid var(--border);">
+                  <div style="font-weight:600;font-size:.85rem;">{{ row.project.team.name }}</div>
+                  <div style="font-size:.75rem;color:var(--muted);">{{ row.project.title|truncatechars:34 }}</div>
+                </td>
+                {% for cell in row.cells %}
+                <td class="grade-cell {% if cell.is_new_milestone %}grade-cell--new-ms{% endif %}">
+                  <input type="number"
+                         name="grade-{{ cell.project_id }}-{{ cell.milestone_id }}-{{ cell.component }}"
+                         value="{{ cell.score_val }}"
+                         min="0" max="100" step="0.5"
+                         placeholder="—"
+                         data-eff="{{ cell.eff_weight }}"
+                         data-row="gr-{{ row.project.pk }}"
+                         class="det-input grade-score-input"
+                         style="width:72px;text-align:center;padding:4px 6px;"
+                         oninput="recalcRow('gr-{{ row.project.pk }}', {{ grade_columns|length }})">
+                </td>
+                {% endfor %}
+                <td id="gtotal-gr-{{ row.project.pk }}" style="
+                  text-align:center;padding:8px 6px;font-weight:700;
+                  border-bottom:1px solid var(--border);
+                  border-left:2px solid var(--border);">
+                  {% if row.total is not None %}
+                    {% if row.total >= 90 %}<span class="badge b-green">{{ row.total }}</span>
+                    {% elif row.total >= 75 %}<span class="badge b-blue">{{ row.total }}</span>
+                    {% elif row.total >= 60 %}<span class="badge b-orange">{{ row.total }}</span>
+                    {% else %}<span class="badge b-red">{{ row.total }}</span>
+                    {% endif %}
+                  {% elif row.partial_total > 0 %}
+                    <span style="color:var(--muted);font-size:.85rem;" title="Partial — some milestones ungraded">{{ row.partial_total }}*</span>
+                  {% else %}
+                    <span style="color:var(--light);">—</span>
+                  {% endif %}
+                </td>
+              </tr>
+              {% empty %}
+              <tr>
+                <td colspan="99" style="padding:36px;">
+                  <div class="empty"><div class="ei">📊</div>No active projects yet.</div>
+                </td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+        {% if grade_rows %}
+        <div style="padding:12px 20px;border-top:1px solid var(--border);background:#f9fafb;text-align:right;">
+          <button type="submit" class="btn btn-blue">💾 Save All Grades</button>
+        </div>
+        {% endif %}
+      </div>
+    </form>
   </div>
 
 </div><!-- /page -->
@@ -1095,6 +1477,29 @@ function adminSelectStudent(teamId, username, name) {
    ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */
 const _ctMembers = new Map(); // username → {name}
 
+/* ─── Milestone accordion ─── */
+function toggleMilestoneEdit(cardId) {
+  const el   = document.getElementById(cardId);
+  const icon = document.getElementById('mi-icon-' + cardId.replace('mcard-', ''));
+  const open = el.style.display === 'block';
+  el.style.display = open ? 'none' : 'block';
+  if (icon) icon.textContent = open ? '›' : '‹';
+}
+
+function toggleAddMilestone() {
+  const card = document.getElementById('add-milestone-card');
+  card.style.display = card.style.display === 'none' ? 'block' : 'none';
+}
+
+/* ─── Submissions accordion ─── */
+function toggleSubSection(id) {
+  const el   = document.getElementById(id);
+  const icon = document.getElementById('sub-icon-' + id.replace('sub-', ''));
+  const open = el.style.display === 'block';
+  el.style.display = open ? 'none' : 'block';
+  if (icon) icon.textContent = open ? '›' : '‹';
+}
+
 function toggleCreateTeamForm() {
   const card = document.getElementById('create-team-card');
   card.classList.toggle('visible');
@@ -1205,6 +1610,83 @@ window.addEventListener('DOMContentLoaded', function() {
       setTimeout(() => detailRow.scrollIntoView({ behavior:'smooth', block:'nearest' }), 200);
     }
   }
+});
+
+/* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+   GRADES PANEL — weight editor + grade-sheet totals
+   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */
+
+/* Live-update the "Total: X%" badge as weight inputs change */
+function updateWeightTotal() {
+  var inputs = document.querySelectorAll('.wt-input');
+  var total  = 0;
+  inputs.forEach(function(inp) { total += parseInt(inp.value || 0, 10); });
+  var val   = document.getElementById('wt-total-val');
+  var badge = document.getElementById('wt-total-badge');
+  if (val)   val.textContent = total;
+  if (badge) {
+    var ok = (total === 100);
+    badge.textContent = 'Total: ' + total + '%' + (ok ? '' : ' ⚠');
+    badge.className   = 'wt-badge ' + (ok ? 'wt-badge--ok' : 'wt-badge--err');
+    /* inject the number back as bold */
+    badge.innerHTML   = 'Total: <strong id="wt-total-val">' + total + '</strong>%' + (ok ? '' : ' ⚠');
+  }
+}
+
+/* Show/hide split sub-inputs for a milestone */
+function toggleSplitInputs(pk, checked) {
+  var block = document.getElementById('split-block-' + pk);
+  if (block) {
+    block.style.display = checked ? 'block' : 'none';
+    block.dataset.split = checked ? 'true' : 'false';
+  }
+  if (checked) checkSplitTotal(pk);
+}
+
+/* Validate that report% + presentation% == 100 */
+function checkSplitTotal(pk) {
+  var rw = parseInt(document.querySelector('input[name="report_weight_' + pk + '"]')?.value || 0, 10);
+  var pw = parseInt(document.querySelector('input[name="presentation_weight_' + pk + '"]')?.value || 0, 10);
+  var el = document.getElementById('split-sum-' + pk);
+  if (!el) return;
+  var s = rw + pw;
+  el.textContent = 'Sum: ' + s + '%' + (s === 100 ? ' ✓' : ' ⚠ must be 100');
+  el.style.color = s === 100 ? 'var(--green, #16a34a)' : 'var(--red, #dc2626)';
+}
+
+/* Recalculate the total cell for a grade-sheet row */
+function recalcRow(rowId) {
+  var inputs = document.querySelectorAll('.grade-score-input[data-row="' + rowId + '"]');
+  var total  = 0;
+  var allFilled = true;
+  inputs.forEach(function(inp) {
+    var eff = parseFloat(inp.dataset.eff || 0);
+    var val = inp.value.trim();
+    if (val === '') { allFilled = false; }
+    else            { total += parseFloat(val) * eff / 100; }
+  });
+  total = Math.round(total * 10) / 10;
+  var cell = document.getElementById('gtotal-' + rowId);
+  if (!cell) return;
+  if (!allFilled && total === 0) {
+    cell.innerHTML = '<span style="color:var(--light);">—</span>';
+  } else if (!allFilled) {
+    cell.innerHTML = '<span style="color:var(--muted);font-size:.85rem;" title="Partial">' + total + '*</span>';
+  } else {
+    var cls = total >= 90 ? 'b-green' : total >= 75 ? 'b-blue' : total >= 60 ? 'b-orange' : 'b-red';
+    cell.innerHTML = '<span class="badge ' + cls + '">' + total + '</span>';
+  }
+}
+
+/* On page load: show split blocks that have data-split="true" and validate their totals */
+document.addEventListener('DOMContentLoaded', function() {
+  document.querySelectorAll('.split-block').forEach(function(block) {
+    if (block.dataset.split === 'true') {
+      block.style.display = 'block';
+      var pk = block.id.replace('split-block-', '');
+      checkSplitTotal(pk);
+    }
+  });
 });
 </script>
 

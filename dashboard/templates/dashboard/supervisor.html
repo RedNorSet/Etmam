@@ -235,7 +235,9 @@
         {% if supervised %}
         <div class="teams-group-label">🎓 Teams I Supervise</div>
         {% for proj in supervised %}
-        <div class="team-row-card" style="cursor:pointer;" onclick="window.location='{% url 'dashboard:supervisor_team_detail' proj.pk %}'">
+        <div class="team-row-card" style="cursor:pointer;"
+             data-url="{% url 'dashboard:supervisor_team_detail' proj.pk %}"
+             onclick="window.location=this.dataset.url">
           <div class="team-row-icon" style="background:linear-gradient(135deg,#1d4ed8,#7c3aed)">🏷️</div>
           <div class="team-row-info">
             <div class="team-row-name">{{ proj.team.name }}</div>

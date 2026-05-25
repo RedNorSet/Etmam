@@ -2,6 +2,7 @@ from django.contrib.auth.decorators import login_required
 from django.views.decorators.http import require_POST
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib import messages
+from django.urls import reverse
 
 from accounts.models import User
 from teams.models import TeamMember
@@ -140,7 +141,6 @@ def admin_remove_supervisor(request, project_id):
     project.status = 'draft'
     project.save()
     messages.success(request, f'Supervisor removed from "{project.title}".')
-    from django.urls import reverse
     team_id = project.team.pk
     return redirect(reverse('dashboard:admin') + f'?panel=teams_projects&open={team_id}')
 
@@ -161,6 +161,5 @@ def admin_remove_reviewer(request, project_id):
     else:
         project.reviewers.clear()
     messages.success(request, f'Reviewer removed from "{project.title}".')
-    from django.urls import reverse
     team_id = project.team.pk
     return redirect(reverse('dashboard:admin') + f'?panel=teams_projects&open={team_id}')

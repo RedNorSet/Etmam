@@ -1081,6 +1081,10 @@ footer {
   transform: translateY(-3px);
 }
 
+.sup-card--active {
+  border-color: var(--primary, #2563eb);
+}
+
 .sup-header {
   display: flex;
   align-items: center;

@@ -35,6 +35,23 @@ urlpatterns = [
     path('admin/search-students/', views.admin_search_students, name='admin_search_students'),
 
     # Team creation & dissolved-team cleanup
-    path('admin/create-team/',        views.admin_create_team,            name='admin_create_team'),
-    path('admin/delete-dissolved/',   views.admin_delete_dissolved_teams, name='admin_delete_dissolved'),
+    path('admin/create-team/',      views.admin_create_team,            name='admin_create_team'),
+    path('admin/delete-dissolved/', views.admin_delete_dissolved_teams, name='admin_delete_dissolved'),
+
+    # ── Milestone admin CRUD ───────────────────────────────────────────────
+    path('admin/milestones/create/',               views.admin_create_milestone, name='admin_create_milestone'),
+    path('admin/milestones/<int:milestone_id>/update/', views.admin_update_milestone, name='admin_update_milestone'),
+    path('admin/milestones/<int:milestone_id>/delete/', views.admin_delete_milestone, name='admin_delete_milestone'),
+
+    # ── Grade admin actions ────────────────────────────────────────────────
+    path('admin/grades/weights/',     views.admin_update_grade_weights, name='admin_update_grade_weights'),
+    path('admin/grades/save/',        views.admin_save_all_grades,      name='admin_save_all_grades'),
+
+    # ── Submission admin actions ───────────────────────────────────────────
+    path('admin/submissions/<int:submission_id>/grade/',  views.admin_grade_submission,   name='admin_grade_submission'),
+    path('admin/submissions/<int:submission_id>/status/', views.admin_submission_status,  name='admin_submission_status'),
+    path('admin/submissions/<int:submission_id>/delete/', views.admin_delete_submission,  name='admin_delete_submission'),
+
+    # ── Student submit milestone ───────────────────────────────────────────
+    path('student/submit/<int:milestone_id>/', views.student_submit_milestone, name='student_submit_milestone'),
 ]
