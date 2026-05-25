@@ -1,0 +1,27 @@
+{% extends 'base.html' %}
+{% block title %}{{ milestone.title }} - Submit{% endblock %}
+{% block content %}
+<div style="display:flex;min-height:100vh;background:#f0f4f8">
+<aside style="width:280px;background:#1e2433;color:#f1f5f9;padding:24px 20px;overflow-y:auto;border-right:1px solid rgba(255,255,255,.1)">
+<div style="margin-bottom:32px"><h2 style="font-size:20px;font-weight:600;margin:0">{{ milestone.project.team.name }}</h2></div>
+<nav style="display:flex;flex-direction:column;gap:8px">
+<a href="{% url 'dashboard:student' %}" style="padding:10px 12px;border-radius:6px;color:#cbd5e1;text-decoration:none;font-size:14px">📊 Dashboard</a>
+<a href="{% url 'submissions:milestone_list' %}" style="padding:10px 12px;border-radius:6px;color:#cbd5e1;text-decoration:none;font-size:14px">📋 Milestones</a>
+</nav>
+</aside>
+<main style="flex:1;padding:32px"><div style="max-width:900px"><h1 style="font-size:28px;font-weight:600;margin:0;color:#1e293b">{{ milestone.title }}</h1>
+<div style="background:#fff;border:1px solid #e2e8f0;border-radius:12px;padding:24px;margin:20px 0">
+<p><strong>Supervisor:</strong> {{ milestone.project.supervisor.full_name }}</p>
+<p><strong>Due:</strong> {{ milestone.due_date|date:'M d, Y' }}</p>
+{% if milestone.description %}<p>{{ milestone.description }}</p>{% endif %}
+</div>
+<form method="post" enctype="multipart/form-data" style="background:#fff;border:1px solid #e2e8f0;border-radius:12px;padding:24px">
+{% csrf_token %}
+<label style="display:block;font-weight:600;margin:0 0 8px 0">Upload Files *</label>
+<input type="file" name="files" multiple required style="width:100%;padding:10px;border:1px solid #e2e8f0;border-radius:6px;margin-bottom:20px"/>
+<label style="display:block;font-weight:600;margin:0 0 8px 0">Notes</label>
+<textarea name="notes" style="width:100%;padding:10px;border:1px solid #e2e8f0;border-radius:6px;margin-bottom:20px;min-height:100px"></textarea>
+<button type="submit" style="padding:10px 24px;background:#3b82f6;color:#fff;border:none;border-radius:6px;font-weight:600;cursor:pointer">Submit</button>
+</form>
+</div></main></div>
+{% endblock %}

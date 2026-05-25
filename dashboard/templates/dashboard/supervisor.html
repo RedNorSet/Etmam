@@ -46,6 +46,12 @@
         {% if upcoming|length %}<span class="nav-badge">{{ upcoming|length }}</span>{% endif %}
       </button>
 
+      <button class="nav-item" onclick="showSection('submissions', this)">
+        <span class="nav-icon">📤</span>
+        <span class="nav-label">Submissions</span>
+        {% if submissions|length %}<span class="nav-badge">{{ submissions|length }}</span>{% endif %}
+      </button>
+
       <span class="nav-section-label">Other</span>
 
       <button class="nav-item" onclick="showSection('notifications', this)">
@@ -181,6 +187,18 @@
           </div>
           {% endif %}
 
+          <div class="dash-card" onclick="showSection('submissions', document.querySelector('[onclick*=submissions]'))">
+            <div class="card-thumb" style="background:linear-gradient(135deg,#0f766e,#1d4ed8)">
+              📤
+              <span class="card-status-tag tag-active">{{ submissions|length }} Total</span>
+            </div>
+            <div class="card-body">
+              <div class="card-title">Submissions</div>
+              <div class="card-sub">Review milestone deliverables from your teams</div>
+              <div class="card-meta">{% if submissions %}<span>Latest: {{ submissions.0.submitted_at|timesince }} ago</span>{% else %}<span>No submissions yet</span>{% endif %}</div>
+            </div>
+          </div>
+
           <div class="dash-card" onclick="showSection('notifications', document.querySelector('[onclick*=notifications]'))">
             <div class="card-thumb" style="background:linear-gradient(135deg,#7c2d12,#78350f)">
               🔔
@@ -275,6 +293,47 @@
 
       </section>
 
+      <!-- SECTION: SUBMISSIONS -->
+      <section class="dash-section" id="sec-submissions">
+
+        <div class="section-hdr">
+          <h2>Submissions</h2>
+          <span style="font-size:.85rem;color:var(--text-muted);">Review milestone deliverables</span>
+        </div>
+
+        <div class="meeting-list">
+          {% for submission in submissions %}
+          <div class="meeting-card">
+            <div class="meeting-date-block">
+              <div class="meeting-day">v{{ submission.version }}</div>
+              <div class="meeting-month">{{ submission.status }}</div>
+            </div>
+            <div class="meeting-info">
+              <div class="meeting-title">{{ submission.milestone.title }}</div>
+              <div class="meeting-meta">
+                <span>{{ submission.milestone.project.team.name }}</span>
+                <span>{% if submission.submitted_by %}{{ submission.submitted_by.full_name|default:submission.submitted_by.username }}{% else %}Awaiting student upload{% endif %}</span>
+                <span>{% if submission.submitted_by %}{{ submission.submitted_at|date:"M d, Y g:i A" }}{% else %}Due {{ submission.milestone.due_date|date:"M d, Y" }}{% endif %}</span>
+                <span>{{ submission.files.count }} file{{ submission.files.count|pluralize }}</span>
+              </div>
+              {% if submission.notes %}
+                <p style="font-size:.82rem;color:var(--text-muted);margin-top:.45rem;">{{ submission.notes|truncatechars:120 }}</p>
+              {% endif %}
+            </div>
+            <div class="meeting-actions">
+              <a class="btn btn-primary btn-sm" href="{% url 'submissions:submission_detail' submission.pk %}">{% if submission.submitted_by %}Review{% else %}Details{% endif %}</a>
+            </div>
+          </div>
+          {% empty %}
+          <div class="team-card-big" style="text-align:center;padding:3rem 2rem;">
+            <h3 style="margin-bottom:.5rem;">No Submissions Yet</h3>
+            <p style="color:var(--text-muted);">Submissions from your supervised teams will appear here.</p>
+          </div>
+          {% endfor %}
+        </div>
+
+      </section>
+
       <!-- SECTION: MEETINGS -->
       <section class="dash-section" id="sec-meetings">
         {% include 'meetings/_calendar_section.html' %}
@@ -316,6 +375,7 @@
   const sections = {
     dashboard:     'Dashboard',
     teams:         'My Teams',
+    submissions:   'Submissions',
     meetings:      'Meetings',
     notifications: 'Notifications',
   };

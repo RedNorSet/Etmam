@@ -1,0 +1,26 @@
+{% extends 'base.html' %}
+{% block title %}Milestones - Submissions{% endblock %}
+{% block content %}
+<div style="display:flex;min-height:100vh;background:#f0f4f8">
+<aside style="width:280px;background:#1e2433;color:#f1f5f9;padding:24px 20px;overflow-y:auto;border-right:1px solid rgba(255,255,255,.1)">
+<div style="margin-bottom:32px"><h2 style="font-size:20px;font-weight:600;margin:0 0 8px 0">{{ project.team.name }}</h2><p style="font-size:13px;color:#cbd5e1;margin:0">Project: {{ project.title }}</p></div>
+<nav style="display:flex;flex-direction:column;gap:8px">
+<a href="{% url 'dashboard:student' %}" style="padding:10px 12px;border-radius:6px;color:#cbd5e1;text-decoration:none;font-size:14px">📊 Dashboard</a>
+<a href="{% url 'submissions:milestone_list' %}" style="padding:10px 12px;border-radius:6px;background:rgba(59,130,246,0.1);color:#60a5fa;text-decoration:none;font-size:14px;font-weight:500">📋 Milestones</a>
+</nav>
+</aside>
+<main style="flex:1;padding:32px"><div style="max-width:1000px"><h1 style="font-size:28px;font-weight:600;margin:0 0 8px 0;color:#1e293b">Milestones</h1><p style="color:#64748b;margin:0 0 24px 0">Submit your project deliverables</p>
+{% if milestones %}
+<div style="display:grid;gap:16px">{% for milestone in milestones %}
+<div style="background:#fff;border:1px solid #e2e8f0;border-radius:12px;padding:20px"><div style="display:flex;justify-content:space-between;align-items:flex-start;gap:16px"><div style="flex:1"><h3 style="font-size:18px;font-weight:600;margin:0;color:#1e293b">{{ milestone.title }}</h3>
+{% if milestone.description %}<p style="color:#64748b;font-size:14px;margin:8px 0">{{ milestone.description }}</p>{% endif %}
+<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px;margin-top:12px">
+<div><p style="font-size:12px;color:#94a3b8;margin:0 0 4px 0;font-weight:500">Due Date</p><p style="font-size:14px;color:#1e293b;margin:0;font-weight:500">{{ milestone.due_date|date:'M d, Y' }}</p></div>
+<div><p style="font-size:12px;color:#94a3b8;margin:0 0 4px 0;font-weight:500">Type</p><p style="font-size:14px;color:#1e293b;margin:0;font-weight:500">{{ milestone.get_type_display }}</p></div>
+</div></div>
+<a href="{% url 'submissions:milestone_detail' milestone.id %}" style="display:inline-block;padding:10px 20px;background:#3b82f6;color:#fff;text-decoration:none;border-radius:6px;font-size:14px;font-weight:500;white-space:nowrap">→ Submit</a></div></div>{% endfor %}</div>
+{% else %}
+<div style="text-align:center;padding:48px;background:#fff;border-radius:12px;border:2px dashed #e2e8f0"><p style="color:#64748b">No milestones available</p></div>
+{% endif %}
+</div></main></div>
+{% endblock %}

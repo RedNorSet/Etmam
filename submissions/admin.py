@@ -9,9 +9,9 @@ class SubmissionFileInline(admin.TabularInline):
 
 @admin.register(Submission)
 class SubmissionAdmin(admin.ModelAdmin):
-    list_display  = ('milestone', 'submitted_by', 'version', 'status', 'is_latest', 'submitted_at')
+    list_display  = ('milestone', 'submitted_by', 'version', 'status', 'review_score', 'is_latest', 'submitted_at')
     list_filter   = ('status', 'is_latest')
-    search_fields = ('milestone__title',)
+    search_fields = ('milestone__title', 'submitted_by__username', 'submitted_by__full_name')
     inlines       = [SubmissionFileInline]
 
 

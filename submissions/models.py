@@ -18,6 +18,10 @@ class Submission(models.Model):
     submitted_at = models.DateTimeField(auto_now_add=True)
     status       = models.CharField(max_length=20, choices=STATUS, default='pending')
     is_latest    = models.BooleanField(default=True)
+    review_score = models.DecimalField(max_digits=5, decimal_places=2, null=True, blank=True)
+    reviewed_by  = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL,
+                                     null=True, blank=True, related_name='reviewed_submissions')
+    reviewed_at  = models.DateTimeField(null=True, blank=True)
 
     class Meta:
         ordering = ['-version']
@@ -47,4 +51,18 @@ class SubmissionFile(models.Model):
     def save(self, *args, **kwargs):
         if self.file and not self.file_name:
             self.file_name = self.file.name.split('/')[-1]
+        if self.file and not self.file_size:
+            self.file_size = self.file.size
         super().save(*args, **kwargs)
+
+
+def ensure_submission_shell(milestone):
+    if not milestone.submissions.exists():
+        return Submission.objects.create(
+            milestone=milestone,
+            submitted_by=None,
+            status='pending',
+            notes='',
+            is_latest=True,
+        )
+    return milestone.submissions.filter(is_latest=True).first()

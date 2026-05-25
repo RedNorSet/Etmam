@@ -5,12 +5,13 @@ from django.utils import timezone
 from accounts.models import User
 from teams.models import Team, TeamMember
 from projects.models import Project, SupervisionRequest
-from milestones.models import Milestone
-from submissions.models import Submission
+from milestones.models import Milestone, MilestoneTemplate
+from submissions.models import Submission, ensure_submission_shell
 from reviews.models import Grade
 from notifications.models import Notification
 from meetings.models import Meeting, MeetingParticipant, RescheduleProposal
 from meetings.views import eligible_participants
+from milestones.forms import MilestoneForm, MilestoneTemplateForm
 
 
 @login_required
@@ -34,7 +35,14 @@ def student_dashboard(request):
     pending_invite = TeamMember.objects.filter(user=user, status='pending').select_related('team').first()
 
     project    = getattr(team, 'project', None) if team else None
-    milestones = project.milestones.all() if project else []
+    milestones = list(
+        project.milestones
+        .select_related('project', 'project__team', 'project__supervisor')
+        .prefetch_related('submissions__files')
+        .order_by('due_date')
+    ) if project else []
+    for milestone in milestones:
+        ensure_submission_shell(milestone)
 
     notifications  = Notification.objects.filter(recipient=user).order_by('-created_at')[:15]
     unread_count   = Notification.objects.filter(recipient=user, is_read=False).count()
@@ -73,6 +81,8 @@ def student_dashboard(request):
         'eligible_participants':eligible_participants(user),
         'pending_invitations':  pending_invitations,
         'pending_proposals':    pending_proposals,
+        'milestone_form':       MilestoneForm(),
+        'milestone_templates':  MilestoneTemplate.objects.filter(is_active=True),
     })
 
 
@@ -86,6 +96,17 @@ def supervisor_dashboard(request):
     past        = Meeting.objects.filter(project__supervisor=user, datetime__lt=timezone.now()).order_by('-datetime')[:5]
     notifications = Notification.objects.filter(recipient=user).order_by('-created_at')[:15]
     unread_count  = Notification.objects.filter(recipient=user, is_read=False).count()
+    for project in supervised:
+        for milestone in project.milestones.prefetch_related('submissions'):
+            ensure_submission_shell(milestone)
+
+    submissions = (
+        Submission.objects
+        .filter(milestone__project__supervisor=user)
+        .select_related('milestone', 'milestone__project', 'milestone__project__team', 'submitted_by')
+        .prefetch_related('files')
+        .order_by('-submitted_at')
+    )
 
     pending_invitations = (
         MeetingParticipant.objects
@@ -109,6 +130,7 @@ def supervisor_dashboard(request):
         'past':                 past,
         'notifications':        notifications,
         'unread_count':         unread_count,
+        'submissions':          submissions,
         'eligible_participants':eligible_participants(user),
         'pending_invitations':  pending_invitations,
         'pending_proposals':    pending_proposals,
@@ -129,8 +151,15 @@ def admin_dashboard(request):
     admins   = User.objects.filter(role='administrator').order_by('full_name', 'username')
     teams       = Team.objects.filter(is_active=True).select_related('project').order_by('-created_at')
     projects    = Project.objects.select_related('team', 'supervisor', 'reviewer').order_by('-created_at')
-    milestones  = Milestone.objects.select_related('project').order_by('due_date')
-    submissions = Submission.objects.filter(is_latest=True).select_related('milestone', 'submitted_by').order_by('-submitted_at')
+    milestones  = list(Milestone.objects.select_related('project').prefetch_related('submissions').order_by('due_date'))
+    for milestone in milestones:
+        ensure_submission_shell(milestone)
+    submissions = (
+        Submission.objects
+        .filter(is_latest=True)
+        .select_related('milestone', 'milestone__project', 'milestone__project__team', 'submitted_by')
+        .order_by('-submitted_at')
+    )
     grades      = Grade.objects.select_related('project').order_by('-graded_at')
 
     return render(request, 'dashboard/admin.html', {
@@ -148,6 +177,9 @@ def admin_dashboard(request):
         'milestones':        milestones,
         'submissions':       submissions,
         'grades':            grades,
+        'milestone_form':    MilestoneForm(),
+        'milestone_template_form': MilestoneTemplateForm(),
+        'milestone_templates': MilestoneTemplate.objects.all(),
     })
 
 
@@ -157,9 +189,23 @@ def supervisor_team_detail(request, project_id):
         return redirect('dashboard:index')
     project = get_object_or_404(Project, pk=project_id, supervisor=request.user)
     members = TeamMember.objects.filter(team=project.team, status='active').select_related('user')
+    milestones = list(project.milestones.prefetch_related('submissions__files').order_by('due_date'))
+    for milestone in milestones:
+        ensure_submission_shell(milestone)
+    submissions = (
+        Submission.objects
+        .filter(milestone__project=project, is_latest=True)
+        .select_related('milestone', 'submitted_by')
+        .prefetch_related('files')
+        .order_by('-submitted_at')[:5]
+    )
     return render(request, 'dashboard/supervisor_team_detail.html', {
         'project': project,
         'members': members,
+        'milestones': milestones,
+        'submissions': submissions,
+        'milestone_form': MilestoneForm(),
+        'milestone_templates': MilestoneTemplate.objects.filter(is_active=True),
     })
 
 

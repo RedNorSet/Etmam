@@ -45,6 +45,11 @@
         <span class="nav-label">My Project</span>
       </button>
 
+      <button class="nav-item" onclick="showSection('milestones', this)">
+        <span class="nav-icon">📋</span>
+        <span class="nav-label">Milestones</span>
+      </button>
+
       <button class="nav-item" onclick="showSection('supervisors', this)">
         <span class="nav-icon">🧑‍🏫</span>
         <span class="nav-label">Supervisors</span>
@@ -142,7 +147,7 @@
 
         <div class="section-hdr">
           <h2>Quick Overview</h2>
-          <button class="btn btn-outline btn-sm" onclick="showSection('project', document.querySelector('[onclick*=project]'))">View Project →</button>
+          <button class="btn btn-outline btn-sm" onclick="showSection('milestones', document.querySelector('[onclick*=milestones]'))">Open Milestones →</button>
         </div>
 
         <div class="cards-grid">
@@ -379,7 +384,7 @@
         <div class="section-hdr"><h2>Milestones</h2></div>
         <div class="cards-grid">
           {% for m in milestones %}
-          <div class="dash-card">
+          <div class="dash-card" onclick="showSection('milestones', document.querySelector('[onclick*=milestones]'))">
             {% if m.status == 'approved' %}
               <div class="card-thumb" style="background:linear-gradient(135deg,#064e3b,#065f46);font-size:2rem">
                 ✅ <span class="card-status-tag tag-done">Done</span>
@@ -475,6 +480,80 @@
 
       </section>
 
+      <!-- SECTION: MILESTONES -->
+      <section class="dash-section" id="sec-milestones">
+
+        <div class="section-hdr">
+          <h2>Milestones</h2>
+          {% if project %}<span style="font-size:.85rem;color:var(--text-muted);">{{ project.title }}</span>{% endif %}
+        </div>
+
+        {% if project %}
+        <div class="meeting-list">
+          {% for milestone in milestones %}
+          {% with latest=milestone.latest_submission %}
+          <div class="meeting-card" style="align-items:flex-start;">
+            <div class="meeting-date-block">
+              <div class="meeting-day">{{ milestone.due_date|date:"d" }}</div>
+              <div class="meeting-month">{{ milestone.due_date|date:"M" }}</div>
+            </div>
+            <div class="meeting-info">
+              <div class="meeting-title">{{ milestone.title }}</div>
+              <div class="meeting-meta">
+                <span>{{ milestone.get_type_display }}</span>
+                <span>{{ milestone.get_status_display }}</span>
+                <span>Weight {{ milestone.weight }}%</span>
+                {% if latest %}
+                  {% if latest.submitted_by %}
+                    <span>Latest v{{ latest.version }} / {{ latest.get_status_display }}</span>
+                  {% else %}
+                    <span>Awaiting submission</span>
+                  {% endif %}
+                {% endif %}
+              </div>
+              {% if milestone.description %}
+                <p style="font-size:.82rem;color:var(--text-muted);margin-top:.45rem;">{{ milestone.description }}</p>
+              {% endif %}
+
+              <form method="post" action="{% url 'submissions:milestone_detail' milestone.pk %}" enctype="multipart/form-data" style="margin-top:1rem;display:grid;gap:.75rem;">
+                {% csrf_token %}
+                <input type="hidden" name="next" value="dashboard">
+                <div class="form-row">
+                  <div class="form-group">
+                    <label>Files</label>
+                    <input class="form-input" type="file" name="files" multiple required>
+                  </div>
+                  <div class="form-group">
+                    <label>Notes</label>
+                    <input class="form-input" type="text" name="notes" placeholder="Optional submission note">
+                  </div>
+                </div>
+                <div>
+                  <button type="submit" class="btn btn-primary btn-sm">{% if latest.submitted_by %}Submit New Version{% else %}Submit Work{% endif %}</button>
+                  {% if latest and latest.submitted_by %}
+                    <a class="btn btn-outline btn-sm" href="{% url 'submissions:submission_detail' latest.pk %}">View Latest</a>
+                  {% endif %}
+                </div>
+              </form>
+            </div>
+          </div>
+          {% endwith %}
+          {% empty %}
+          <div class="team-card-big" style="text-align:center;padding:3rem 2rem;">
+            <h3 style="margin-bottom:.5rem;">No Milestones Yet</h3>
+            <p style="color:var(--text-muted);">Your supervisor has not added project milestones yet.</p>
+          </div>
+          {% endfor %}
+        </div>
+        {% else %}
+        <div class="team-card-big" style="text-align:center;padding:3rem 2rem;">
+          <h3 style="margin-bottom:.5rem;">No Project Yet</h3>
+          <p style="color:var(--text-muted);">Milestones will appear here once your team has a project.</p>
+        </div>
+        {% endif %}
+
+      </section>
+
       <!-- SECTION: MEETINGS -->
       <section class="dash-section" id="sec-meetings">
         {% include 'meetings/_calendar_section.html' %}
@@ -559,6 +638,7 @@
     dashboard:     'Dashboard',
     team:          'My Team',
     project:       'My Project',
+    milestones:    'Milestones',
     supervisors:   'Supervisors',
     meetings:      'Meetings',
     notifications: 'Notifications',
@@ -570,6 +650,11 @@
     document.getElementById('sec-' + id).classList.add('active');
     if (btn) btn.classList.add('active');
     document.getElementById('topbar-title').textContent = sections[id] || id;
+  }
+
+  const initialSection = new URLSearchParams(window.location.search).get('section');
+  if (initialSection && sections[initialSection]) {
+    showSection(initialSection, document.querySelector('[onclick*=' + initialSection + ']'));
   }
 
   function switchTab(btn, targetId) {

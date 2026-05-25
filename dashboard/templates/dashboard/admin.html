@@ -75,6 +75,12 @@
     .btn-out { background: transparent; border: 1px solid var(--border); color: var(--muted); }
     .btn-out:hover { border-color: var(--blue); color: var(--blue); }
     .btn-red-out { background: transparent; border: 1px solid #fecaca; color: var(--red); }
+    .form-input { width: 100%; border: 1px solid var(--border); border-radius: 6px; padding: 8px 10px; font: inherit; color: var(--text); background: white; }
+    .form-input:focus { outline: none; border-color: var(--blue); box-shadow: 0 0 0 3px rgba(37,99,235,.12); }
+    .form-grid { display: grid; grid-template-columns: 1.4fr 1.4fr 1fr 1fr 90px auto; gap: 10px; align-items: end; }
+    .template-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 12px; }
+    .form-field label { display: block; font-size: .68rem; font-weight: 700; color: var(--light); text-transform: uppercase; letter-spacing: .4px; margin-bottom: 5px; }
+    @media (max-width: 900px) { .form-grid { grid-template-columns: 1fr 1fr; } }
 
     /* Logout */
     .logout-btn { background: none; border: none; cursor: pointer; color: var(--red); font-size: .8rem; font-weight: 600; padding: 6px 10px; border-radius: 6px; display: flex; align-items: center; gap: 4px; }
@@ -95,6 +101,14 @@
   </style>
 </head>
 <body>
+
+{% if messages %}
+<div style="position:fixed;top:66px;right:18px;z-index:99;display:grid;gap:8px;max-width:360px;">
+  {% for message in messages %}
+  <div style="background:#0f172a;color:white;border-radius:8px;padding:11px 14px;font-size:.82rem;box-shadow:0 10px 30px rgba(15,23,42,.18);">{{ message }}</div>
+  {% endfor %}
+</div>
+{% endif %}
 
 <!-- TOP NAV -->
 <nav class="topnav">
@@ -408,7 +422,137 @@
     <div class="ph">
       <div>
         <h1>Milestones</h1>
-        <p>{% if overdue %}<span style="color:var(--red);font-weight:600;">{{ overdue }} overdue</span> — {% endif %}All project milestones</p>
+        <p>{% if overdue %}<span style="color:var(--red);font-weight:600;">{{ overdue }} overdue</span> — {% endif %}Universal templates and project milestones</p>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-hdr">
+        <div class="card-title">Universal Milestone Templates</div>
+      </div>
+      <div style="padding:16px 20px;">
+        <form method="post" action="{% url 'milestones:template_create' %}" style="margin-bottom:16px;padding-bottom:16px;border-bottom:1px solid var(--border);">
+          {% csrf_token %}
+          <input type="hidden" name="next" value="/dashboard/admin/?section=milestones">
+          <div class="form-grid">
+            <div class="form-field">
+              <label>Title</label>
+              {{ milestone_template_form.title }}
+            </div>
+            <div class="form-field">
+              <label>Type</label>
+              {{ milestone_template_form.type }}
+            </div>
+            <div class="form-field">
+              <label>Due Offset</label>
+              {{ milestone_template_form.default_due_offset_days }}
+            </div>
+            <div class="form-field">
+              <label>Weight</label>
+              {{ milestone_template_form.default_weight }}
+            </div>
+            <div class="form-field">
+              <label>Active</label>
+              <div style="height:36px;display:flex;align-items:center;">{{ milestone_template_form.is_active }}</div>
+            </div>
+            <button type="submit" class="btn btn-blue">Create</button>
+          </div>
+          <div class="form-field" style="margin-top:10px;">
+            <label>Description</label>
+            {{ milestone_template_form.description }}
+          </div>
+        </form>
+
+        <div class="template-grid">
+          {% for template in milestone_templates %}
+          <div style="border:1px solid var(--border);border-radius:8px;padding:12px;background:#fafbfc;">
+            <form method="post" action="{% url 'milestones:template_update' template.pk %}">
+              {% csrf_token %}
+              <input type="hidden" name="next" value="/dashboard/admin/?section=milestones">
+              <div class="form-field"><label>Title</label><input class="form-input" type="text" name="title" value="{{ template.title }}" required></div>
+              <div class="form-field" style="margin-top:8px;"><label>Description</label><textarea class="form-input" name="description" rows="2">{{ template.description }}</textarea></div>
+              <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:8px;">
+                <div class="form-field">
+                  <label>Type</label>
+                  <select class="form-input" name="type">
+                    <option value="regular" {% if template.type == 'regular' %}selected{% endif %}>Regular</option>
+                    <option value="mid" {% if template.type == 'mid' %}selected{% endif %}>Mid Review</option>
+                    <option value="final" {% if template.type == 'final' %}selected{% endif %}>Final Review</option>
+                  </select>
+                </div>
+                <div class="form-field"><label>Weight</label><input class="form-input" type="number" name="default_weight" min="0" max="100" value="{{ template.default_weight }}" required></div>
+                <div class="form-field"><label>Due Offset</label><input class="form-input" type="number" name="default_due_offset_days" min="0" value="{{ template.default_due_offset_days }}" required></div>
+                <label style="display:flex;align-items:end;gap:8px;font-size:.78rem;color:var(--muted);padding-bottom:8px;">
+                  <input type="checkbox" name="is_active" {% if template.is_active %}checked{% endif %} style="accent-color:var(--blue);"> Active
+                </label>
+              </div>
+              <label style="display:flex;align-items:center;gap:8px;font-size:.78rem;color:var(--muted);margin-top:8px;">
+                <input type="checkbox" name="sync_existing" style="accent-color:var(--blue);"> Sync linked milestones
+              </label>
+              <div style="display:flex;gap:8px;margin-top:10px;flex-wrap:wrap;">
+                <button type="submit" class="btn btn-out">Save</button>
+              </div>
+            </form>
+            <form method="post" action="{% url 'milestones:template_apply' template.pk %}" style="display:flex;gap:8px;margin-top:8px;">
+              {% csrf_token %}
+              <input type="hidden" name="next" value="/dashboard/admin/?section=milestones">
+              <select class="form-input" name="project_id">
+                <option value="">All projects</option>
+                {% for p in projects %}
+                  <option value="{{ p.id }}">{{ p.title|truncatechars:28 }}</option>
+                {% endfor %}
+              </select>
+              <button type="submit" class="btn btn-blue">Apply</button>
+            </form>
+          </div>
+          {% empty %}
+          <div class="empty" style="grid-column:1/-1;"><div class="ei">📋</div>No templates yet.</div>
+          {% endfor %}
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-hdr">
+        <div class="card-title">Create One-Off Project Milestone</div>
+      </div>
+      <div style="padding:16px 20px;">
+        <form method="post" action="{% url 'milestones:create' %}">
+          {% csrf_token %}
+          <input type="hidden" name="next" value="/dashboard/admin/?section=milestones">
+          <div class="form-grid">
+            <div class="form-field">
+              <label>Project</label>
+              <select class="form-input" name="project_id" required>
+                <option value="">Select project</option>
+                {% for p in projects %}
+                  <option value="{{ p.id }}">{{ p.title }} / {{ p.team.name }}</option>
+                {% endfor %}
+              </select>
+            </div>
+            <div class="form-field">
+              <label>Title</label>
+              {{ milestone_form.title }}
+            </div>
+            <div class="form-field">
+              <label>Type</label>
+              {{ milestone_form.type }}
+            </div>
+            <div class="form-field">
+              <label>Due Date</label>
+              {{ milestone_form.due_date }}
+            </div>
+            <div class="form-field">
+              <label>Weight</label>
+              {{ milestone_form.weight }}
+            </div>
+            <button type="submit" class="btn btn-blue">Create</button>
+          </div>
+          <div class="form-field" style="margin-top:10px;">
+            <label>Description</label>
+            {{ milestone_form.description }}
+          </div>
+        </form>
       </div>
     </div>
 
@@ -416,7 +560,7 @@
       <table class="gt">
         <thead>
           <tr>
-            <th>Title</th><th>Project</th><th>Type</th><th>Due Date</th><th>Status</th>
+            <th>Title</th><th>Project</th><th>Template</th><th>Type</th><th>Due Date</th><th>Status</th><th></th>
           </tr>
         </thead>
         <tbody>
@@ -424,6 +568,7 @@
           <tr>
             <td style="font-weight:600;">{{ m.title }}</td>
             <td>{{ m.project.title|truncatechars:30 }}</td>
+            <td>{% if m.template %}<span class="badge b-blue">{{ m.template.title|truncatechars:20 }}</span>{% else %}<span class="badge b-gray">Custom</span>{% endif %}</td>
             <td>
               {% if m.type == 'mid' %}
                 <span class="badge b-purple">Mid Review</span>
@@ -447,9 +592,18 @@
                 <span class="badge b-gray">Pending</span>
               {% endif %}
             </td>
+            <td style="text-align:right;">
+              {% if not m.latest_submission.submitted_by %}
+              <form method="post" action="{% url 'milestones:delete' m.pk %}" style="display:inline;">
+                {% csrf_token %}
+                <input type="hidden" name="next" value="/dashboard/admin/?section=milestones">
+                <button type="submit" class="btn btn-red-out" onclick="return confirm('Delete {{ m.title }}?')">Delete</button>
+              </form>
+              {% endif %}
+            </td>
           </tr>
           {% empty %}
-          <tr><td colspan="5"><div class="empty"><div class="ei">📋</div>No milestones yet.</div></td></tr>
+          <tr><td colspan="7"><div class="empty"><div class="ei">📋</div>No milestones yet.</div></td></tr>
           {% endfor %}
         </tbody>
       </table>
@@ -469,22 +623,23 @@
       <table class="gt">
         <thead>
           <tr>
-            <th>Milestone</th><th>Submitted By</th><th>Version</th><th>Submitted At</th>
+            <th>Milestone</th><th>Submitted By</th><th>Version</th><th>Status</th><th>Submitted At</th>
           </tr>
         </thead>
         <tbody>
           {% for s in submissions %}
-          <tr>
+          <tr style="cursor:pointer;" onclick="window.location='{% url 'submissions:submission_detail' s.pk %}'">
             <td>
               <div style="font-weight:600;">{{ s.milestone.title }}</div>
               <div style="font-size:.75rem;color:var(--muted);">{{ s.milestone.project.title|truncatechars:30 }}</div>
             </td>
-            <td>{{ s.submitted_by.full_name|default:s.submitted_by.username }}</td>
+            <td>{% if s.submitted_by %}{{ s.submitted_by.full_name|default:s.submitted_by.username }}{% else %}Awaiting student upload{% endif %}</td>
             <td><span class="badge b-blue">v{{ s.version }}</span></td>
-            <td>{{ s.submitted_at|date:"M d, Y g:i A" }}</td>
+            <td>{{ s.get_status_display }}</td>
+            <td>{% if s.submitted_by %}{{ s.submitted_at|date:"M d, Y g:i A" }}{% else %}Due {{ s.milestone.due_date|date:"M d, Y" }}{% endif %}</td>
           </tr>
           {% empty %}
-          <tr><td colspan="4"><div class="empty"><div class="ei">📤</div>No submissions yet.</div></td></tr>
+          <tr><td colspan="5"><div class="empty"><div class="ei">📤</div>No submissions yet.</div></td></tr>
           {% endfor %}
         </tbody>
       </table>
@@ -565,6 +720,12 @@
       var el = document.getElementById(sectionId);
       if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
     }, 50);
+  }
+  var initialSection = new URLSearchParams(window.location.search).get('section');
+  if (initialSection) {
+    var panels = ['overview','users','teams','projects','milestones','submissions','grades'];
+    var idx = panels.indexOf(initialSection);
+    if (idx >= 0) showPanel(initialSection, document.querySelectorAll('.nav-tab')[idx]);
   }
 </script>
 
