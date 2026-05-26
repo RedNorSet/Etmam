@@ -10,8 +10,8 @@ from django.db.models import Q
 
 from accounts.models import User
 from teams.models import Team, TeamMember
-from projects.models import Project, SupervisionRequest
-from milestones.models import Milestone, ProjectGrade
+from projects.models import Project, SupervisionRequest, SystemConfig
+from milestones.models import Milestone, ProjectGrade, Task
 from submissions.models import Submission, SubmissionFile
 from reviews.models import Grade
 from notifications.models import Notification
@@ -31,12 +31,33 @@ def index(request):
     return redirect('dashboard:student')
 
 
+def _get_archive_data():
+    final_milestone = Milestone.objects.filter(order=5, is_active=True).first()
+    projects = (Project.objects
+        .filter(status='completed', hide_from_archive=False)
+        .select_related('team', 'supervisor')
+        .prefetch_related('team__memberships__user')
+        .order_by('-approved_at', '-created_at'))
+    archive_data = []
+    for p in projects:
+        final_files = []
+        if final_milestone:
+            sub = (Submission.objects
+                .filter(project=p, milestone=final_milestone, is_latest=True)
+                .prefetch_related('files').first())
+            if sub:
+                final_files = list(sub.files.all())
+        active_members = [m for m in p.team.memberships.all() if m.status == 'active']
+        archive_data.append({'project': p, 'members': active_members, 'final_files': final_files})
+    return archive_data
+
+
 @login_required
 def student_dashboard(request):
     user        = request.user
     membership     = TeamMember.objects.filter(user=user, status='active').select_related('team').first()
     team           = membership.team if membership else None
-    team_members   = TeamMember.objects.filter(team=team, status='active').select_related('user') if team else []
+    team_members   = TeamMember.objects.filter(team=team, status__in=['active','pending']).select_related('user').order_by('status') if team else []
     pending_invite = TeamMember.objects.filter(user=user, status='pending').select_related('team').first()
 
     project    = getattr(team, 'project', None) if team else None
@@ -50,18 +71,31 @@ def student_dashboard(request):
                                .select_related('milestone', 'submitted_by')
                                .prefetch_related('files')
         }
+        task_map = {}
+        for t in Task.objects.filter(project=project).select_related('assigned_to', 'created_by'):
+            task_map.setdefault(t.milestone_id, []).append(t)
     else:
-        sub_map = {}
-    global_milestones = [
-        {'milestone': m, 'submission': sub_map.get(m.pk)}
-        for m in global_milestones_qs
-    ]
+        sub_map  = {}
+        task_map = {}
+    global_milestones = []
+    for m in global_milestones_qs:
+        tasks = task_map.get(m.pk, [])
+        global_milestones.append({
+            'milestone':  m,
+            'submission': sub_map.get(m.pk),
+            'tasks':      tasks,
+            'task_total': len(tasks),
+            'task_done':  sum(1 for t in tasks if t.status == 'done'),
+        })
 
     notifications  = Notification.objects.filter(recipient=user).order_by('-created_at')[:15]
     unread_count   = Notification.objects.filter(recipient=user, is_read=False).count()
     upcoming       = Meeting.objects.filter(project=project, datetime__gte=timezone.now()).order_by('datetime')[:5] if project else []
     past_meetings  = Meeting.objects.filter(project=project, datetime__lt=timezone.now()).order_by('-datetime')[:5] if project else []
-    supervisors    = User.objects.filter(role='supervisor', available=True).order_by('full_name')
+    supervisors_qs = User.objects.filter(role='supervisor', available=True)
+    if user.gender:
+        supervisors_qs = supervisors_qs.filter(gender=user.gender)
+    supervisors    = supervisors_qs.order_by('full_name')
     pending_request = SupervisionRequest.objects.filter(team=team, status='pending').first() if team else None
 
     pending_invitations = (
@@ -95,14 +129,82 @@ def student_dashboard(request):
         'pending_invitations':  pending_invitations,
         'pending_proposals':    pending_proposals,
         'today':                timezone.now().date(),
+        'archive_data':         _get_archive_data(),
+        'current_phase':        SystemConfig.get().phase,
     })
 
 
 @login_required
 def supervisor_dashboard(request):
     user        = request.user
-    supervised  = Project.objects.filter(supervisor=user).select_related('team')
-    reviewed    = Project.objects.filter(reviewers=user).select_related('team') if user.can_review else []
+    supervised_qs = Project.objects.filter(supervisor=user).select_related('team').prefetch_related('team__memberships__user')
+    reviewed_qs   = Project.objects.filter(reviewers=user).select_related('team').prefetch_related('team__memberships__user')
+
+    global_milestones = Milestone.objects.filter(is_active=True).order_by('order', 'due_date')
+    global_ms_list    = list(global_milestones)
+
+    supervised_list = list(supervised_qs)
+    reviewed_list   = list(reviewed_qs)
+
+    def _build_data(proj_list):
+        result = []
+        for proj in proj_list:
+            members = [m for m in proj.team.memberships.all() if m.status == 'active']
+            sub_map = {
+                s.milestone_id: s
+                for s in Submission.objects.filter(project=proj, is_latest=True)
+                                   .select_related('milestone').prefetch_related('files')
+            }
+            result.append({
+                'project':    proj,
+                'members':    members,
+                'milestones': [{'milestone': m, 'submission': sub_map.get(m.pk)} for m in global_ms_list],
+            })
+        return result
+
+    supervised_data = _build_data(supervised_list)
+    reviewed_data   = _build_data(reviewed_list)
+
+    # Submissions section: milestone-centric, spanning supervised + reviewed projects
+    supervised_pks = {p.pk for p in supervised_list}
+    all_proj_list  = supervised_list + reviewed_list
+    all_proj_pks   = [p.pk for p in all_proj_list]
+
+    all_subs = list(
+        Submission.objects.filter(project_id__in=all_proj_pks, is_latest=True)
+        .select_related('project__team', 'submitted_by', 'supervisor_graded_by', 'reviewer_graded_by')
+        .prefetch_related('files')
+    )
+    sub_lookup = {(s.project_id, s.milestone_id): s for s in all_subs}
+
+    submissions_sections = []
+    for ms in global_ms_list:
+        rows = []
+        for proj in all_proj_list:
+            sub      = sub_lookup.get((proj.pk, ms.pk))
+            is_sup   = proj.pk in supervised_pks
+            rows.append({'project': proj, 'submission': sub, 'is_supervised': is_sup})
+        submitted_count = sum(1 for r in rows if r['submission'])
+        graded_count    = sum(
+            1 for r in rows if r['submission'] and (
+                (r['is_supervised'] and r['submission'].supervisor_grade is not None) or
+                (not r['is_supervised'] and r['submission'].reviewer_grade is not None)
+            )
+        )
+        submissions_sections.append({
+            'milestone':       ms,
+            'rows':            rows,
+            'submitted_count': submitted_count,
+            'total_count':     len(all_proj_list),
+            'graded_count':    graded_count,
+        })
+
+    pending_subs_count = sum(
+        1 for s in all_subs if s.status == 'pending'
+    )
+
+    supervised = supervised_list
+    reviewed   = reviewed_list
     pending_req = SupervisionRequest.objects.filter(supervisor=user, status='pending').select_related('team')
     upcoming    = Meeting.objects.filter(project__supervisor=user, datetime__gte=timezone.now()).order_by('datetime')[:10]
     past        = Meeting.objects.filter(project__supervisor=user, datetime__lt=timezone.now()).order_by('-datetime')[:5]
@@ -125,7 +227,11 @@ def supervisor_dashboard(request):
 
     return render(request, 'dashboard/supervisor.html', {
         'supervised':           supervised,
+        'supervised_data':      supervised_data,
         'reviewed':             reviewed,
+        'reviewed_data':        reviewed_data,
+        'submissions_sections': submissions_sections,
+        'pending_subs_count':   pending_subs_count,
         'pending_req':          pending_req,
         'upcoming':             upcoming,
         'past':                 past,
@@ -134,6 +240,8 @@ def supervisor_dashboard(request):
         'eligible_participants':eligible_participants(user),
         'pending_invitations':  pending_invitations,
         'pending_proposals':    pending_proposals,
+        'archive_data':         _get_archive_data(),
+        'current_phase':        SystemConfig.get().phase,
     })
 
 
@@ -299,6 +407,7 @@ def admin_dashboard(request):
         'all_reviewers':          all_reviewers,
         'dissolved_count':        dissolved_count,
         'today':                  timezone.now().date(),
+        'system_config':          SystemConfig.get(),
     })
 
 
@@ -344,6 +453,97 @@ def reviewer_dashboard(request):
         'notifications': notifications,
         'unread_count':  unread_count,
     })
+
+
+# ════════════════════════════════════════════════════════════════════════════════
+#  STUDENT — TASK MANAGEMENT
+# ════════════════════════════════════════════════════════════════════════════════
+
+@login_required
+@require_POST
+def student_create_task(request, milestone_id):
+    if not request.user.is_student():
+        return redirect('dashboard:student')
+
+    membership = TeamMember.objects.filter(user=request.user, status='active').select_related('team').first()
+    if not membership or membership.role != 'leader':
+        messages.error(request, 'Only the team leader can create tasks.')
+        return redirect('dashboard:student')
+
+    project = getattr(membership.team, 'project', None)
+    if not project:
+        messages.error(request, 'Your team does not have a project yet.')
+        return redirect('dashboard:student')
+
+    milestone = get_object_or_404(Milestone, pk=milestone_id, is_active=True)
+    title = request.POST.get('title', '').strip()
+    if not title:
+        messages.error(request, 'Task title is required.')
+        return redirect('dashboard:student')
+
+    assigned_id = request.POST.get('assigned_to', '').strip()
+    try:
+        assigned_to = User.objects.get(pk=int(assigned_id))
+    except (User.DoesNotExist, ValueError, TypeError):
+        messages.error(request, 'Please select a valid team member.')
+        return redirect('dashboard:student')
+
+    if not TeamMember.objects.filter(team=membership.team, user=assigned_to, status='active').exists():
+        messages.error(request, 'You can only assign tasks to active team members.')
+        return redirect('dashboard:student')
+
+    Task.objects.create(
+        project=project,
+        milestone=milestone,
+        title=title,
+        description=request.POST.get('description', '').strip(),
+        assigned_to=assigned_to,
+        created_by=request.user,
+        due_date=request.POST.get('due_date') or None,
+    )
+
+    if assigned_to != request.user:
+        Notification.objects.create(
+            recipient=assigned_to,
+            type='general',
+            title=f'Task Assigned — {milestone.title}',
+            message=f'{request.user.full_name or request.user.username} assigned you: "{title}" for "{milestone.title}".',
+        )
+
+    messages.success(request, 'Task created.')
+    return redirect('dashboard:student')
+
+
+@login_required
+@require_POST
+def student_update_task(request, task_id):
+    membership = TeamMember.objects.filter(user=request.user, status='active').select_related('team').first()
+    if not membership:
+        return redirect('dashboard:student')
+
+    task = get_object_or_404(Task, pk=task_id, project__team=membership.team)
+    if task.assigned_to != request.user and membership.role != 'leader':
+        messages.error(request, 'You cannot update this task.')
+        return redirect('dashboard:student')
+
+    status = request.POST.get('status', '').strip()
+    if status in dict(Task.STATUS):
+        task.status = status
+        task.save()
+    return redirect('dashboard:student')
+
+
+@login_required
+@require_POST
+def student_delete_task(request, task_id):
+    membership = TeamMember.objects.filter(user=request.user, status='active').select_related('team').first()
+    if not membership or membership.role != 'leader':
+        messages.error(request, 'Only the team leader can delete tasks.')
+        return redirect('dashboard:student')
+
+    task = get_object_or_404(Task, pk=task_id, project__team=membership.team)
+    task.delete()
+    return redirect('dashboard:student')
 
 
 # ─── Admin helper ────────────────────────────────────────────────────────────
@@ -649,9 +849,9 @@ def admin_delete_dissolved_teams(request):
         return redirect(reverse('dashboard:admin') + '?panel=teams_projects')
 
     # Nullify the archive FK reference before deletion to avoid IntegrityError.
-    # archives_archivedproject.source_project_id → projects_project(id) has no ON DELETE CASCADE/SET NULL.
+    # archives_archivedproject may not exist yet (archives app not yet deployed).
     project_ids = list(Project.objects.filter(team__in=dissolved_teams).values_list('pk', flat=True))
-    if project_ids:
+    if project_ids and 'archives_archivedproject' in connection.introspection.table_names():
         placeholders = ','.join(['%s'] * len(project_ids))
         with connection.cursor() as cursor:
             cursor.execute(
@@ -923,6 +1123,240 @@ def admin_delete_submission(request, submission_id):
 
 
 # ════════════════════════════════════════════════════════════════════════════════
+#  ARCHIVE
+# ════════════════════════════════════════════════════════════════════════════════
+
+@login_required
+def archive_view(request):
+    if request.user.role not in ['student', 'supervisor', 'administrator']:
+        return redirect('dashboard:index')
+
+    final_milestone = Milestone.objects.filter(order=5, is_active=True).first()
+
+    projects = (Project.objects
+        .filter(status='completed', hide_from_archive=False)
+        .select_related('team', 'supervisor')
+        .prefetch_related('team__memberships__user')
+        .order_by('-approved_at', '-created_at'))
+
+    archive_data = []
+    for p in projects:
+        final_files = []
+        if final_milestone:
+            sub = (Submission.objects
+                .filter(project=p, milestone=final_milestone, is_latest=True)
+                .prefetch_related('files')
+                .first())
+            if sub:
+                final_files = list(sub.files.all())
+        active_members = [m for m in p.team.memberships.all() if m.status == 'active']
+        archive_data.append({'project': p, 'members': active_members, 'final_files': final_files})
+
+    return render(request, 'dashboard/archive.html', {'archive_data': archive_data})
+
+
+@login_required
+@require_POST
+def admin_toggle_archive(request, project_id):
+    if not _require_admin(request):
+        return redirect('dashboard:index')
+    project = get_object_or_404(Project, pk=project_id, status='completed')
+    project.hide_from_archive = not project.hide_from_archive
+    project.save(update_fields=['hide_from_archive'])
+    action = 'hidden from' if project.hide_from_archive else 'visible in'
+    messages.success(request, f'"{project.title}" is now {action} the archive.')
+    return redirect(reverse('dashboard:admin') + '?panel=teams_projects')
+
+
+# ════════════════════════════════════════════════════════════════════════════════
+#  PHASE MANAGEMENT
+# ════════════════════════════════════════════════════════════════════════════════
+
+@login_required
+@require_POST
+def admin_switch_phase2(request):
+    if not _require_admin(request):
+        return redirect('dashboard:index')
+
+    config = SystemConfig.get()
+    if config.phase == 2:
+        messages.warning(request, 'System is already in Phase 2.')
+        return redirect(reverse('dashboard:admin') + '?panel=system')
+
+    import random
+    from collections import defaultdict
+
+    # Step 1 — find teamless active students
+    students_in_teams = TeamMember.objects.filter(status='active').values_list('user_id', flat=True)
+    teamless = list(
+        User.objects.filter(role='student', is_active=True)
+        .exclude(pk__in=students_in_teams)
+    )
+    random.shuffle(teamless)
+
+    # Step 2 — bucket by (gender, department), then group into teams of 5 within each bucket
+    buckets = defaultdict(list)
+    for student in teamless:
+        buckets[(student.gender or '', student.department or '')].append(student)
+
+    groups = []  # list of (gender, [students])
+    for (gender, dept), students in buckets.items():
+        for i in range(0, len(students), 5):
+            groups.append((gender, students[i:i + 5]))
+
+    # Step 3 — create a team + project per group
+    for i, (gender, group) in enumerate(groups):
+        team_name = f'Auto Team {i + 1}'
+        n = 1
+        base = team_name
+        while Team.objects.filter(name=team_name).exists():
+            team_name = f'{base} ({n})'
+            n += 1
+        team = Team.objects.create(name=team_name, created_by=request.user, is_active=True, auto_created=True)
+        for j, student in enumerate(group):
+            TeamMember.objects.create(
+                team=team, user=student,
+                role='leader' if j == 0 else 'member',
+                status='active',
+            )
+        Project.objects.create(
+            team=team,
+            title=f'{team_name} Project',
+            description='Auto-generated project.',
+            status='active',
+        )
+
+    # Step 4 — find all unsupervised projects (including freshly created ones)
+    unsupervised = list(
+        Project.objects.filter(supervisor__isnull=True, team__is_active=True)
+        .select_related('team')
+    )
+
+    # Step 5 — build supervisor pool by gender
+    sups_by_gender = defaultdict(list)
+    for sup in User.objects.filter(role='supervisor', is_active=True):
+        sups_by_gender[sup.gender or ''].append(sup)
+
+    # Step 6 — assign round-robin per gender bucket
+    counters = defaultdict(int)
+    assigned_count = 0
+    no_sup_projects = 0
+    for project in unsupervised:
+        first_member = project.team.memberships.filter(status='active').select_related('user').first()
+        team_gender = (first_member.user.gender or '') if first_member else ''
+        sups = sups_by_gender.get(team_gender, [])
+        if not sups:
+            no_sup_projects += 1
+            continue
+        supervisor = sups[counters[team_gender] % len(sups)]
+        counters[team_gender] += 1
+        project.supervisor = supervisor
+        project.auto_assigned_supervisor = True
+        project.save(update_fields=['supervisor', 'auto_assigned_supervisor'])
+        Notification.objects.create(
+            recipient=supervisor,
+            type='approval',
+            title=f'Auto Supervisor Assignment — {project.team.name}',
+            message=f'You have been automatically assigned as supervisor for "{project.title}" (Phase 2 activation).',
+        )
+        assigned_count += 1
+    if no_sup_projects:
+        messages.warning(request, f'{no_sup_projects} project(s) could not be assigned a supervisor — no matching-gender supervisor available.')
+
+    # Step 7 — auto-assign reviewers (no gender/dept rules; skip own supervisor)
+    rev_pool = list(User.objects.filter(can_review=True, is_active=True))
+    random.shuffle(rev_pool)
+    rev_idx = 0
+    reviewer_assigned_count = 0
+    all_active_projects = list(
+        Project.objects.filter(team__is_active=True)
+        .select_related('supervisor')
+        .prefetch_related('reviewers')
+    )
+    for project in all_active_projects:
+        if not rev_pool:
+            break
+        if project.reviewers.exists():
+            continue  # already has a reviewer, skip
+        sup_pk = project.supervisor.pk if project.supervisor else None
+        attempts = 0
+        while attempts < len(rev_pool):
+            candidate = rev_pool[rev_idx % len(rev_pool)]
+            rev_idx += 1
+            attempts += 1
+            if candidate.pk == sup_pk:
+                continue
+            project.reviewers.add(candidate)
+            Notification.objects.create(
+                recipient=candidate,
+                type='approval',
+                title=f'Auto Reviewer Assignment — {project.team.name}',
+                message=f'You have been automatically assigned as reviewer for "{project.title}" (Phase 2 activation).',
+            )
+            reviewer_assigned_count += 1
+            break
+
+    # Step 8 — flip phase
+    config.phase = 2
+    config.phase_switched_at = timezone.now()
+    config.save()
+
+    # Step 9 — decline all pending supervision requests
+    declined_count = SupervisionRequest.objects.filter(status='pending').update(status='declined')
+
+    messages.success(
+        request,
+        f'Switched to Phase 2. '
+        f'{len(groups)} auto team(s) created, '
+        f'{assigned_count} project(s) auto-assigned supervisors, '
+        f'{reviewer_assigned_count} project(s) auto-assigned reviewers, '
+        f'{declined_count} pending request(s) declined.'
+    )
+    return redirect(reverse('dashboard:admin') + '?panel=system')
+
+
+@login_required
+@require_POST
+def admin_revert_phase1(request):
+    if not _require_admin(request):
+        return redirect('dashboard:index')
+
+    config = SystemConfig.get()
+    if config.phase == 1:
+        messages.warning(request, 'System is already in Phase 1.')
+        return redirect(reverse('dashboard:admin') + '?panel=system')
+
+    # Step 1 — remove auto-assigned supervisors
+    unassigned = Project.objects.filter(auto_assigned_supervisor=True).update(
+        supervisor=None, auto_assigned_supervisor=False
+    )
+
+    # Step 2 — dissolve auto-created teams (delete members, projects, then team)
+    auto_teams = Team.objects.filter(auto_created=True)
+    TeamMember.objects.filter(team__in=auto_teams).delete()
+    Project.objects.filter(team__in=auto_teams).delete()
+    dissolved_count = auto_teams.count()
+    auto_teams.delete()
+
+    # Step 3 — flip back to Phase 1
+    config.phase = 1
+    config.phase_switched_at = None
+    config.save()
+
+    # Step 4 — re-open all declined supervision requests
+    reopened = SupervisionRequest.objects.filter(status='declined').update(status='pending')
+
+    messages.success(
+        request,
+        f'Reverted to Phase 1. '
+        f'{unassigned} auto supervisor assignment(s) removed, '
+        f'{dissolved_count} auto team(s) dissolved, '
+        f'{reopened} supervision request(s) re-opened.'
+    )
+    return redirect(reverse('dashboard:admin') + '?panel=system')
+
+
+# ════════════════════════════════════════════════════════════════════════════════
 #  STUDENT — SUBMIT MILESTONE
 # ════════════════════════════════════════════════════════════════════════════════
 
@@ -933,6 +1367,11 @@ def student_submit_milestone(request, milestone_id):
         return redirect('dashboard:index')
 
     milestone = get_object_or_404(Milestone, pk=milestone_id, is_active=True)
+
+    # Submissions only open in Phase 2
+    if SystemConfig.get().phase < 2:
+        messages.error(request, 'Submissions are not open yet. The system is still in Phase 1 (team formation).')
+        return redirect('dashboard:student')
 
     # Must be in an active team
     membership = TeamMember.objects.filter(user=request.user, status='active').select_related('team').first()
@@ -949,6 +1388,10 @@ def student_submit_milestone(request, milestone_id):
     project = getattr(membership.team, 'project', None)
     if not project:
         messages.error(request, 'Your team does not have a project yet.')
+        return redirect('dashboard:student')
+
+    if project.status == 'completed':
+        messages.error(request, 'This project is completed. No further submissions are accepted.')
         return redirect('dashboard:student')
 
     # Milestone must have started (start_date <= today)

@@ -16,13 +16,18 @@ def search_students(request):
     results = []
     if q:
         already_in_team = TeamMember.objects.values_list('user_id', flat=True)
-        results = (
+        qs = (
             User.objects
             .filter(role='student')
-            .filter(Q(full_name__icontains=q) | Q(username__icontains=q))
+            .filter(Q(full_name__icontains=q) | Q(student_id__icontains=q))
             .exclude(pk__in=already_in_team)
-            .order_by('full_name', 'username')[:8]
+            .exclude(pk=request.user.pk)
         )
+        if request.user.gender:
+            qs = qs.filter(gender=request.user.gender)
+        if request.user.department:
+            qs = qs.filter(department=request.user.department)
+        results = qs.order_by('full_name', 'username')[:8]
     return render(request, 'teams/partials/student_search_results.html', {
         'results': results,
         'q': q,
@@ -80,6 +85,19 @@ def invite_member(request):
 
     if TeamMember.objects.filter(user=invitee).exists():
         messages.error(request, f'{invitee.full_name or username} is already in a team or has a pending invite.')
+        return redirect('dashboard:student')
+
+    if not request.user.gender:
+        messages.error(request, 'Please set your gender before inviting members.')
+        return redirect('dashboard:student')
+    if not invitee.gender:
+        messages.error(request, f'{invitee.full_name or username} has not set their gender yet.')
+        return redirect('dashboard:student')
+    if request.user.gender != invitee.gender:
+        messages.error(request, 'You can only invite students of the same gender.')
+        return redirect('dashboard:student')
+    if request.user.department != invitee.department:
+        messages.error(request, 'You can only invite students from the same department.')
         return redirect('dashboard:student')
 
     pending = TeamMember.objects.create(

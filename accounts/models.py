@@ -9,7 +9,10 @@ class User(AbstractUser):
         ('administrator', 'Administrator'),
         ('reviewer',      'Reviewer'),
     ]
+    GENDERS = [('male', 'Male'), ('female', 'Female')]
+
     role       = models.CharField(max_length=20, choices=ROLES, default='student')
+    gender     = models.CharField(max_length=10, choices=GENDERS, blank=True)
     full_name  = models.CharField(max_length=150, blank=True)
     student_id = models.CharField(max_length=20, blank=True, null=True, unique=True)
     department = models.CharField(max_length=100, blank=True)
@@ -28,9 +31,12 @@ class User(AbstractUser):
     def is_reviewer(self):      return self.role == 'reviewer' or self.can_review
 
     def current_load(self):
-        return self.supervised_projects.filter(status='active').count()
+        return self.supervised_projects.exclude(status='rejected').count()
 
     def is_at_capacity(self):
-        return self.current_load() >= self.max_teams
+        active_load = self.supervised_projects.filter(
+            status__in=['draft', 'submitted', 'approved', 'active']
+        ).count()
+        return active_load >= self.max_teams
 
     def __str__(self): return self.full_name or self.username

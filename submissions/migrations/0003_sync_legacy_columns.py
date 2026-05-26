@@ -17,92 +17,36 @@ class Migration(migrations.Migration):
     ]
 
     operations = [
-        # 1. Set DB-level defaults on the two NOT NULL text columns so Django
-        #    INSERTs that omit them don't raise IntegrityError.
         migrations.RunSQL(
             sql="""
-                ALTER TABLE submissions_submission
-                    ALTER COLUMN supervisor_feedback SET DEFAULT '',
-                    ALTER COLUMN reviewer_feedback   SET DEFAULT '';
+                ALTER TABLE submissions_submission ADD COLUMN IF NOT EXISTS supervisor_grade numeric(5,2);
+                ALTER TABLE submissions_submission ADD COLUMN IF NOT EXISTS supervisor_feedback text NOT NULL DEFAULT '';
+                ALTER TABLE submissions_submission ADD COLUMN IF NOT EXISTS supervisor_graded_by_id integer REFERENCES accounts_user(id) ON DELETE SET NULL;
+                ALTER TABLE submissions_submission ADD COLUMN IF NOT EXISTS supervisor_graded_at timestamp with time zone;
+                ALTER TABLE submissions_submission ADD COLUMN IF NOT EXISTS reviewer_grade numeric(5,2);
+                ALTER TABLE submissions_submission ADD COLUMN IF NOT EXISTS reviewer_feedback text NOT NULL DEFAULT '';
+                ALTER TABLE submissions_submission ADD COLUMN IF NOT EXISTS reviewer_graded_by_id integer REFERENCES accounts_user(id) ON DELETE SET NULL;
+                ALTER TABLE submissions_submission ADD COLUMN IF NOT EXISTS reviewer_graded_at timestamp with time zone;
+                ALTER TABLE submissions_submission ADD COLUMN IF NOT EXISTS review_score numeric(5,2);
+                ALTER TABLE submissions_submission ADD COLUMN IF NOT EXISTS reviewed_by_id integer REFERENCES accounts_user(id) ON DELETE SET NULL;
+                ALTER TABLE submissions_submission ADD COLUMN IF NOT EXISTS reviewed_at timestamp with time zone;
             """,
             reverse_sql=migrations.RunSQL.noop,
         ),
-
-        # 2. Declare all legacy columns in Django's migration state.
-        #    database_operations=[] means: column already exists, don't touch DB.
         migrations.SeparateDatabaseAndState(
             state_operations=[
-                migrations.AddField(
-                    model_name='submission',
-                    name='supervisor_grade',
-                    field=models.DecimalField(blank=True, decimal_places=2, max_digits=5, null=True),
-                ),
-                migrations.AddField(
-                    model_name='submission',
-                    name='supervisor_feedback',
-                    field=models.TextField(blank=True, default=''),
-                ),
-                migrations.AddField(
-                    model_name='submission',
-                    name='supervisor_graded_by',
-                    field=models.ForeignKey(
-                        blank=True, null=True,
-                        on_delete=django.db.models.deletion.SET_NULL,
-                        related_name='supervisor_graded_submissions',
-                        to=settings.AUTH_USER_MODEL,
-                    ),
-                ),
-                migrations.AddField(
-                    model_name='submission',
-                    name='supervisor_graded_at',
-                    field=models.DateTimeField(blank=True, null=True),
-                ),
-                migrations.AddField(
-                    model_name='submission',
-                    name='reviewer_grade',
-                    field=models.DecimalField(blank=True, decimal_places=2, max_digits=5, null=True),
-                ),
-                migrations.AddField(
-                    model_name='submission',
-                    name='reviewer_feedback',
-                    field=models.TextField(blank=True, default=''),
-                ),
-                migrations.AddField(
-                    model_name='submission',
-                    name='reviewer_graded_by',
-                    field=models.ForeignKey(
-                        blank=True, null=True,
-                        on_delete=django.db.models.deletion.SET_NULL,
-                        related_name='reviewer_graded_submissions',
-                        to=settings.AUTH_USER_MODEL,
-                    ),
-                ),
-                migrations.AddField(
-                    model_name='submission',
-                    name='reviewer_graded_at',
-                    field=models.DateTimeField(blank=True, null=True),
-                ),
-                migrations.AddField(
-                    model_name='submission',
-                    name='review_score',
-                    field=models.DecimalField(blank=True, decimal_places=2, max_digits=5, null=True),
-                ),
-                migrations.AddField(
-                    model_name='submission',
-                    name='reviewed_by',
-                    field=models.ForeignKey(
-                        blank=True, null=True,
-                        on_delete=django.db.models.deletion.SET_NULL,
-                        related_name='reviewed_submissions',
-                        to=settings.AUTH_USER_MODEL,
-                    ),
-                ),
-                migrations.AddField(
-                    model_name='submission',
-                    name='reviewed_at',
-                    field=models.DateTimeField(blank=True, null=True),
-                ),
+                migrations.AddField(model_name='submission', name='supervisor_grade', field=models.DecimalField(blank=True, decimal_places=2, max_digits=5, null=True)),
+                migrations.AddField(model_name='submission', name='supervisor_feedback', field=models.TextField(blank=True, default='')),
+                migrations.AddField(model_name='submission', name='supervisor_graded_by', field=models.ForeignKey(blank=True, null=True, on_delete=django.db.models.deletion.SET_NULL, related_name='supervisor_graded_submissions', to=settings.AUTH_USER_MODEL)),
+                migrations.AddField(model_name='submission', name='supervisor_graded_at', field=models.DateTimeField(blank=True, null=True)),
+                migrations.AddField(model_name='submission', name='reviewer_grade', field=models.DecimalField(blank=True, decimal_places=2, max_digits=5, null=True)),
+                migrations.AddField(model_name='submission', name='reviewer_feedback', field=models.TextField(blank=True, default='')),
+                migrations.AddField(model_name='submission', name='reviewer_graded_by', field=models.ForeignKey(blank=True, null=True, on_delete=django.db.models.deletion.SET_NULL, related_name='reviewer_graded_submissions', to=settings.AUTH_USER_MODEL)),
+                migrations.AddField(model_name='submission', name='reviewer_graded_at', field=models.DateTimeField(blank=True, null=True)),
+                migrations.AddField(model_name='submission', name='review_score', field=models.DecimalField(blank=True, decimal_places=2, max_digits=5, null=True)),
+                migrations.AddField(model_name='submission', name='reviewed_by', field=models.ForeignKey(blank=True, null=True, on_delete=django.db.models.deletion.SET_NULL, related_name='reviewed_submissions', to=settings.AUTH_USER_MODEL)),
+                migrations.AddField(model_name='submission', name='reviewed_at', field=models.DateTimeField(blank=True, null=True)),
             ],
-            database_operations=[],  # all columns already exist in DB
+            database_operations=[],
         ),
     ]

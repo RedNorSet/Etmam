@@ -74,11 +74,18 @@ def add_user(request):
             messages.error(request, f'Username "{username}" is already taken.')
             return render(request, 'accounts/add_user.html')
 
+        role   = request.POST.get('role', 'student')
+        gender = request.POST.get('gender', '').strip()
+        if role in ('student', 'supervisor') and not gender:
+            messages.error(request, 'Gender is required for students and supervisors.')
+            return render(request, 'accounts/add_user.html')
+
         user = User(
             username   = username,
             full_name  = request.POST.get('full_name', '').strip(),
             email      = request.POST.get('email', '').strip(),
-            role       = request.POST.get('role', 'student'),
+            role       = role,
+            gender     = gender,
             department = request.POST.get('department', '').strip(),
             student_id = request.POST.get('student_id', '').strip() or None,
             expertise  = request.POST.get('expertise', '').strip(),
@@ -92,7 +99,7 @@ def add_user(request):
         user.set_password(password)
         user.save()
         messages.success(request, f'User "{username}" created successfully.')
-        return redirect('accounts:edit_user', user_id=user.pk)
+        return redirect('accounts:add_user')
 
     return render(request, 'accounts/add_user.html')
 
@@ -109,6 +116,7 @@ def edit_user(request, user_id):
         target.username    = request.POST.get('username', '').strip()
         target.email       = request.POST.get('email', '').strip()
         target.role        = request.POST.get('role', target.role)
+        target.gender      = request.POST.get('gender', '').strip()
         target.department  = request.POST.get('department', '').strip()
         target.student_id  = request.POST.get('student_id', '').strip() or None
         target.expertise   = request.POST.get('expertise', '').strip()

@@ -281,6 +281,9 @@
     <button class="nav-tab" onclick="showPanel('grades', this)">
       Grades {% if pending_grades %}<span class="n-badge">{{ pending_grades }}</span>{% endif %}
     </button>
+    <button class="nav-tab" onclick="showPanel('system', this)">
+      System <span class="n-badge" style="background:{% if system_config.phase == 2 %}#16a34a{% else %}#2563eb{% endif %}">P{{ system_config.phase }}</span>
+    </button>
   </div>
   <div class="nav-right">
     <span class="nav-role">Administrator</span>
@@ -329,42 +332,79 @@
       <a href="{% url 'accounts:add_user' %}" class="btn btn-blue">+ Add User</a>
     </div>
 
+    <!-- ── Students ── -->
     <div id="section-students" style="margin-bottom:28px;">
       <div style="font-size:.8rem;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:10px;">
         Students <span style="background:var(--bg);border:1px solid var(--border);border-radius:20px;padding:1px 8px;font-size:.72rem;margin-left:4px;">{{ total_students }}</span>
       </div>
+      <div class="filter-bar">
+        <input type="text" id="stu-search" class="det-input"
+               placeholder="🔍  Name, username, ID, dept…"
+               style="width:260px;padding:5px 10px;font-size:.82rem;"
+               oninput="filterUsers('stu')">
+        <button class="filter-btn active" onclick="setGenderFilter('stu','',this)">All</button>
+        <button class="filter-btn" onclick="setGenderFilter('stu','male',this)">♂ Male</button>
+        <button class="filter-btn" onclick="setGenderFilter('stu','female',this)">♀ Female</button>
+      </div>
       <div class="card">
-        <table class="gt">
-          <thead><tr><th>Name</th><th>Username</th><th>ID</th><th>Department</th><th>Status</th><th>Joined</th><th></th></tr></thead>
+        <table class="gt" id="stu-table">
+          <thead><tr><th>Name</th><th>Username</th><th>ID</th><th>Department</th><th>Gender</th><th>Status</th><th>Joined</th><th></th></tr></thead>
           <tbody>
             {% for u in students %}
-            <tr>
+            <tr data-name="{{ u.full_name|lower }}" data-username="{{ u.username|lower }}"
+                data-id="{{ u.student_id|default:''|lower }}" data-dept="{{ u.department|lower }}"
+                data-gender="{{ u.gender }}">
               <td><div style="font-weight:600;">{{ u.full_name|default:"—" }}</div><div style="font-size:.75rem;color:var(--muted);">{{ u.email }}</div></td>
-              <td>{{ u.username }}</td><td>{{ u.student_id|default:"—" }}</td><td>{{ u.department|default:"—" }}</td>
+              <td>{{ u.username }}</td>
+              <td>{{ u.student_id|default:"—" }}</td>
+              <td>{{ u.department|default:"—" }}</td>
+              <td>
+                {% if u.gender == 'male' %}<span class="badge b-blue">♂ Male</span>
+                {% elif u.gender == 'female' %}<span class="badge b-purple">♀ Female</span>
+                {% else %}<span class="badge b-gray">—</span>{% endif %}
+              </td>
               <td>{% if u.is_active %}<span class="badge b-green">Active</span>{% else %}<span class="badge b-red">Inactive</span>{% endif %}</td>
               <td>{{ u.date_joined|date:"M d, Y" }}</td>
               <td><a href="{% url 'accounts:edit_user' u.pk %}" class="btn btn-out">Edit</a></td>
             </tr>
             {% empty %}
-            <tr><td colspan="7"><div class="empty"><div class="ei">👤</div>No students yet.</div></td></tr>
+            <tr><td colspan="8"><div class="empty"><div class="ei">👤</div>No students yet.</div></td></tr>
             {% endfor %}
           </tbody>
         </table>
       </div>
+      <div id="stu-no-results" style="display:none;text-align:center;padding:.75rem;font-size:.83rem;color:var(--muted);">No students match your filter.</div>
     </div>
 
+    <!-- ── Supervisors & Reviewers ── -->
     <div id="section-staff" style="margin-bottom:28px;">
       <div style="font-size:.8rem;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:10px;">
         Supervisors &amp; Reviewers <span style="background:var(--bg);border:1px solid var(--border);border-radius:20px;padding:1px 8px;font-size:.72rem;margin-left:4px;">{{ staff.count }}</span>
       </div>
+      <div class="filter-bar">
+        <input type="text" id="staff-search" class="det-input"
+               placeholder="🔍  Name, username, dept…"
+               style="width:260px;padding:5px 10px;font-size:.82rem;"
+               oninput="filterUsers('staff')">
+        <button class="filter-btn active" onclick="setGenderFilter('staff','',this)">All</button>
+        <button class="filter-btn" onclick="setGenderFilter('staff','male',this)">♂ Male</button>
+        <button class="filter-btn" onclick="setGenderFilter('staff','female',this)">♀ Female</button>
+      </div>
       <div class="card">
-        <table class="gt">
-          <thead><tr><th>Name</th><th>Username</th><th>ID</th><th>Department</th><th>Teams</th><th>Available</th><th>Can Review</th><th>Status</th><th></th></tr></thead>
+        <table class="gt" id="staff-table">
+          <thead><tr><th>Name</th><th>Username</th><th>Department</th><th>Gender</th><th>Teams</th><th>Available</th><th>Can Review</th><th>Status</th><th></th></tr></thead>
           <tbody>
             {% for u in staff %}
-            <tr>
+            <tr data-name="{{ u.full_name|lower }}" data-username="{{ u.username|lower }}"
+                data-id="" data-dept="{{ u.department|lower }}" data-gender="{{ u.gender }}">
               <td><div style="font-weight:600;">{{ u.full_name|default:"—" }}</div><div style="font-size:.75rem;color:var(--muted);">{{ u.email }}</div></td>
-              <td>{{ u.username }}</td><td>{{ u.student_id|default:"—" }}</td><td>{{ u.department|default:"—" }}</td>
+              <td>{{ u.username }}</td>
+              <td>{{ u.department|default:"—" }}</td>
+              <td>
+                {% if u.gender == 'male' %}<span class="badge b-blue">♂ Male</span>
+                {% elif u.gender == 'female' %}<span class="badge b-purple">♀ Female</span>
+                {% else %}<span class="badge b-gray">—</span>{% endif %}
+              </td>
               <td>{{ u.current_load }}/{{ u.max_teams }}</td>
               <td>{% if u.available %}<span class="badge b-green">Yes</span>{% else %}<span class="badge b-gray">No</span>{% endif %}</td>
               <td>{% if u.can_review %}<span class="badge b-blue">Yes</span>{% else %}<span class="badge b-gray">No</span>{% endif %}</td>
@@ -377,20 +417,31 @@
           </tbody>
         </table>
       </div>
+      <div id="staff-no-results" style="display:none;text-align:center;padding:.75rem;font-size:.83rem;color:var(--muted);">No staff match your filter.</div>
     </div>
 
+    <!-- ── Administrators ── -->
     <div id="section-admins">
       <div style="font-size:.8rem;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:10px;">
         Administrators <span style="background:var(--bg);border:1px solid var(--border);border-radius:20px;padding:1px 8px;font-size:.72rem;margin-left:4px;">{{ admins.count }}</span>
       </div>
+      <div class="filter-bar">
+        <input type="text" id="adm-search" class="det-input"
+               placeholder="🔍  Name or username…"
+               style="width:260px;padding:5px 10px;font-size:.82rem;"
+               oninput="filterUsers('adm')">
+      </div>
       <div class="card">
-        <table class="gt">
+        <table class="gt" id="adm-table">
           <thead><tr><th>Name</th><th>Username</th><th>ID</th><th>Email</th><th>Joined</th><th></th></tr></thead>
           <tbody>
             {% for u in admins %}
-            <tr>
+            <tr data-name="{{ u.full_name|lower }}" data-username="{{ u.username|lower }}"
+                data-id="" data-dept="" data-gender="">
               <td style="font-weight:600;">{{ u.full_name|default:"—" }}</td>
-              <td>{{ u.username }}</td><td>{{ u.student_id|default:"—" }}</td><td>{{ u.email|default:"—" }}</td>
+              <td>{{ u.username }}</td>
+              <td>{{ u.student_id|default:"—" }}</td>
+              <td>{{ u.email|default:"—" }}</td>
               <td>{{ u.date_joined|date:"M d, Y" }}</td>
               <td><a href="{% url 'accounts:edit_user' u.pk %}" class="btn btn-out">Edit</a></td>
             </tr>
@@ -400,7 +451,34 @@
           </tbody>
         </table>
       </div>
+      <div id="adm-no-results" style="display:none;text-align:center;padding:.75rem;font-size:.83rem;color:var(--muted);">No admins match your filter.</div>
     </div>
+
+    <script>
+      var _gf = { stu: '', staff: '', adm: '' };
+      function setGenderFilter(sec, gender, btn) {
+        _gf[sec] = gender;
+        btn.closest('.filter-bar').querySelectorAll('.filter-btn').forEach(function(b){ b.classList.remove('active'); });
+        btn.classList.add('active');
+        filterUsers(sec);
+      }
+      function filterUsers(sec) {
+        var q  = (document.getElementById(sec + '-search').value || '').toLowerCase();
+        var gf = _gf[sec] || '';
+        var rows = document.querySelectorAll('#' + sec + '-table tbody tr[data-username]');
+        var visible = 0;
+        rows.forEach(function(r) {
+          var match =
+            (!q  || (r.dataset.name||'').includes(q) || (r.dataset.username||'').includes(q) ||
+                    (r.dataset.id||'').includes(q)   || (r.dataset.dept||'').includes(q)) &&
+            (!gf || r.dataset.gender === gf);
+          r.style.display = match ? '' : 'none';
+          if (match) visible++;
+        });
+        var msg = document.getElementById(sec + '-no-results');
+        if (msg) msg.style.display = (visible === 0 && rows.length > 0) ? 'block' : 'none';
+      }
+    </script>
   </div>
 
   <!-- ═══════════════════════════════════════════════════════════
@@ -709,6 +787,14 @@
                           </div>
                           <button type="submit" class="btn btn-blue" style="width:100%;justify-content:center;">💾 Save Project</button>
                         </form>
+                        {% if project.status == 'completed' %}
+                        <form method="post" action="{% url 'dashboard:admin_toggle_archive' project.pk %}" style="margin-top:8px;">
+                          {% csrf_token %}
+                          <button type="submit" class="btn {% if project.hide_from_archive %}btn-blue{% else %}btn-red-out{% endif %}" style="width:100%;justify-content:center;">
+                            {% if project.hide_from_archive %}👁 Show in Archive{% else %}🚫 Hide from Archive{% endif %}
+                          </button>
+                        </form>
+                        {% endif %}
                       </div>
                       {% else %}
                       <div class="det-card det-card-body">
@@ -1281,6 +1367,80 @@
     </form>
   </div>
 
+  <!-- ═══════════════════════════════════
+       PANEL: SYSTEM
+       ═══════════════════════════════════ -->
+  <div class="panel" id="panel-system">
+    <div class="ph">
+      <div>
+        <h1>System Configuration</h1>
+        <p>Control the project lifecycle phase for all users.</p>
+      </div>
+    </div>
+
+    <div style="max-width:560px;">
+      {% if system_config.phase == 1 %}
+      <!-- ── PHASE 1 STATE ── -->
+      <div style="background:var(--white);border:1px solid var(--blue-bd);border-radius:var(--r);padding:28px 28px 24px;margin-bottom:20px;">
+        <div style="display:flex;align-items:center;gap:14px;margin-bottom:20px;">
+          <div style="width:44px;height:44px;border-radius:10px;background:var(--blue-lt);display:grid;place-items:center;font-size:1.3rem;flex-shrink:0;">🔵</div>
+          <div>
+            <div style="font-size:1rem;font-weight:700;color:var(--text);">Phase 1 — Team Formation</div>
+            <div style="font-size:.82rem;color:var(--muted);margin-top:2px;">Students can form teams and send supervisor requests. Milestone submissions are locked.</div>
+          </div>
+        </div>
+        <div style="background:var(--blue-lt);border:1px solid var(--blue-bd);border-radius:8px;padding:14px 16px;margin-bottom:20px;font-size:.83rem;color:var(--blue);line-height:1.6;">
+          <strong>What happens when you switch to Phase 2:</strong><br>
+          • Teamless students are auto-grouped into teams of up to 5<br>
+          • Projects without supervisors get one assigned (round-robin)<br>
+          • All pending supervision requests are declined<br>
+          • Milestone submissions open immediately
+        </div>
+        <form method="post" action="{% url 'dashboard:admin_switch_phase2' %}" onsubmit="return confirm('Switch to Phase 2? This will auto-group teamless students and assign supervisors. This cannot be undone in production.');">
+          {% csrf_token %}
+          <button type="submit" class="btn btn-blue" style="width:100%;justify-content:center;padding:10px;">
+            Switch to Phase 2 →
+          </button>
+        </form>
+      </div>
+
+      {% else %}
+      <!-- ── PHASE 2 STATE ── -->
+      <div style="background:#f0fdf4;border:1px solid #bbf7d0;border-radius:var(--r);padding:28px 28px 24px;margin-bottom:20px;">
+        <div style="display:flex;align-items:center;gap:14px;margin-bottom:16px;">
+          <div style="width:44px;height:44px;border-radius:10px;background:#dcfce7;display:grid;place-items:center;font-size:1.3rem;flex-shrink:0;">🟢</div>
+          <div>
+            <div style="font-size:1rem;font-weight:700;color:#14532d;">Phase 2 — Active Projects</div>
+            <div style="font-size:.82rem;color:#166534;margin-top:2px;">Milestone submissions are open. Supervisor assignments are locked.</div>
+          </div>
+        </div>
+        {% if system_config.phase_switched_at %}
+        <div style="font-size:.78rem;color:#166534;margin-bottom:16px;">
+          Switched at: {{ system_config.phase_switched_at|date:"N j, Y H:i" }}
+        </div>
+        {% endif %}
+      </div>
+
+      <div style="background:#fef2f2;border:1px solid #fecaca;border-radius:var(--r);padding:20px 24px;">
+        <div style="font-size:.83rem;font-weight:700;color:var(--red);margin-bottom:6px;">Testing Only — Revert to Phase 1</div>
+        <div style="font-size:.8rem;color:#991b1b;line-height:1.6;margin-bottom:16px;">
+          This will undo only what the auto-flip did:<br>
+          • Remove auto-assigned supervisors<br>
+          • Dissolve auto-created teams and their projects<br>
+          • Re-open all declined supervision requests<br>
+          <em>Manually created teams and assignments are not touched.</em>
+        </div>
+        <form method="post" action="{% url 'dashboard:admin_revert_phase1' %}" onsubmit="return confirm('Revert to Phase 1? Auto-created teams and assignments will be removed.');">
+          {% csrf_token %}
+          <button type="submit" class="btn btn-red-out" style="width:100%;justify-content:center;padding:8px;">
+            ← Revert to Phase 1 (Testing)
+          </button>
+        </form>
+      </div>
+      {% endif %}
+    </div>
+  </div>
+
 </div><!-- /page -->
 
 <script>
@@ -1296,7 +1456,7 @@ function showPanel(id, btn) {
 }
 function showPanelSection(panelId, sectionId) {
   const tabs  = document.querySelectorAll('.nav-tab');
-  const order = ['overview','users','teams_projects','milestones','submissions','grades'];
+  const order = ['overview','users','teams_projects','milestones','submissions','grades','system'];
   const idx   = order.indexOf(panelId);
   showPanel(panelId, idx >= 0 ? tabs[idx] : null);
   setTimeout(function() {
@@ -1594,7 +1754,7 @@ window.addEventListener('DOMContentLoaded', function() {
 
   if (panelId) {
     const tabs  = document.querySelectorAll('.nav-tab');
-    const order = ['overview','users','teams_projects','milestones','submissions','grades'];
+    const order = ['overview','users','teams_projects','milestones','submissions','grades','system'];
     const idx   = order.indexOf(panelId);
     showPanel(panelId, idx >= 0 ? tabs[idx] : null);
   }

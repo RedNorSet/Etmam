@@ -10,7 +10,7 @@ urlpatterns = [
     path('teams/',         include('teams.urls', namespace='teams')),
     path('projects/',      include('projects.urls', namespace='projects')),
     path('milestones/',    include('milestones.urls')),
-    path('submissions/',   include('submissions.urls')),
+    path('submissions/',   include('submissions.urls', namespace='submissions')),
     path('reviews/',       include('reviews.urls')),
     path('notifications/', include('notifications.urls')),
     path('meetings/',      include('meetings.urls')),

@@ -3,6 +3,22 @@ from django.conf import settings
 from django.utils import timezone
 
 
+class SystemConfig(models.Model):
+    phase              = models.PositiveSmallIntegerField(default=1)  # 1 or 2
+    phase_switched_at  = models.DateTimeField(null=True, blank=True)
+
+    class Meta:
+        verbose_name = 'System Configuration'
+
+    @classmethod
+    def get(cls):
+        obj, _ = cls.objects.get_or_create(pk=1)
+        return obj
+
+    def __str__(self):
+        return f'Phase {self.phase}'
+
+
 class Project(models.Model):
     STATUS = [
         ('draft',     'Draft'),
@@ -26,8 +42,10 @@ class Project(models.Model):
     approved_at      = models.DateTimeField(null=True, blank=True)
     approved_by      = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL,
                                           null=True, blank=True, related_name='approved_projects')
-    rejection_reason = models.TextField(blank=True)
-    created_at       = models.DateTimeField(auto_now_add=True)
+    rejection_reason  = models.TextField(blank=True)
+    hide_from_archive         = models.BooleanField(default=False)
+    auto_assigned_supervisor  = models.BooleanField(default=False)
+    created_at                = models.DateTimeField(auto_now_add=True)
 
     def __str__(self): return self.title
 

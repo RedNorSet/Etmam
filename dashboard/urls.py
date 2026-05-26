@@ -54,4 +54,17 @@ urlpatterns = [
 
     # ── Student submit milestone ───────────────────────────────────────────
     path('student/submit/<int:milestone_id>/', views.student_submit_milestone, name='student_submit_milestone'),
+
+    # ── Student task management ────────────────────────────────────────────
+    path('student/task/create/<int:milestone_id>/', views.student_create_task,  name='student_create_task'),
+    path('student/task/<int:task_id>/update/',      views.student_update_task,  name='student_update_task'),
+    path('student/task/<int:task_id>/delete/',      views.student_delete_task,  name='student_delete_task'),
+
+    # ── Archive ───────────────────────────────────────────────────────────
+    path('archive/',                                        views.archive_view,          name='archive'),
+    path('admin/project/<int:project_id>/toggle-archive/', views.admin_toggle_archive,  name='admin_toggle_archive'),
+
+    # ── Phase management ──────────────────────────────────────────────────
+    path('admin/phase/switch/', views.admin_switch_phase2, name='admin_switch_phase2'),
+    path('admin/phase/revert/', views.admin_revert_phase1, name='admin_revert_phase1'),
 ]

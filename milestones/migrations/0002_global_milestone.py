@@ -67,66 +67,72 @@ def seed_defaults(apps, schema_editor):
 
 class Migration(migrations.Migration):
 
+    atomic = False
+
     dependencies = [
         ('milestones', '0001_initial'),
         ('projects',   '0001_initial'),
     ]
 
     operations = [
-        # 1. Wipe all per-project milestone rows first
+        # 1. Wipe linked data and milestones safely
         migrations.RunSQL(
-            sql='DELETE FROM milestones_milestone;',
+            sql='''
+                DO $$ BEGIN
+                  IF EXISTS (SELECT FROM pg_tables WHERE schemaname='public' AND tablename='submissions_submissionfile') THEN
+                    DELETE FROM submissions_submissionfile;
+                  END IF;
+                  IF EXISTS (SELECT FROM pg_tables WHERE schemaname='public' AND tablename='submissions_submission') THEN
+                    DELETE FROM submissions_submission;
+                  END IF;
+                END $$;
+                DELETE FROM milestones_milestone;
+                ALTER TABLE milestones_milestone DROP COLUMN IF EXISTS template_id;
+                ALTER TABLE milestones_milestone DROP COLUMN IF EXISTS project_id;
+                ALTER TABLE milestones_milestone DROP COLUMN IF EXISTS status;
+                ALTER TABLE milestones_milestone DROP COLUMN IF EXISTS type;
+            ''',
             reverse_sql=migrations.RunSQL.noop,
         ),
 
-        # 2. Drop template_id (not tracked by Django state — raw SQL only)
-        migrations.RunSQL(
-            sql='ALTER TABLE milestones_milestone DROP COLUMN IF EXISTS template_id;',
-            reverse_sql=migrations.RunSQL.noop,
-        ),
-
-        # 3. Remove per-project fields via RemoveField (updates migration state)
-        migrations.RemoveField(model_name='milestone', name='project'),
-        migrations.RemoveField(model_name='milestone', name='status'),
-        migrations.RemoveField(model_name='milestone', name='type'),
-
-        # 4. Declare start_date in Django state only (column already in DB from old schema)
+        # 2. Sync Django state: remove fields that are now gone from DB
         migrations.SeparateDatabaseAndState(
             state_operations=[
-                migrations.AddField(
-                    model_name='milestone',
-                    name='start_date',
-                    field=models.DateField(null=True, blank=True),
-                ),
+                migrations.RemoveField(model_name='milestone', name='project'),
+                migrations.RemoveField(model_name='milestone', name='status'),
+                migrations.RemoveField(model_name='milestone', name='type'),
             ],
-            database_operations=[],   # column already exists — don't re-create it
+            database_operations=[],
         ),
 
-        # 5. Add missing columns
-        migrations.AddField(
-            model_name='milestone',
-            name='order',
-            field=models.PositiveIntegerField(default=0),
-        ),
-        migrations.AddField(
-            model_name='milestone',
-            name='is_active',
-            field=models.BooleanField(default=True),
-        ),
-
-        # 6. Make due_date optional
-        migrations.AlterField(
-            model_name='milestone',
-            name='due_date',
-            field=models.DateField(null=True, blank=True),
+        # 3. Add new columns (IF NOT EXISTS via raw SQL to be safe)
+        migrations.RunSQL(
+            sql='''
+                ALTER TABLE milestones_milestone ADD COLUMN IF NOT EXISTS start_date date;
+                ALTER TABLE milestones_milestone ADD COLUMN IF NOT EXISTS "order" integer NOT NULL DEFAULT 0;
+                ALTER TABLE milestones_milestone ADD COLUMN IF NOT EXISTS is_active boolean NOT NULL DEFAULT true;
+                ALTER TABLE milestones_milestone ALTER COLUMN due_date DROP NOT NULL;
+            ''',
+            reverse_sql=migrations.RunSQL.noop,
         ),
 
-        # 7. Update ordering meta
+        # 4. Sync Django state for new fields
+        migrations.SeparateDatabaseAndState(
+            state_operations=[
+                migrations.AddField(model_name='milestone', name='start_date', field=models.DateField(null=True, blank=True)),
+                migrations.AddField(model_name='milestone', name='order', field=models.PositiveIntegerField(default=0)),
+                migrations.AddField(model_name='milestone', name='is_active', field=models.BooleanField(default=True)),
+                migrations.AlterField(model_name='milestone', name='due_date', field=models.DateField(null=True, blank=True)),
+            ],
+            database_operations=[],
+        ),
+
+        # 5. Update ordering meta
         migrations.AlterModelOptions(
             name='milestone',
             options={'ordering': ['order', 'due_date']},
         ),
 
-        # 8. Seed 5 default objectives (state is now clean — no type/status/project)
+        # 6. Seed 5 default milestones
         migrations.RunPython(seed_defaults, migrations.RunPython.noop),
     ]

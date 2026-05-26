@@ -94,11 +94,21 @@
         </div>
         <div class="field">
           <label>Role</label>
-          <select name="role" id="role-select" onchange="toggleSupervisorSection()">
+          <select name="role" id="role-select" disabled style="opacity:.5;cursor:not-allowed;background:#f1f5f9;">
             <option value="student"       {% if target.role == 'student' %}selected{% endif %}>Student</option>
             <option value="supervisor"    {% if target.role == 'supervisor' %}selected{% endif %}>Supervisor</option>
             <option value="reviewer"      {% if target.role == 'reviewer' %}selected{% endif %}>Reviewer</option>
             <option value="administrator" {% if target.role == 'administrator' %}selected{% endif %}>Administrator</option>
+          </select>
+          <input type="hidden" name="role" value="{{ target.role }}">
+          <span style="font-size:.72rem;color:var(--muted);margin-top:2px;">Role cannot be changed after account creation.</span>
+        </div>
+        <div class="field" id="gender-field">
+          <label>Gender</label>
+          <select name="gender">
+            <option value="">— Select —</option>
+            <option value="male"   {% if target.gender == 'male' %}selected{% endif %}>Male</option>
+            <option value="female" {% if target.gender == 'female' %}selected{% endif %}>Female</option>
           </select>
         </div>
         <div class="field">
@@ -163,8 +173,10 @@
   function toggleSupervisorSection() {
     var role = document.getElementById('role-select').value;
     var section = document.getElementById('supervisor-section');
+    var genderField = document.getElementById('gender-field');
     var canReview = document.getElementById('can-review-check');
     section.style.display = (role === 'student' || role === 'administrator') ? 'none' : 'block';
+    genderField.style.display = (role === 'administrator') ? 'none' : 'flex';
     if (role === 'supervisor') canReview.checked = true;
   }
   toggleSupervisorSection();

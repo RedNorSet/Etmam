@@ -18,10 +18,20 @@ def request_supervision(request, supervisor_id):
     membership = TeamMember.objects.filter(user=request.user, status='active').select_related('team').first()
     if not membership:
         messages.error(request, 'You must be in a team before requesting a supervisor.')
-        return redirect('accounts:supervisor_list')
+        return redirect('dashboard:student')
+    if membership.role != 'leader':
+        messages.error(request, 'Only the team leader can request a supervisor.')
+        return redirect('dashboard:student')
 
     team = membership.team
     supervisor = get_object_or_404(User, pk=supervisor_id, role='supervisor')
+
+    if not request.user.gender:
+        messages.error(request, 'Please set your gender before requesting a supervisor.')
+        return redirect('dashboard:student')
+    if request.user.gender != supervisor.gender:
+        messages.error(request, 'You can only request supervisors of the same gender.')
+        return redirect('dashboard:student')
 
     if not supervisor.available:
         messages.error(request, f'{supervisor.full_name or supervisor.username} is not accepting new students.')
