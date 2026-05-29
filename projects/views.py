@@ -35,15 +35,15 @@ def request_supervision(request, supervisor_id):
 
     if not supervisor.available:
         messages.error(request, f'{supervisor.full_name or supervisor.username} is not accepting new students.')
-        return redirect('accounts:supervisor_detail', user_id=supervisor_id)
+        return redirect('dashboard:student')
 
     if supervisor.is_at_capacity():
         messages.error(request, f'{supervisor.full_name or supervisor.username} has reached their team limit.')
-        return redirect('accounts:supervisor_detail', user_id=supervisor_id)
+        return redirect('dashboard:student')
 
     if SupervisionRequest.objects.filter(team=team, supervisor=supervisor).exists():
         messages.error(request, 'You have already sent a request to this supervisor.')
-        return redirect('accounts:supervisor_detail', user_id=supervisor_id)
+        return redirect('dashboard:student')
 
     if hasattr(team, 'project') and team.project.supervisor:
         messages.error(request, 'Your team already has a supervisor.')
@@ -54,7 +54,7 @@ def request_supervision(request, supervisor_id):
         pitch = request.POST.get('pitch', '').strip()
         if not title or not pitch:
             messages.error(request, 'Please fill in all fields.')
-            return redirect('accounts:supervisor_detail', user_id=supervisor_id)
+            return redirect('dashboard:student')
 
         SupervisionRequest.objects.create(
             team=team,
@@ -71,9 +71,9 @@ def request_supervision(request, supervisor_id):
         )
 
         messages.success(request, f'Request sent to {supervisor.full_name or supervisor.username}.')
-        return redirect('accounts:supervisor_detail', user_id=supervisor_id)
+        return redirect('dashboard:student')
 
-    return redirect('accounts:supervisor_detail', user_id=supervisor_id)
+    return redirect('dashboard:student')
 
 
 @login_required
@@ -148,7 +148,6 @@ def admin_remove_supervisor(request, project_id):
         return redirect('dashboard:index')
     project = get_object_or_404(Project, pk=project_id)
     project.supervisor = None
-    project.status = 'draft'
     project.save()
     messages.success(request, f'Supervisor removed from "{project.title}".')
     team_id = project.team.pk

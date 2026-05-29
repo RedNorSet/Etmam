@@ -10,5 +10,5 @@ class CustomUserAdmin(UserAdmin):
     search_fields = ('username', 'full_name', 'email', 'student_id')
     fieldsets     = UserAdmin.fieldsets + (
         ('GPMS Info', {'fields': ('role', 'full_name', 'student_id', 'department', 'avatar',
-                                  'can_review', 'expertise', 'max_teams', 'available')}),
+                                  'can_review', 'expertise', 'max_teams_supervise', 'max_teams_review', 'available')}),
     )

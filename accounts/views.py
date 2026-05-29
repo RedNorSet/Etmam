@@ -38,23 +38,14 @@ def supervisor_profile(request):
         user.office_hours = request.POST.get('office_hours', '').strip()
         user.past_projects = request.POST.get('past_projects', '').strip()
         user.available    = 'available' in request.POST
-        user.max_teams    = int(request.POST.get('max_teams', user.max_teams) or user.max_teams)
+        user.max_teams_supervise = int(request.POST.get('max_teams_supervise', user.max_teams_supervise) or user.max_teams_supervise)
+        user.max_teams_review    = int(request.POST.get('max_teams_review', user.max_teams_review) or user.max_teams_review)
         user.save()
         messages.success(request, 'Profile updated.')
         return redirect('accounts:supervisor_profile')
     return render(request, 'accounts/supervisor_profile.html', {'user': user})
 
 
-@login_required
-def supervisor_list(request):
-    supervisors = User.objects.filter(role='supervisor').order_by('full_name')
-    return render(request, 'accounts/supervisor_list.html', {'supervisors': supervisors})
-
-
-@login_required
-def supervisor_detail(request, user_id):
-    supervisor = get_object_or_404(User, pk=user_id, role='supervisor')
-    return render(request, 'accounts/supervisor_detail.html', {'supervisor': supervisor})
 
 
 @login_required
@@ -63,39 +54,71 @@ def add_user(request):
         return redirect('dashboard:index')
 
     if request.method == 'POST':
-        username = request.POST.get('username', '').strip()
-        password = request.POST.get('password', '').strip()
+        username         = request.POST.get('username', '').strip()
+        password         = request.POST.get('password', '').strip()
+        confirm_password = request.POST.get('confirm_password', '').strip()
+        full_name        = request.POST.get('full_name', '').strip()
+        email            = request.POST.get('email', '').strip()
+        department       = request.POST.get('department', '').strip()
+        student_id       = request.POST.get('student_id', '').strip()
+        role             = request.POST.get('role', 'student')
+        gender           = request.POST.get('gender', '').strip()
 
         if not username or not password:
             messages.error(request, 'Username and password are required.')
+            return render(request, 'accounts/add_user.html')
+
+        if password != confirm_password:
+            messages.error(request, 'Passwords do not match.')
+            return render(request, 'accounts/add_user.html')
+
+        if not full_name:
+            messages.error(request, 'Full name is required.')
+            return render(request, 'accounts/add_user.html')
+
+        if not email:
+            messages.error(request, 'Email is required.')
+            return render(request, 'accounts/add_user.html')
+
+        if not department:
+            messages.error(request, 'Department is required.')
+            return render(request, 'accounts/add_user.html')
+
+        if not student_id:
+            messages.error(request, 'ID is required.')
             return render(request, 'accounts/add_user.html')
 
         if User.objects.filter(username=username).exists():
             messages.error(request, f'Username "{username}" is already taken.')
             return render(request, 'accounts/add_user.html')
 
-        role   = request.POST.get('role', 'student')
-        gender = request.POST.get('gender', '').strip()
-        if role in ('student', 'supervisor') and not gender:
-            messages.error(request, 'Gender is required for students and supervisors.')
+        if role != 'administrator' and not gender:
+            messages.error(request, 'Gender is required.')
+            return render(request, 'accounts/add_user.html')
+
+        if role in ('supervisor', 'reviewer') and not request.POST.get('expertise', '').strip():
+            messages.error(request, 'Expertise is required for supervisors and reviewers.')
             return render(request, 'accounts/add_user.html')
 
         user = User(
             username   = username,
-            full_name  = request.POST.get('full_name', '').strip(),
-            email      = request.POST.get('email', '').strip(),
+            full_name  = full_name,
+            email      = email,
             role       = role,
             gender     = gender,
-            department = request.POST.get('department', '').strip(),
-            student_id = request.POST.get('student_id', '').strip() or None,
+            department = department,
+            student_id = student_id or None,
             expertise  = request.POST.get('expertise', '').strip(),
             can_review = 'can_review' in request.POST,
             available  = 'available' in request.POST,
             is_active  = True,
         )
-        max_teams = request.POST.get('max_teams', '').strip()
-        if max_teams.isdigit():
-            user.max_teams = int(max_teams)
+        max_teams_supervise = request.POST.get('max_teams_supervise', '').strip()
+        if max_teams_supervise.isdigit():
+            user.max_teams_supervise = int(max_teams_supervise)
+        max_teams_review = request.POST.get('max_teams_review', '').strip()
+        if max_teams_review.isdigit():
+            user.max_teams_review = int(max_teams_review)
         user.set_password(password)
         user.save()
         messages.success(request, f'User "{username}" created successfully.')
@@ -124,9 +147,12 @@ def edit_user(request, user_id):
         target.available   = 'available' in request.POST
         target.is_active   = 'is_active' in request.POST
 
-        max_teams = request.POST.get('max_teams', '').strip()
-        if max_teams.isdigit():
-            target.max_teams = int(max_teams)
+        max_teams_supervise = request.POST.get('max_teams_supervise', '').strip()
+        if max_teams_supervise.isdigit():
+            target.max_teams_supervise = int(max_teams_supervise)
+        max_teams_review = request.POST.get('max_teams_review', '').strip()
+        if max_teams_review.isdigit():
+            target.max_teams_review = int(max_teams_review)
 
         new_password = request.POST.get('new_password', '').strip()
         if new_password:

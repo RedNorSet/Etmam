@@ -21,12 +21,9 @@ class SystemConfig(models.Model):
 
 class Project(models.Model):
     STATUS = [
-        ('draft',     'Draft'),
-        ('submitted', 'Submitted'),
-        ('approved',  'Approved'),
-        ('rejected',  'Rejected'),
         ('active',    'Active'),
         ('completed', 'Completed'),
+        ('rejected',  'Rejected'),
     ]
     team             = models.OneToOneField('teams.Team', on_delete=models.CASCADE,
                                             related_name='project')
@@ -37,7 +34,7 @@ class Project(models.Model):
     title            = models.CharField(max_length=200)
     description      = models.TextField()
     objectives       = models.TextField(blank=True)
-    status           = models.CharField(max_length=20, choices=STATUS, default='draft')
+    status           = models.CharField(max_length=20, choices=STATUS, default='active')
     submitted_at     = models.DateTimeField(null=True, blank=True)
     approved_at      = models.DateTimeField(null=True, blank=True)
     approved_by      = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL,

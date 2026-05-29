@@ -75,7 +75,7 @@
     <div class="profile-avatar">🧑‍🏫</div>
     <div>
       <div class="profile-name">{{ user.full_name|default:user.username }}</div>
-      <div class="profile-meta">{{ user.department|default:"No department set" }} · {{ user.current_load }} / {{ user.max_teams }} teams</div>
+      <div class="profile-meta">{{ user.department|default:"No department set" }} · {{ user.current_load }} / {{ user.max_teams_supervise }} teams</div>
       <div class="avail-badge {% if user.available %}avail-on{% else %}avail-off{% endif %}">
         {% if user.available %}● Accepting students{% else %}● Not available{% endif %}
       </div>

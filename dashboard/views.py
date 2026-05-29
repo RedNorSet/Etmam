@@ -577,6 +577,12 @@ def admin_add_member(request, team_id):
     if TeamMember.objects.filter(user=student).exists():
         messages.error(request, f'{student.full_name or username} is already in a team.')
         return _admin_redirect(team_id)
+    existing = team.memberships.filter(status='active').select_related('user').first()
+    if existing and existing.user.gender:
+        if (student.gender or '') != existing.user.gender:
+            gender_label = existing.user.gender
+            messages.error(request, f'Cannot add {student.full_name or username}: this is a {gender_label} team.')
+            return _admin_redirect(team_id)
     TeamMember.objects.create(team=team, user=student, role='member', status='active')
     messages.success(request, f'{student.full_name or username} added to {team.name}.')
     return _admin_redirect(team_id)
@@ -619,7 +625,7 @@ def admin_create_project(request, team_id):
     if not title:
         messages.error(request, 'Project title is required.')
         return _admin_redirect(team_id)
-    Project.objects.create(team=team, title=title, description=description, status='draft')
+    Project.objects.create(team=team, title=title, description=description, status='active')
     messages.success(request, f'Project "{title}" created for {team.name}.')
     return _admin_redirect(team_id)
 
@@ -665,8 +671,6 @@ def admin_assign_supervisor(request, project_id):
         return _admin_redirect(project.team.pk)
     old_supervisor = project.supervisor
     project.supervisor = supervisor
-    if project.status == 'draft':
-        project.status = 'active'
     project.save()
 
     # If the new supervisor was already a reviewer, remove them from reviewers
@@ -707,7 +711,6 @@ def admin_remove_supervisor(request, project_id):
     project        = get_object_or_404(Project, pk=project_id)
     old_supervisor = project.supervisor
     project.supervisor = None
-    project.status     = 'draft'
     project.save()
     if old_supervisor:
         Notification.objects.create(
@@ -877,7 +880,23 @@ def admin_search_students(request):
     if len(q) < 2:
         return JsonResponse([], safe=False)
 
-    # Build mapping: student_id → team_name for assigned students
+    # If searching within an existing team, restrict to that team's gender
+    gender_filter = None
+    raw_team_id = request.GET.get('team_id')
+    if raw_team_id:
+        try:
+            first_member = (
+                TeamMember.objects
+                .filter(team_id=int(raw_team_id), status='active')
+                .select_related('user')
+                .first()
+            )
+            if first_member and first_member.user.gender:
+                gender_filter = first_member.user.gender
+        except (ValueError, TypeError):
+            pass
+
+    # Build mapping: user_id → team_name for already-assigned students
     assigned_map = {
         tm.user_id: tm.team.name
         for tm in TeamMember.objects.filter(status='active').select_related('team')
@@ -887,15 +906,18 @@ def admin_search_students(request):
         User.objects
         .filter(role='student', is_active=True)
         .filter(Q(full_name__icontains=q) | Q(username__icontains=q) | Q(student_id__icontains=q))
-        .order_by('full_name', 'username')[:15]
     )
+    if gender_filter:
+        qs = qs.filter(gender=gender_filter)
+    qs = qs.order_by('full_name', 'username')[:15]
+
     data = [
         {
             'username':     s.username,
             'full_name':    s.full_name or '',
             'student_id':   s.student_id or '',
             'department':   s.department or '',
-            'current_team': assigned_map.get(s.pk),   # None if free
+            'current_team': assigned_map.get(s.pk),
         }
         for s in qs
     ]

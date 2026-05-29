@@ -405,7 +405,7 @@
                 {% elif u.gender == 'female' %}<span class="badge b-purple">♀ Female</span>
                 {% else %}<span class="badge b-gray">—</span>{% endif %}
               </td>
-              <td>{{ u.current_load }}/{{ u.max_teams }}</td>
+              <td>{{ u.current_load }}/{{ u.max_teams_supervise }}</td>
               <td>{% if u.available %}<span class="badge b-green">Yes</span>{% else %}<span class="badge b-gray">No</span>{% endif %}</td>
               <td>{% if u.can_review %}<span class="badge b-blue">Yes</span>{% else %}<span class="badge b-gray">No</span>{% endif %}</td>
               <td>{% if u.is_active %}<span class="badge b-green">Active</span>{% else %}<span class="badge b-red">Inactive</span>{% endif %}</td>
@@ -558,11 +558,9 @@
       <button class="filter-btn" onclick="filterTeams('dissolved', this)">Dissolved</button>
       <select class="filter-select" onchange="filterTeamsByStatus(this.value)">
         <option value="">All Project Statuses</option>
-        <option value="draft">Draft</option>
-        <option value="submitted">Submitted</option>
-        <option value="approved">Approved</option>
         <option value="active">Active</option>
         <option value="completed">Completed</option>
+        <option value="rejected">Rejected</option>
       </select>
     </div>
 
@@ -613,7 +611,7 @@
             <td>
               {% if project %}
                 <div style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-weight:500;">{{ project.title|truncatechars:38 }}</div>
-                <span class="badge {% if project.status == 'active' %}b-green{% elif project.status == 'completed' %}b-blue{% elif project.status == 'draft' %}b-gray{% elif project.status == 'submitted' or project.status == 'approved' %}b-blue{% else %}b-orange{% endif %}" style="margin-top:3px;">{{ project.get_status_display }}</span>
+                <span class="badge {% if project.status == 'active' %}b-green{% elif project.status == 'completed' %}b-blue{% elif project.status == 'rejected' %}b-orange{% else %}b-gray{% endif %}" style="margin-top:3px;">{{ project.get_status_display }}</span>
               {% else %}
                 <span style="color:var(--light);font-style:italic;">— No project yet —</span>
               {% endif %}
@@ -777,12 +775,9 @@
                           <div class="det-field">
                             <label class="det-label">Status</label>
                             <select name="status" class="det-select">
-                              <option value="draft"     {% if project.status == 'draft'     %}selected{% endif %}>Draft</option>
-                              <option value="submitted" {% if project.status == 'submitted' %}selected{% endif %}>Submitted</option>
-                              <option value="approved"  {% if project.status == 'approved'  %}selected{% endif %}>Approved</option>
-                              <option value="rejected"  {% if project.status == 'rejected'  %}selected{% endif %}>Rejected</option>
                               <option value="active"    {% if project.status == 'active'    %}selected{% endif %}>Active</option>
                               <option value="completed" {% if project.status == 'completed' %}selected{% endif %}>Completed</option>
+                              <option value="rejected"  {% if project.status == 'rejected'  %}selected{% endif %}>Rejected</option>
                             </select>
                           </div>
                           <button type="submit" class="btn btn-blue" style="width:100%;justify-content:center;">💾 Save Project</button>
@@ -1582,10 +1577,12 @@ function confirmDissolveNow() {
    ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */
 let _searchTimer = null;
 
-function _fetchStudents(q, callback) {
+function _fetchStudents(q, extra, callback) {
   clearTimeout(_searchTimer);
   _searchTimer = setTimeout(function() {
-    fetch('/dashboard/admin/search-students/?q=' + encodeURIComponent(q))
+    const params = new URLSearchParams({ q });
+    Object.keys(extra).forEach(function(k) { if (extra[k]) params.set(k, extra[k]); });
+    fetch('/dashboard/admin/search-students/?' + params.toString())
       .then(r => r.json()).then(callback);
   }, 220);
 }
@@ -1610,7 +1607,7 @@ function adminSearch(event, teamId) {
   const q  = event.target.value.trim();
   const dd = document.getElementById('s-dd-' + teamId);
   if (q.length < 2) { dd.style.display = 'none'; return; }
-  _fetchStudents(q, function(data) {
+  _fetchStudents(q, { team_id: teamId }, function(data) {
     if (!data.length) {
       dd.innerHTML = '<div class="search-opt" style="color:var(--muted);">No students found</div>';
     } else {
@@ -1672,7 +1669,7 @@ function createTeamSearch(event) {
   const q  = event.target.value.trim();
   const dd = document.getElementById('create-search-dd');
   if (q.length < 2) { dd.style.display = 'none'; return; }
-  _fetchStudents(q, function(data) {
+  _fetchStudents(q, {}, function(data) {
     if (!data.length) {
       dd.innerHTML = '<div class="search-opt" style="color:var(--muted);">No students found</div>';
     } else {

@@ -821,18 +821,48 @@
         <div class="supervisor-grid">
           {% for sup in supervisors %}
           <div class="supervisor-card {% if project.supervisor == sup %}sup-card--active{% endif %}">
-            <div class="sup-header">
+            <div class="sup-header" onclick="toggleSupCard(this.closest('.supervisor-card'))" style="cursor:pointer;">
               <div class="sup-avatar" style="background:linear-gradient(135deg,#1d4ed8,#7c3aed)">🧑‍🏫</div>
-              <div>
+              <div style="flex:1;min-width:0;">
                 <div class="sup-name">{{ sup.full_name|default:sup.username }}</div>
                 <div class="sup-dept">{{ sup.department|default:"Faculty" }}</div>
               </div>
+              <span class="sup-chevron">▾</span>
             </div>
-            {% if sup.expertise %}
-              <p class="sup-expertise">{{ sup.expertise|truncatechars:120 }}</p>
-            {% endif %}
+
+            <div class="sup-expand">
+              {% if sup.expertise %}
+              <div class="sup-expand-section">
+                <div class="sup-expand-label">Expertise</div>
+                <div class="sup-tags">
+                  {% for area in sup.expertise.splitlines %}
+                    {% if area.strip %}<span class="sup-tag">{{ area.strip }}</span>{% endif %}
+                  {% endfor %}
+                </div>
+              </div>
+              {% endif %}
+              {% if sup.bio %}
+              <div class="sup-expand-section">
+                <div class="sup-expand-label">About</div>
+                <p class="sup-expand-text">{{ sup.bio }}</p>
+              </div>
+              {% endif %}
+              {% if sup.past_projects %}
+              <div class="sup-expand-section">
+                <div class="sup-expand-label">Previous Projects</div>
+                <p class="sup-expand-text">{{ sup.past_projects }}</p>
+              </div>
+              {% endif %}
+              {% if sup.office_hours %}
+              <div class="sup-expand-section">
+                <div class="sup-expand-label">Office Hours</div>
+                <p class="sup-expand-text">🕐 {{ sup.office_hours }}</p>
+              </div>
+              {% endif %}
+            </div>
+
             <div class="sup-footer">
-              <span class="sup-slots">Load: <span>{{ sup.current_load }} / {{ sup.max_teams }}</span></span>
+              <span class="sup-slots">Load: <span>{{ sup.current_load }} / {{ sup.max_teams_supervise }}</span></span>
               {% if project.supervisor == sup %}
                 <button class="btn btn-primary btn-sm" disabled style="opacity:.6;cursor:default;">✓ Your Supervisor</button>
               {% elif current_phase >= 2 %}
@@ -842,7 +872,11 @@
               {% elif membership.role != 'leader' %}
                 <button class="btn btn-outline btn-sm" disabled style="opacity:.4;cursor:default;">Leaders only</button>
               {% elif pending_request %}
-                <button class="btn btn-outline btn-sm" disabled style="opacity:.5;">Request Pending</button>
+                {% if sup == pending_request.supervisor %}
+                  <button class="btn btn-outline btn-sm" disabled style="opacity:.5;">Request Pending</button>
+                {% else %}
+                  <button class="btn btn-outline btn-sm" disabled style="opacity:.25;cursor:not-allowed;">Unavailable</button>
+                {% endif %}
               {% elif sup.is_at_capacity %}
                 <button class="btn btn-outline btn-sm" disabled style="opacity:.5;">Full</button>
               {% else %}
@@ -1026,6 +1060,12 @@
         });
       }
     });
+  }
+
+  function toggleSupCard(card) {
+    var isOpen = card.classList.contains('expanded');
+    document.querySelectorAll('.supervisor-card.expanded').forEach(function(c) { c.classList.remove('expanded'); });
+    if (!isOpen) card.classList.add('expanded');
   }
 
   function openRequestModal(supervisorId, supervisorName) {
