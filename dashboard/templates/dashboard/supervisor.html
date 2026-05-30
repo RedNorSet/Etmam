@@ -1,0 +1,1005 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Supervisor Dashboard — Etmam{% endblock %}
+
+{% block content %}
+<div class="dash-layout">
+
+  <!-- SIDEBAR -->
+  <aside class="sidebar">
+    <div class="sidebar-brand">
+      <img src="{% static 'images/logo_trans.png' %}" alt="Etmam" style="height:28px;" onerror="this.style.display='none'">
+      <span class="brand-text">Etmam</span>
+    </div>
+
+    <div class="sidebar-user">
+      <div class="user-avatar">
+        {% if user.avatar %}
+          <img src="{{ user.avatar.url }}" alt="" style="width:100%;height:100%;object-fit:cover;border-radius:50%;">
+        {% else %}
+          🧑‍🏫
+        {% endif %}
+      </div>
+      <div class="user-info">
+        <div class="user-name">{{ user.full_name|default:user.username }}</div>
+        <div class="user-role">Supervisor{% if user.department %} · {{ user.department }}{% endif %}</div>
+      </div>
+    </div>
+
+    <nav class="sidebar-nav">
+      <span class="nav-section-label">Main</span>
+
+      <button class="nav-item active" onclick="showSection('dashboard', this)">
+        <span class="nav-icon">🏠</span>
+        <span class="nav-label">Dashboard</span>
+      </button>
+
+      <button class="nav-item" onclick="showSection('teams', this)">
+        <span class="nav-icon">👥</span>
+        <span class="nav-label">My Teams</span>
+      </button>
+
+      <button class="nav-item" onclick="showSection('submissions', this)">
+        <span class="nav-icon">📊</span>
+        <span class="nav-label">Submissions</span>
+        {% if pending_subs_count %}<span class="nav-badge">{{ pending_subs_count }}</span>{% endif %}
+      </button>
+
+      <button class="nav-item" onclick="showSection('meetings', this)">
+        <span class="nav-icon">📅</span>
+        <span class="nav-label">Meetings</span>
+        {% if upcoming|length %}<span class="nav-badge">{{ upcoming|length }}</span>{% endif %}
+      </button>
+
+      <span class="nav-section-label">Other</span>
+
+      <button class="nav-item" onclick="showSection('notifications', this); markAllRead();">
+        <span class="nav-icon">🔔</span>
+        <span class="nav-label">Notifications</span>
+        {% if unread_count %}<span class="nav-badge" id="notif-nav-badge">{{ unread_count }}</span>{% endif %}
+      </button>
+
+      <button class="nav-item" onclick="showSection('archive', this)">
+        <span class="nav-icon">🗄️</span>
+        <span class="nav-label">Archive</span>
+      </button>
+
+    </nav>
+
+    <div class="sidebar-bottom">
+      <a href="{% url 'accounts:supervisor_profile' %}" class="nav-item" style="display:flex;align-items:center;gap:.75rem;padding:.65rem 1rem;text-decoration:none;color:inherit;">
+        <span class="nav-icon">✏️</span>
+        <span class="nav-label">Edit Profile</span>
+      </a>
+      <form method="post" action="{% url 'accounts:logout' %}">
+        {% csrf_token %}
+        <button type="submit" class="nav-item" style="color:#ef4444;background:none;border:none;cursor:pointer;width:100%;">
+          <span class="nav-icon">🚪</span>
+          <span class="nav-label">Sign Out</span>
+        </button>
+      </form>
+    </div>
+  </aside>
+
+  <!-- MAIN -->
+  <div class="dash-main">
+
+    <header class="dash-topbar">
+      <span class="topbar-title" id="topbar-title">Dashboard</span>
+      <div class="topbar-right">
+        <button class="topbar-icon-btn" onclick="showSection('notifications', document.querySelector('[onclick*=notifications]')); markAllRead();">
+          🔔
+          {% if unread_count %}<span class="topbar-notif-dot" id="notif-topbar-dot"></span>{% endif %}
+        </button>
+        <div class="user-avatar" style="width:34px;height:34px;font-size:.85rem;">🧑‍🏫</div>
+      </div>
+    </header>
+
+    <div class="dash-body">
+
+      <!-- SECTION: DASHBOARD -->
+      <section class="dash-section active" id="sec-dashboard">
+
+        <div class="welcome-banner">
+          <div class="welcome-text">
+            <h2>Hello, {{ user.full_name|default:user.username }} 👋</h2>
+            <p>
+              You are supervising <strong>{{ supervised|length }}</strong> team{{ supervised|length|pluralize }}
+              {% if pending_req|length %} and have <strong>{{ pending_req|length }}</strong> pending supervision request{{ pending_req|length|pluralize }}{% endif %}.
+            </p>
+          </div>
+          <div class="welcome-emoji">🧑‍🏫</div>
+        </div>
+
+        <div class="stats-row">
+          <div class="stat-card">
+            <div class="stat-card-icon" style="background:rgba(37,99,235,.15)">🎓</div>
+            <div class="stat-card-info">
+              <div class="value">{{ supervised|length }}</div>
+              <div class="label">Teams Supervised</div>
+            </div>
+          </div>
+          {% if user.can_review %}
+          <div class="stat-card">
+            <div class="stat-card-icon" style="background:rgba(124,58,237,.15)">📋</div>
+            <div class="stat-card-info">
+              <div class="value">{{ reviewed|length }}</div>
+              <div class="label">Teams Reviewing</div>
+            </div>
+          </div>
+          {% endif %}
+          <div class="stat-card">
+            <div class="stat-card-icon" style="background:rgba(245,158,11,.15)">📬</div>
+            <div class="stat-card-info">
+              <div class="value">{{ pending_req|length }}</div>
+              <div class="label">Pending Requests</div>
+            </div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-card-icon" style="background:rgba(16,185,129,.15)">✅</div>
+            <div class="stat-card-info">
+              <div class="value">{{ user.current_load }} / {{ user.max_teams_supervise }}</div>
+              <div class="label">Slots Used</div>
+            </div>
+          </div>
+          <div class="stat-card" onclick="showSection('submissions', document.querySelector('[onclick*=submissions]'))" style="cursor:pointer;">
+            <div class="stat-card-icon" style="background:rgba(249,115,22,.15)">📊</div>
+            <div class="stat-card-info">
+              <div class="value">{{ pending_subs_count }}</div>
+              <div class="label">Pending Submissions</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="section-hdr">
+          <h2>Quick Overview</h2>
+          <button class="btn btn-outline btn-sm" onclick="showSection('teams', document.querySelector('[onclick*=teams]'))">All Teams →</button>
+        </div>
+
+        <div class="cards-grid">
+
+          <div class="dash-card" onclick="showSection('teams', document.querySelector('[onclick*=teams]'))">
+            <div class="card-thumb" style="background:linear-gradient(135deg,#1e3a8a,#312e81)">
+              👥
+              <span class="card-status-tag tag-active">{{ supervised|length }} Team{{ supervised|length|pluralize }}</span>
+            </div>
+            <div class="card-body">
+              <div class="card-title">My Teams</div>
+              <div class="card-sub">{{ supervised|length }} supervised{% if user.can_review %} · {{ reviewed|length }} reviewing{% endif %}</div>
+              <div class="card-meta"><span>{{ user.department|default:"Faculty" }}</span></div>
+            </div>
+          </div>
+
+          {% if pending_req %}
+          <div class="dash-card" onclick="showSection('teams', document.querySelector('[onclick*=teams]'))">
+            <div class="card-thumb" style="background:linear-gradient(135deg,#78350f,#92400e)">
+              📬
+              <span class="card-status-tag tag-pending">{{ pending_req|length }} Pending</span>
+            </div>
+            <div class="card-body">
+              <div class="card-title">Supervision Requests</div>
+              <div class="card-sub">Teams awaiting your response</div>
+              <div class="card-meta"><span>Review in Teams section</span></div>
+            </div>
+          </div>
+          {% endif %}
+
+          {% if upcoming %}
+          <div class="dash-card" onclick="showSection('meetings', document.querySelector('[onclick*=meetings]'))">
+            <div class="card-thumb" style="background:linear-gradient(135deg,#4c1d95,#1e1b4b)">
+              📅
+              <span class="card-status-tag tag-active">{{ upcoming|length }} Upcoming</span>
+            </div>
+            <div class="card-body">
+              <div class="card-title">Meetings</div>
+              <div class="card-sub">Next: {{ upcoming.0.title }}</div>
+              <div class="card-meta"><span>{{ upcoming.0.datetime|date:"M d, Y" }}</span></div>
+            </div>
+          </div>
+          {% endif %}
+
+          <div class="dash-card" onclick="showSection('notifications', document.querySelector('[onclick*=notifications]'))">
+            <div class="card-thumb" style="background:linear-gradient(135deg,#7c2d12,#78350f)">
+              🔔
+              <span class="card-status-tag tag-pending">{{ unread_count }} New</span>
+            </div>
+            <div class="card-body">
+              <div class="card-title">Notifications</div>
+              <div class="card-sub">{% if unread_count %}{{ unread_count }} unread{% else %}All caught up{% endif %}</div>
+              <div class="card-meta">
+                {% if notifications %}<span>{{ notifications.0.created_at|timesince }} ago</span>{% endif %}
+              </div>
+            </div>
+          </div>
+
+        </div>
+      </section>
+
+      <!-- SECTION: MY TEAMS -->
+      <section class="dash-section" id="sec-teams">
+
+        <div class="section-hdr">
+          <h2>My Teams</h2>
+        </div>
+
+        {% if current_phase >= 2 %}
+        <div style="background:rgba(248,113,113,.08);border:1px solid rgba(248,113,113,.25);border-radius:10px;padding:14px 16px;margin-bottom:16px;font-size:.85rem;color:#fca5a5;">
+          🔒 Phase 2 is active — supervisor assignments are locked. New supervision requests are not accepted.
+        </div>
+        {% elif pending_req %}
+        <div class="teams-group-label">📬 Pending Supervision Requests</div>
+        {% for req in pending_req %}
+        <div class="team-row-card" style="border-color:rgba(245,158,11,.4)">
+          <div class="team-row-icon" style="background:linear-gradient(135deg,#d97706,#b45309)">📬</div>
+          <div class="team-row-info">
+            <div class="team-row-name">{{ req.team.name }}</div>
+            <div class="team-row-sub" style="font-weight:600;">{{ req.title }}</div>
+            <div class="team-row-sub" style="margin-top:4px;opacity:.8;">{{ req.pitch|truncatechars:120 }}</div>
+          </div>
+          <div class="team-row-right">
+            <span class="card-status-tag tag-pending" style="position:static;">Pending</span>
+            <div style="display:inline-flex;gap:.5rem;margin-top:.5rem;">
+              <form method="post" action="{% url 'projects:accept_supervision' req.pk %}">
+                {% csrf_token %}
+                <button type="submit" class="btn btn-primary btn-sm">✔ Accept</button>
+              </form>
+              <form method="post" action="{% url 'projects:decline_supervision' req.pk %}">
+                {% csrf_token %}
+                <button type="submit" class="btn btn-outline btn-sm" style="border-color:#ef4444;color:#ef4444;">✕ Decline</button>
+              </form>
+            </div>
+          </div>
+        </div>
+        {% endfor %}
+        {% endif %}
+
+        <div class="teams-group-label">🎓 Teams I Supervise</div>
+
+        <style>
+          .sup-team-row {
+            display:flex; align-items:center; gap:14px;
+            background:var(--bg-card,#1e2433); border:1px solid rgba(255,255,255,.07);
+            border-radius:14px; padding:14px 18px; margin-bottom:8px;
+            cursor:pointer; transition:border-color .2s, box-shadow .15s;
+          }
+          .sup-team-row:hover { border-color:rgba(99,102,241,.4); }
+          .sup-team-row.sup-open { border-color:#6366f1; box-shadow:0 0 0 2px rgba(99,102,241,.18); border-bottom-left-radius:0; border-bottom-right-radius:0; margin-bottom:0; }
+
+          .sup-panel {
+            display:none; background:rgba(0,0,0,.22); border:1px solid #6366f1;
+            border-top:none; border-radius:0 0 14px 14px;
+            padding:20px 22px; margin-bottom:12px;
+          }
+          .sup-panel.open { display:block; }
+
+          .sup-panel-grid { display:grid; grid-template-columns:1fr 1.6fr; gap:24px; }
+          @media(max-width:700px){ .sup-panel-grid { grid-template-columns:1fr; } }
+
+          .sup-section-label {
+            font-size:.68rem; font-weight:700; text-transform:uppercase; letter-spacing:.6px;
+            color:#64748b; margin-bottom:10px; display:flex; align-items:center; gap:6px;
+          }
+
+          /* member cards */
+          .sup-member {
+            display:flex; align-items:center; gap:10px;
+            padding:9px 12px; border-bottom:1px solid rgba(255,255,255,.05);
+          }
+          .sup-member:last-child { border-bottom:none; }
+          .sup-member-av {
+            width:32px; height:32px; border-radius:9px; flex-shrink:0;
+            background:linear-gradient(135deg,#2563eb,#7c3aed);
+            display:grid; place-items:center; font-size:.8rem; font-weight:700; color:white;
+          }
+          .sup-member-name { font-size:.85rem; font-weight:600; }
+          .sup-member-meta { font-size:.72rem; color:#64748b; margin-top:1px; }
+
+          /* milestone rows */
+          .sup-ms-row {
+            display:flex; align-items:center; gap:10px;
+            padding:9px 12px; border-bottom:1px solid rgba(255,255,255,.05); font-size:.82rem;
+          }
+          .sup-ms-row:last-child { border-bottom:none; }
+          .sup-ms-num {
+            width:24px; height:24px; border-radius:6px; flex-shrink:0;
+            background:rgba(99,102,241,.15); border:1px solid rgba(99,102,241,.25);
+            color:#818cf8; display:grid; place-items:center; font-size:.72rem; font-weight:800;
+          }
+          .sup-ms-title { flex:1; font-weight:600; color:#e2e8f0; }
+          .sup-ms-grade { font-size:.82rem; font-weight:700; color:#4ade80; }
+
+          /* grade panels */
+          .sup-grade-panel {
+            display:none;
+            background:rgba(0,0,0,.18);
+            border-top:1px solid rgba(255,255,255,.05);
+            padding:12px 16px 14px;
+          }
+          .sup-grade-panel.open { display:block; }
+          .grade-btn {
+            font-size:.68rem; padding:2px 9px; border-radius:6px;
+            border:1px solid rgba(99,102,241,.4); background:transparent;
+            color:#818cf8; cursor:pointer; flex-shrink:0; white-space:nowrap;
+          }
+          .grade-btn:hover { background:rgba(99,102,241,.12); }
+          .grade-btn-rev {
+            border-color:rgba(5,150,105,.4); color:#34d399;
+          }
+          .grade-btn-rev:hover { background:rgba(5,150,105,.12); }
+        </style>
+
+        {% for item in supervised_data %}
+        {% with proj=item.project members=item.members milestones=item.milestones %}
+
+        <div class="sup-team-row" id="sup-row-{{ proj.pk }}" onclick="toggleSupPanel({{ proj.pk }})">
+          <div class="team-row-icon" style="background:linear-gradient(135deg,#1d4ed8,#7c3aed);flex-shrink:0;">🏷️</div>
+          <div class="team-row-info" style="flex:1;">
+            <div class="team-row-name">{{ proj.team.name }}</div>
+            <div class="team-row-sub">{{ proj.title }} · {{ members|length }} member{{ members|length|pluralize }}</div>
+          </div>
+          <div style="display:flex;align-items:center;gap:10px;">
+            <span class="card-status-tag tag-active" style="position:static;">{{ proj.get_status_display }}</span>
+            <span style="color:#64748b;font-size:1rem;transition:transform .2s;" id="sup-arrow-{{ proj.pk }}">›</span>
+          </div>
+        </div>
+
+        <div class="sup-panel" id="sup-panel-{{ proj.pk }}">
+          <div class="sup-panel-grid">
+
+            <!-- Project Edit Request -->
+            {% with pe=proj.pending_edit %}
+            {% if pe %}
+            <div style="grid-column:1/-1;background:rgba(245,158,11,.08);border:1px solid rgba(245,158,11,.3);border-radius:12px;padding:14px 18px;margin-bottom:4px;">
+              <div style="font-size:.8rem;font-weight:700;color:#fbbf24;margin-bottom:8px;">📝 Pending Project Edit Request</div>
+              <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;font-size:.78rem;color:#94a3b8;margin-bottom:12px;">
+                <div>
+                  <div style="font-size:.68rem;text-transform:uppercase;letter-spacing:.4px;color:#64748b;margin-bottom:3px;">Current Title</div>
+                  <div style="color:#e2e8f0;font-weight:600;">{{ proj.title }}</div>
+                </div>
+                <div>
+                  <div style="font-size:.68rem;text-transform:uppercase;letter-spacing:.4px;color:#64748b;margin-bottom:3px;">Proposed Title</div>
+                  <div style="color:#fbbf24;font-weight:600;">{{ pe.new_title }}</div>
+                </div>
+                {% if proj.description or pe.new_description %}
+                <div>
+                  <div style="font-size:.68rem;text-transform:uppercase;letter-spacing:.4px;color:#64748b;margin-bottom:3px;">Current Description</div>
+                  <div>{{ proj.description|truncatechars:80 }}</div>
+                </div>
+                <div>
+                  <div style="font-size:.68rem;text-transform:uppercase;letter-spacing:.4px;color:#64748b;margin-bottom:3px;">Proposed Description</div>
+                  <div style="color:#fbbf24;">{{ pe.new_description|truncatechars:80 }}</div>
+                </div>
+                {% endif %}
+              </div>
+              <div style="font-size:.72rem;color:#64748b;margin-bottom:10px;">Submitted by {{ pe.submitted_by.full_name|default:pe.submitted_by.username }} · {{ pe.submitted_at|timesince }} ago</div>
+              <div style="display:flex;gap:8px;">
+                <form method="post" action="{% url 'projects:approve_edit' proj.pk %}">
+                  {% csrf_token %}
+                  <button type="submit" style="padding:6px 14px;border-radius:7px;border:none;background:#16a34a;color:white;font-size:.75rem;font-weight:700;cursor:pointer;">✔ Approve</button>
+                </form>
+                <form method="post" action="{% url 'projects:reject_edit' proj.pk %}">
+                  {% csrf_token %}
+                  <button type="submit" style="padding:6px 14px;border-radius:7px;border:1px solid rgba(239,68,68,.4);background:transparent;color:#f87171;font-size:.75rem;font-weight:700;cursor:pointer;">✕ Reject</button>
+                </form>
+              </div>
+            </div>
+            {% endif %}
+            {% endwith %}
+
+            <!-- LEFT: Members -->
+            <div>
+              <div class="sup-section-label">👥 Members</div>
+              <div style="background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.07);border-radius:10px;overflow:hidden;">
+                {% for m in members %}
+                <div class="sup-member">
+                  <div class="sup-member-av">{{ m.user.full_name|default:m.user.username|first|upper }}</div>
+                  <div style="flex:1;min-width:0;">
+                    <div class="sup-member-name">{{ m.user.full_name|default:m.user.username }}</div>
+                    <div class="sup-member-meta">
+                      {{ m.user.student_id|default:"—" }}{% if m.user.department %} · {{ m.user.department }}{% endif %}
+                    </div>
+                  </div>
+                  <span style="font-size:.68rem;padding:2px 8px;border-radius:20px;font-weight:700;
+                    {% if m.role == 'leader' %}background:rgba(245,158,11,.2);color:#fbbf24;{% else %}background:rgba(100,116,139,.15);color:#94a3b8;{% endif %}">
+                    {{ m.role|capfirst }}
+                  </span>
+                </div>
+                {% empty %}
+                <div style="padding:14px;text-align:center;font-size:.82rem;color:#64748b;">No members.</div>
+                {% endfor %}
+              </div>
+            </div>
+
+            <!-- RIGHT: Milestones & Submissions -->
+            <div>
+              <div class="sup-section-label">📋 Milestones &amp; Submissions</div>
+              <div style="background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.07);border-radius:10px;overflow:hidden;">
+                {% for item in milestones %}
+                {% with m=item.milestone sub=item.submission %}
+                <div class="sup-ms-row">
+                  <div class="sup-ms-num">{{ m.order }}</div>
+                  <div class="sup-ms-title">{{ m.title }}</div>
+                  {% if sub %}
+                    {% if sub.status == 'approved' %}
+                      <span style="font-size:.7rem;padding:2px 8px;border-radius:20px;background:rgba(34,197,94,.2);color:#4ade80;font-weight:700;">✔ Approved</span>
+                    {% elif sub.status == 'revision' %}
+                      <span style="font-size:.7rem;padding:2px 8px;border-radius:20px;background:rgba(249,115,22,.2);color:#fb923c;font-weight:700;">↺ Revision</span>
+                    {% else %}
+                      <span style="font-size:.7rem;padding:2px 8px;border-radius:20px;background:rgba(59,130,246,.2);color:#60a5fa;font-weight:700;">📤 Submitted</span>
+                    {% endif %}
+                    {% if sub.grade is not None %}<span class="sup-ms-grade">{{ sub.grade|floatformat:1 }}/100</span>{% endif %}
+                    {% if sub.files.exists %}
+                    <a href="{{ sub.files.first.file.url }}" target="_blank"
+                       style="font-size:.7rem;color:#818cf8;text-decoration:none;padding:2px 7px;border:1px solid rgba(99,102,241,.3);border-radius:6px;">
+                      📎 Files
+                    </a>
+                    {% endif %}
+                    <button class="grade-btn" onclick="toggleGradePanel('s{{ sub.pk }}');event.stopPropagation();">
+                      {% if sub.supervisor_grade is not None %}✎ {{ sub.supervisor_grade|floatformat:1 }}{% else %}🖊 Grade{% endif %}
+                    </button>
+                  {% else %}
+                    <span style="font-size:.7rem;padding:2px 8px;border-radius:20px;background:rgba(100,116,139,.15);color:#64748b;">— Not submitted</span>
+                  {% endif %}
+                </div>
+                {% if sub %}
+                <div class="sup-grade-panel" id="gp-s{{ sub.pk }}">
+                  <form method="post" action="{% url 'submissions:supervisor_grade' sub.pk %}">
+                    {% csrf_token %}
+                    {% if m.has_split %}
+                    <div style="font-size:.65rem;color:#94a3b8;margin-bottom:8px;">
+                      This milestone is split: <strong>Report {{ m.report_weight }}%</strong> + <strong>Presentation {{ m.presentation_weight }}%</strong>
+                    </div>
+                    <div style="display:flex;gap:10px;align-items:flex-start;flex-wrap:wrap;">
+                      <div>
+                        <div style="font-size:.65rem;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:#64748b;margin-bottom:4px;">Report ({{ m.report_weight }}%)</div>
+                        <input type="number" name="grade_report" min="0" max="100" step="0.5"
+                               value="{{ sub.supervisor_report_grade|default:'' }}"
+                               style="width:80px;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.12);border-radius:6px;padding:5px 8px;color:#e2e8f0;font-size:.82rem;">
+                      </div>
+                      <div>
+                        <div style="font-size:.65rem;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:#64748b;margin-bottom:4px;">Presentation ({{ m.presentation_weight }}%)</div>
+                        <input type="number" name="grade_presentation" min="0" max="100" step="0.5"
+                               value="{{ sub.supervisor_presentation_grade|default:'' }}"
+                               style="width:80px;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.12);border-radius:6px;padding:5px 8px;color:#e2e8f0;font-size:.82rem;">
+                      </div>
+                      <div style="flex:1;min-width:160px;">
+                        <div style="font-size:.65rem;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:#64748b;margin-bottom:4px;">Feedback</div>
+                        <textarea name="feedback" rows="2"
+                                  style="width:100%;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.12);border-radius:6px;padding:5px 8px;color:#e2e8f0;font-size:.78rem;resize:vertical;box-sizing:border-box;">{{ sub.supervisor_feedback }}</textarea>
+                      </div>
+                      <div style="display:flex;align-items:flex-end;gap:4px;padding-bottom:2px;">
+                        <button type="submit" class="btn btn-primary btn-sm">Save</button>
+                        <form method="post" action="{% url 'submissions:supervisor_status' sub.pk %}" style="display:inline;">
+                          {% csrf_token %}
+                          <button type="submit" name="status" value="approved" style="font-size:.65rem;padding:4px 8px;border-radius:5px;border:1px solid rgba(34,197,94,.4);background:transparent;color:#4ade80;cursor:pointer;">✔</button>
+                          <button type="submit" name="status" value="revision" style="font-size:.65rem;padding:4px 8px;border-radius:5px;border:1px solid rgba(249,115,22,.4);background:transparent;color:#fb923c;cursor:pointer;">↺</button>
+                        </form>
+                      </div>
+                    </div>
+                    {% else %}
+                    <div style="display:flex;gap:10px;align-items:flex-start;flex-wrap:wrap;">
+                      <div>
+                        <div style="font-size:.65rem;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:#64748b;margin-bottom:4px;">Grade (0–100)</div>
+                        <input type="number" name="grade" min="0" max="100" step="0.5"
+                               value="{{ sub.supervisor_grade|default:'' }}"
+                               style="width:80px;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.12);border-radius:6px;padding:5px 8px;color:#e2e8f0;font-size:.82rem;">
+                      </div>
+                      <div style="flex:1;min-width:160px;">
+                        <div style="font-size:.65rem;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:#64748b;margin-bottom:4px;">Feedback to Team</div>
+                        <textarea name="feedback" rows="2"
+                                  style="width:100%;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.12);border-radius:6px;padding:5px 8px;color:#e2e8f0;font-size:.78rem;resize:vertical;box-sizing:border-box;">{{ sub.supervisor_feedback }}</textarea>
+                      </div>
+                      <div style="display:flex;align-items:flex-end;gap:4px;padding-bottom:2px;">
+                        <button type="submit" class="btn btn-primary btn-sm">Save</button>
+                        <form method="post" action="{% url 'submissions:supervisor_status' sub.pk %}" style="display:inline;">
+                          {% csrf_token %}
+                          <button type="submit" name="status" value="approved" style="font-size:.65rem;padding:4px 8px;border-radius:5px;border:1px solid rgba(34,197,94,.4);background:transparent;color:#4ade80;cursor:pointer;">✔</button>
+                          <button type="submit" name="status" value="revision" style="font-size:.65rem;padding:4px 8px;border-radius:5px;border:1px solid rgba(249,115,22,.4);background:transparent;color:#fb923c;cursor:pointer;">↺</button>
+                        </form>
+                      </div>
+                    </div>
+                    {% endif %}
+                    <div style="margin-top:7px;font-size:.72rem;color:#64748b;">
+                      {% if sub.supervisor_grade is not None %}
+                        {% if sub.grade is not None %}Final avg: <span style="color:#4ade80;font-weight:700;">{{ sub.grade|floatformat:1 }}</span>{% else %}Waiting for reviewer(s) to grade.{% endif %}
+                      {% else %}
+                        Grade first to see the running average (blind grading).
+                      {% endif %}
+                    </div>
+                  </form>
+                </div>
+                {% endif %}
+                {% endwith %}
+                {% empty %}
+                <div style="padding:14px;text-align:center;font-size:.82rem;color:#64748b;">No milestones defined yet.</div>
+                {% endfor %}
+              </div>
+            </div>
+
+          </div>
+        </div>
+
+        {% endwith %}
+        {% endfor %}
+
+        {% if not supervised_data %}
+        <div style="padding:1.25rem 1rem;font-size:.85rem;color:var(--text-muted);text-align:center;border:1px dashed rgba(255,255,255,.1);border-radius:10px;margin-bottom:8px;">
+          No teams assigned yet.
+        </div>
+        {% endif %}
+
+        <script>
+          var _openSup = null;
+          function toggleSupPanel(pk) {
+            var panel = document.getElementById('sup-panel-' + pk);
+            var row   = document.getElementById('sup-row-'   + pk);
+            var arrow = document.getElementById('sup-arrow-' + pk);
+            if (_openSup && _openSup !== pk) {
+              document.getElementById('sup-panel-' + _openSup).classList.remove('open');
+              document.getElementById('sup-row-'   + _openSup).classList.remove('sup-open');
+              document.getElementById('sup-arrow-' + _openSup).style.transform = '';
+            }
+            var opening = !panel.classList.contains('open');
+            panel.classList.toggle('open', opening);
+            row.classList.toggle('sup-open', opening);
+            arrow.style.transform = opening ? 'rotate(90deg)' : '';
+            _openSup = opening ? pk : null;
+          }
+        </script>
+
+        <div class="teams-group-label" style="margin-top:1.5rem;">📋 Teams I Review</div>
+
+        {% for item in reviewed_data %}
+        {% with proj=item.project members=item.members milestones=item.milestones %}
+        <div class="sup-team-row" id="rev-row-{{ proj.pk }}" onclick="toggleRevPanel({{ proj.pk }})">
+          <div class="team-row-icon" style="background:linear-gradient(135deg,#059669,#0284c7);flex-shrink:0;">📋</div>
+          <div class="team-row-info" style="flex:1;">
+            <div class="team-row-name">{{ proj.team.name }}</div>
+            <div class="team-row-sub">{{ proj.title }} · Supervised by {{ proj.supervisor.full_name|default:proj.supervisor.username|default:"—" }}</div>
+          </div>
+          <div style="display:flex;align-items:center;gap:10px;">
+            <span class="card-status-tag tag-active" style="position:static;">{{ proj.get_status_display }}</span>
+            <span style="color:#64748b;font-size:1rem;transition:transform .2s;" id="rev-arrow-{{ proj.pk }}">›</span>
+          </div>
+        </div>
+
+        <div class="sup-panel" id="rev-panel-{{ proj.pk }}">
+          <div class="sup-panel-grid">
+
+            <div>
+              <div class="sup-section-label">👥 Members</div>
+              <div style="background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.07);border-radius:10px;overflow:hidden;">
+                {% for m in members %}
+                <div class="sup-member">
+                  <div class="sup-member-av">{{ m.user.full_name|default:m.user.username|first|upper }}</div>
+                  <div style="flex:1;min-width:0;">
+                    <div class="sup-member-name">{{ m.user.full_name|default:m.user.username }}</div>
+                    <div class="sup-member-meta">{{ m.user.student_id|default:"—" }}{% if m.user.department %} · {{ m.user.department }}{% endif %}</div>
+                  </div>
+                  <span style="font-size:.68rem;padding:2px 8px;border-radius:20px;font-weight:700;
+                    {% if m.role == 'leader' %}background:rgba(245,158,11,.2);color:#fbbf24;{% else %}background:rgba(100,116,139,.15);color:#94a3b8;{% endif %}">
+                    {{ m.role|capfirst }}
+                  </span>
+                </div>
+                {% empty %}
+                <div style="padding:14px;text-align:center;font-size:.82rem;color:#64748b;">No members.</div>
+                {% endfor %}
+              </div>
+            </div>
+
+            <div>
+              <div class="sup-section-label">📋 Milestones &amp; Submissions</div>
+              <div style="background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.07);border-radius:10px;overflow:hidden;">
+                {% for ms_item in milestones %}
+                {% with m=ms_item.milestone sub=ms_item.submission my_rgs=ms_item.my_reviewer_grades %}
+                <div class="sup-ms-row">
+                  <div class="sup-ms-num">{{ m.order }}</div>
+                  <div class="sup-ms-title">{{ m.title }}</div>
+                  {% if sub %}
+                    {% if sub.status == 'approved' %}
+                      <span style="font-size:.7rem;padding:2px 8px;border-radius:20px;background:rgba(34,197,94,.2);color:#4ade80;font-weight:700;">✔ Approved</span>
+                    {% elif sub.status == 'revision' %}
+                      <span style="font-size:.7rem;padding:2px 8px;border-radius:20px;background:rgba(249,115,22,.2);color:#fb923c;font-weight:700;">↺ Revision</span>
+                    {% else %}
+                      <span style="font-size:.7rem;padding:2px 8px;border-radius:20px;background:rgba(59,130,246,.2);color:#60a5fa;font-weight:700;">📤 Submitted</span>
+                    {% endif %}
+                    {% if sub.grade is not None %}<span class="sup-ms-grade">{{ sub.grade|floatformat:1 }}/100</span>{% endif %}
+                    {% if sub.files.exists %}
+                    <a href="{{ sub.files.first.file.url }}" target="_blank"
+                       style="font-size:.7rem;color:#818cf8;text-decoration:none;padding:2px 7px;border:1px solid rgba(99,102,241,.3);border-radius:6px;">📎 Files</a>
+                    {% endif %}
+                    <button class="grade-btn grade-btn-rev" onclick="toggleGradePanel('r{{ sub.pk }}');event.stopPropagation();">
+                      {% if m.has_split %}
+                        {% if my_rgs.report or my_rgs.presentation %}✎ Split graded{% else %}🖊 My Grade{% endif %}
+                      {% else %}
+                        {% if my_rgs.single and my_rgs.single.grade is not None %}✎ {{ my_rgs.single.grade|floatformat:1 }}{% else %}🖊 My Grade{% endif %}
+                      {% endif %}
+                    </button>
+                  {% else %}
+                    <span style="font-size:.7rem;padding:2px 8px;border-radius:20px;background:rgba(100,116,139,.15);color:#64748b;">— Not submitted</span>
+                  {% endif %}
+                </div>
+                {% if sub %}
+                <div class="sup-grade-panel" id="gp-r{{ sub.pk }}">
+                  <form method="post" action="{% url 'submissions:reviewer_grade' sub.pk %}">
+                    {% csrf_token %}
+                    {% if m.has_split %}
+                    <div style="font-size:.65rem;color:#94a3b8;margin-bottom:8px;">
+                      Split: <strong>Report {{ m.report_weight }}%</strong> + <strong>Presentation {{ m.presentation_weight }}%</strong>
+                    </div>
+                    <div style="display:flex;gap:10px;align-items:flex-start;flex-wrap:wrap;">
+                      <div>
+                        <div style="font-size:.65rem;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:#64748b;margin-bottom:4px;">Report ({{ m.report_weight }}%)</div>
+                        <input type="number" name="grade_report" min="0" max="100" step="0.5"
+                               value="{% if my_rgs.report and my_rgs.report.grade is not None %}{{ my_rgs.report.grade }}{% endif %}"
+                               style="width:80px;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.12);border-radius:6px;padding:5px 8px;color:#e2e8f0;font-size:.82rem;">
+                      </div>
+                      <div>
+                        <div style="font-size:.65rem;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:#64748b;margin-bottom:4px;">Presentation ({{ m.presentation_weight }}%)</div>
+                        <input type="number" name="grade_presentation" min="0" max="100" step="0.5"
+                               value="{% if my_rgs.presentation and my_rgs.presentation.grade is not None %}{{ my_rgs.presentation.grade }}{% endif %}"
+                               style="width:80px;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.12);border-radius:6px;padding:5px 8px;color:#e2e8f0;font-size:.82rem;">
+                      </div>
+                      <div style="flex:1;min-width:160px;">
+                        <div style="font-size:.65rem;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:#64748b;margin-bottom:4px;">Feedback</div>
+                        <textarea name="feedback" rows="2"
+                                  style="width:100%;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.12);border-radius:6px;padding:5px 8px;color:#e2e8f0;font-size:.78rem;resize:vertical;box-sizing:border-box;">{% if my_rgs.report %}{{ my_rgs.report.feedback }}{% endif %}</textarea>
+                      </div>
+                      <div style="display:flex;align-items:flex-end;padding-bottom:2px;">
+                        <button type="submit" class="btn btn-primary btn-sm">Save</button>
+                      </div>
+                    </div>
+                    {% else %}
+                    <div style="display:flex;gap:10px;align-items:flex-start;flex-wrap:wrap;">
+                      <div>
+                        <div style="font-size:.65rem;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:#64748b;margin-bottom:4px;">My Grade (0–100)</div>
+                        <input type="number" name="grade" min="0" max="100" step="0.5"
+                               value="{% if my_rgs.single and my_rgs.single.grade is not None %}{{ my_rgs.single.grade }}{% endif %}"
+                               style="width:80px;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.12);border-radius:6px;padding:5px 8px;color:#e2e8f0;font-size:.82rem;">
+                      </div>
+                      <div style="flex:1;min-width:160px;">
+                        <div style="font-size:.65rem;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:#64748b;margin-bottom:4px;">My Feedback to Team</div>
+                        <textarea name="feedback" rows="2"
+                                  style="width:100%;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.12);border-radius:6px;padding:5px 8px;color:#e2e8f0;font-size:.78rem;resize:vertical;box-sizing:border-box;">{% if my_rgs.single %}{{ my_rgs.single.feedback }}{% endif %}</textarea>
+                      </div>
+                      <div style="display:flex;align-items:flex-end;padding-bottom:2px;">
+                        <button type="submit" class="btn btn-primary btn-sm">Save</button>
+                      </div>
+                    </div>
+                    {% endif %}
+                    <div style="margin-top:7px;font-size:.72rem;color:#64748b;">
+                      {% if sub.grade is not None %}Final avg: <span style="color:#4ade80;font-weight:700;">{{ sub.grade|floatformat:1 }}</span>{% else %}Pending all graders.{% endif %}
+                    </div>
+                  </form>
+                </div>
+                {% endif %}
+                {% endwith %}
+                {% empty %}
+                <div style="padding:14px;text-align:center;font-size:.82rem;color:#64748b;">No milestones defined yet.</div>
+                {% endfor %}
+              </div>
+            </div>
+
+          </div>
+        </div>
+        {% endwith %}
+        {% endfor %}
+
+        {% if not reviewed_data %}
+        <div style="padding:1.25rem 1rem;font-size:.85rem;color:var(--text-muted);text-align:center;border:1px dashed rgba(255,255,255,.1);border-radius:10px;">
+          Not assigned as reviewer on any project.
+        </div>
+        {% endif %}
+
+      </section>
+
+      <!-- SECTION: SUBMISSIONS -->
+      <section class="dash-section" id="sec-submissions">
+
+        <div class="section-hdr"><h2>Submissions</h2></div>
+
+        {% if not submissions_sections %}
+        <div style="text-align:center;padding:4rem;color:var(--text-muted);">No milestones defined yet.</div>
+        {% else %}
+
+        {% for sec in submissions_sections %}
+        {% with ms=sec.milestone %}
+        <div class="sup-team-row" id="sms-row-{{ ms.pk }}" onclick="toggleSmsPanel({{ ms.pk }})">
+          <div style="width:36px;height:36px;border-radius:9px;flex-shrink:0;background:linear-gradient(135deg,#1d4ed8,#7c3aed);display:grid;place-items:center;font-size:.85rem;font-weight:800;color:white;">{{ ms.order }}</div>
+          <div class="team-row-info" style="flex:1;">
+            <div class="team-row-name">{{ ms.title }}</div>
+            <div class="team-row-sub">{{ sec.submitted_count }}/{{ sec.total_count }} submitted &nbsp;·&nbsp; {{ sec.graded_count }} graded by you</div>
+          </div>
+          <div style="display:flex;align-items:center;gap:10px;">
+            {% if sec.submitted_count %}
+            <span style="font-size:.7rem;padding:2px 9px;border-radius:20px;background:rgba(59,130,246,.2);color:#60a5fa;font-weight:600;">{{ sec.submitted_count }} submitted</span>
+            {% endif %}
+            <span style="color:#64748b;font-size:1rem;transition:transform .2s;" id="sms-arrow-{{ ms.pk }}">›</span>
+          </div>
+        </div>
+
+        <div class="sup-panel" id="sms-panel-{{ ms.pk }}">
+          <div style="background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.07);border-radius:10px;overflow:hidden;">
+            {% for row in sec.rows %}
+            {% with proj=row.project sub=row.submission is_sup=row.is_supervised %}
+            <div style="border-bottom:1px solid rgba(255,255,255,.05);">
+              <div style="display:flex;align-items:center;gap:10px;padding:10px 14px;font-size:.82rem;">
+                <div style="flex:1;min-width:0;">
+                  <div style="font-weight:600;color:#e2e8f0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">{{ proj.team.name }}</div>
+                  <div style="font-size:.7rem;color:#64748b;margin-top:1px;">
+                    {% if is_sup %}Supervising{% else %}Reviewing · Sup: {{ proj.supervisor.full_name|default:proj.supervisor.username|default:"—" }}{% endif %}
+                  </div>
+                </div>
+                {% if sub %}
+                  {% if sub.status == 'approved' %}
+                    <span style="font-size:.7rem;padding:2px 8px;border-radius:20px;background:rgba(34,197,94,.2);color:#4ade80;font-weight:700;flex-shrink:0;">✔ Approved</span>
+                  {% elif sub.status == 'revision' %}
+                    <span style="font-size:.7rem;padding:2px 8px;border-radius:20px;background:rgba(249,115,22,.2);color:#fb923c;font-weight:700;flex-shrink:0;">↺ Revision</span>
+                  {% else %}
+                    <span style="font-size:.7rem;padding:2px 8px;border-radius:20px;background:rgba(59,130,246,.2);color:#60a5fa;font-weight:700;flex-shrink:0;">📤 Pending</span>
+                  {% endif %}
+                  {% if sub.files.exists %}
+                  <a href="{{ sub.files.first.file.url }}" target="_blank"
+                     style="font-size:.7rem;color:#818cf8;text-decoration:none;padding:2px 7px;border:1px solid rgba(99,102,241,.3);border-radius:6px;flex-shrink:0;">📎 Files</a>
+                  {% endif %}
+                  {% if is_sup %}
+                  <form method="post" action="{% url 'submissions:supervisor_status' sub.pk %}" style="display:inline-flex;gap:3px;flex-shrink:0;" onclick="event.stopPropagation();">
+                    {% csrf_token %}
+                    <button type="submit" name="status" value="approved" style="font-size:.62rem;padding:2px 6px;border-radius:4px;border:1px solid rgba(34,197,94,.4);background:transparent;color:#4ade80;cursor:pointer;">✔</button>
+                    <button type="submit" name="status" value="revision" style="font-size:.62rem;padding:2px 6px;border-radius:4px;border:1px solid rgba(249,115,22,.4);background:transparent;color:#fb923c;cursor:pointer;">↺</button>
+                  </form>
+                  {% endif %}
+                  {% if sub.grade is not None %}
+                  <span style="font-size:.75rem;font-weight:700;color:#4ade80;flex-shrink:0;">{{ sub.grade|floatformat:1 }}/100</span>
+                  {% endif %}
+                {% else %}
+                  <span style="font-size:.7rem;padding:2px 8px;border-radius:20px;background:rgba(100,116,139,.15);color:#64748b;flex-shrink:0;">— Not submitted</span>
+                {% endif %}
+              </div>
+            </div>
+            {% endwith %}
+            {% endfor %}
+          </div>
+        </div>
+        {% endwith %}
+        {% endfor %}
+
+        {% endif %}
+
+        <script>
+          var _openSms = null;
+          function toggleSmsPanel(pk) {
+            var panel = document.getElementById('sms-panel-' + pk);
+            var row   = document.getElementById('sms-row-'   + pk);
+            var arrow = document.getElementById('sms-arrow-' + pk);
+            if (_openSms && _openSms !== pk) {
+              document.getElementById('sms-panel-' + _openSms).classList.remove('open');
+              document.getElementById('sms-row-'   + _openSms).classList.remove('sup-open');
+              document.getElementById('sms-arrow-' + _openSms).style.transform = '';
+            }
+            var opening = !panel.classList.contains('open');
+            panel.classList.toggle('open', opening);
+            row.classList.toggle('sup-open', opening);
+            arrow.style.transform = opening ? 'rotate(90deg)' : '';
+            _openSms = opening ? pk : null;
+          }
+        </script>
+
+      </section>
+
+      <!-- SECTION: MEETINGS -->
+      <section class="dash-section" id="sec-meetings">
+        {% include 'meetings/_calendar_section.html' %}
+      </section>
+
+      <!-- SECTION: NOTIFICATIONS -->
+      <section class="dash-section" id="sec-notifications">
+
+        <div class="section-hdr">
+          <h2>Notifications</h2>
+        </div>
+
+        <div class="notif-list">
+          {% for n in notifications %}
+          <div class="notif-item {% if not n.is_read %}unread{% endif %}"
+               onclick="openNotif('{{ n.type }}')" style="cursor:pointer;">
+            <span class="notif-icon">
+              {% if n.type == 'invite' %}📬
+              {% elif n.type == 'meeting' %}📅
+              {% elif n.type == 'approval' %}✅
+              {% elif n.type == 'feedback' %}💬
+              {% elif n.type == 'deadline' %}⏰
+              {% elif n.type == 'risk' %}⚠️
+              {% else %}🔔{% endif %}
+            </span>
+            <div class="notif-body">
+              <div class="notif-title">{{ n.title }}</div>
+              <div class="notif-desc">{{ n.message }}</div>
+              <div class="notif-time">{{ n.created_at|timesince }} ago</div>
+            </div>
+            <span style="font-size:.8rem;color:#475569;flex-shrink:0;">→</span>
+          </div>
+          {% empty %}
+          <div style="text-align:center;padding:2rem;color:var(--text-muted);">No notifications yet.</div>
+          {% endfor %}
+        </div>
+
+      </section>
+
+      <!-- SECTION: ARCHIVE -->
+      <section class="dash-section" id="sec-archive">
+        <div class="section-hdr">
+          <h2>Project Archive</h2>
+          <span style="font-size:.82rem;color:var(--text-muted);">{{ archive_data|length }} completed project{{ archive_data|length|pluralize }}</span>
+        </div>
+
+        {% if archive_data %}
+        <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(290px,1fr));gap:16px;">
+          {% for item in archive_data %}
+          <div style="background:var(--bg-card);border:1px solid var(--border);border-radius:14px;overflow:hidden;transition:border-color .2s;" id="arc-{{ forloop.counter }}">
+            <div style="background:linear-gradient(135deg,#1e1b4b,#312e81);padding:18px;display:flex;align-items:center;gap:12px;cursor:pointer;" onclick="toggleArc('{{ forloop.counter }}')">
+              <div style="width:44px;height:44px;border-radius:10px;background:rgba(255,255,255,.15);display:grid;place-items:center;font-size:1.2rem;font-weight:700;color:white;flex-shrink:0;">{{ item.project.title|first|upper }}</div>
+              <div style="flex:1;min-width:0;">
+                <div style="font-size:.9rem;font-weight:700;color:white;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">{{ item.project.title }}</div>
+                <div style="font-size:.72rem;color:rgba(255,255,255,.55);margin-top:2px;">
+                  {% if item.project.approved_at %}{{ item.project.approved_at|date:"Y" }}{% else %}{{ item.project.created_at|date:"Y" }}{% endif %}
+                  {% if item.project.supervisor %} · {{ item.project.supervisor.full_name|default:item.project.supervisor.username }}{% endif %}
+                </div>
+              </div>
+              <span style="color:rgba(255,255,255,.4);font-size:.7rem;transition:transform .2s;" id="arc-arrow-{{ forloop.counter }}">▾</span>
+            </div>
+            <div style="padding:14px;display:flex;align-items:center;justify-content:space-between;cursor:pointer;" onclick="toggleArc('{{ forloop.counter }}')">
+              <div style="display:flex;gap:6px;flex-wrap:wrap;">
+                {% if item.project.supervisor %}<span style="background:rgba(99,102,241,.15);color:#818cf8;border-radius:20px;padding:2px 9px;font-size:.7rem;font-weight:600;">{{ item.project.supervisor.full_name|default:item.project.supervisor.username }}</span>{% endif %}
+                <span style="background:rgba(99,102,241,.15);color:#818cf8;border-radius:20px;padding:2px 9px;font-size:.7rem;font-weight:600;">{{ item.project.team.name }}</span>
+              </div>
+              <span style="font-size:.72rem;color:var(--text-muted);">{{ item.project.supervisor.department|default:"CIS" }}</span>
+            </div>
+            <div style="display:none;border-top:1px solid var(--border);padding:16px;background:var(--bg-card2);" id="arc-body-{{ forloop.counter }}">
+              <div style="font-size:.7rem;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--text-muted);margin-bottom:5px;">Description</div>
+              <div style="font-size:.83rem;color:var(--text);line-height:1.6;margin-bottom:14px;">{{ item.project.description|default:"No description provided." }}</div>
+              <div style="font-size:.7rem;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--text-muted);margin-bottom:8px;">Team Members</div>
+              <div style="display:flex;flex-wrap:wrap;gap:7px;margin-bottom:14px;">
+                {% for m in item.members %}
+                <div style="display:flex;align-items:center;gap:6px;background:var(--bg-card);border:1px solid var(--border);border-radius:20px;padding:3px 9px;font-size:.74rem;">
+                  <div style="width:20px;height:20px;border-radius:50%;background:rgba(99,102,241,.2);color:#818cf8;display:grid;place-items:center;font-size:.6rem;font-weight:700;">{{ m.user.full_name|default:m.user.username|first|upper }}</div>
+                  {{ m.user.full_name|default:m.user.username }}
+                </div>
+                {% empty %}<span style="font-size:.8rem;color:var(--text-muted);">No members found.</span>{% endfor %}
+              </div>
+              {% if item.final_files %}
+              <div style="font-size:.7rem;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--text-muted);margin-bottom:8px;">Final Submission</div>
+              {% for f in item.final_files %}
+              <a href="{{ f.file.url }}" download style="display:inline-flex;align-items:center;gap:7px;background:var(--primary);color:white;border-radius:8px;padding:7px 14px;font-size:.8rem;font-weight:600;text-decoration:none;">⬇ {{ f.file_name|default:"Download Report" }}</a>
+              {% endfor %}
+              {% else %}
+              <span style="font-size:.8rem;color:var(--text-muted);font-style:italic;">No final submission file available.</span>
+              {% endif %}
+            </div>
+          </div>
+          {% endfor %}
+        </div>
+        {% else %}
+        <div style="text-align:center;padding:4rem;color:var(--text-muted);">
+          <div style="font-size:2.5rem;margin-bottom:1rem;">🗄️</div>
+          <p>No archived projects yet. Completed projects will appear here.</p>
+        </div>
+        {% endif %}
+      </section>
+
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.15/index.global.min.js"></script>
+<script src="{% static 'js/meetings_calendar.js' %}"></script>
+<script>
+  const sections = {
+    dashboard:     'Dashboard',
+    teams:         'My Teams',
+    submissions:   'Submissions',
+    meetings:      'Meetings',
+    notifications: 'Notifications',
+    archive:       'Archive',
+  };
+
+  var _notifSectionMap = {
+    invite:   'teams',
+    meeting:  'meetings',
+    approval: 'teams',
+    feedback: 'submissions',
+    deadline: 'submissions',
+    risk:     'submissions',
+    general:  'teams',
+  };
+
+  function openNotif(type) {
+    var target = _notifSectionMap[type] || 'dashboard';
+    var btn = document.querySelector('.nav-item[onclick*="\'' + target + '\'"]');
+    showSection(target, btn);
+  }
+
+  function markAllRead() {
+    var badge = document.getElementById('notif-nav-badge');
+    var dot   = document.getElementById('notif-topbar-dot');
+    if (!badge && !dot) return;
+    var csrf = document.cookie.match(/csrftoken=([^;]+)/);
+    fetch('{% url "notifications:mark_all_read" %}', {
+      method: 'POST',
+      headers: { 'X-CSRFToken': csrf ? csrf[1] : '' },
+    }).then(function(r) {
+      if (r.ok) {
+        if (badge) badge.remove();
+        if (dot)   dot.remove();
+        document.querySelectorAll('.notif-item.unread').forEach(function(el) {
+          el.classList.remove('unread');
+        });
+      }
+    });
+  }
+
+  function showSection(id, btn) {
+    document.querySelectorAll('.dash-section').forEach(s => s.classList.remove('active'));
+    document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+    document.getElementById('sec-' + id).classList.add('active');
+    if (btn) btn.classList.add('active');
+    document.getElementById('topbar-title').textContent = sections[id] || id;
+  }
+
+  // Restore the last-active section from URL hash (e.g. redirect with #sec-teams)
+  (function() {
+    var hash = window.location.hash;
+    if (hash && hash.startsWith('#sec-')) {
+      var id = hash.slice(5);
+      if (document.getElementById('sec-' + id)) {
+        var btn = document.querySelector('[onclick*="\'' + id + '\'"]');
+        showSection(id, btn);
+      }
+    }
+  })();
+
+  var _openRev = null;
+  function toggleRevPanel(pk) {
+    var panel = document.getElementById('rev-panel-' + pk);
+    var row   = document.getElementById('rev-row-'   + pk);
+    var arrow = document.getElementById('rev-arrow-' + pk);
+    if (_openRev && _openRev !== pk) {
+      document.getElementById('rev-panel-' + _openRev).classList.remove('open');
+      document.getElementById('rev-row-'   + _openRev).classList.remove('sup-open');
+      document.getElementById('rev-arrow-' + _openRev).style.transform = '';
+    }
+    var opening = !panel.classList.contains('open');
+    panel.classList.toggle('open', opening);
+    row.classList.toggle('sup-open', opening);
+    arrow.style.transform = opening ? 'rotate(90deg)' : '';
+    _openRev = opening ? pk : null;
+  }
+
+  function toggleGradePanel(id) {
+    var el = document.getElementById('gp-' + id);
+    if (!el) return;
+    el.classList.toggle('open');
+  }
+
+  function toggleArc(id) {
+    var body  = document.getElementById('arc-body-'  + id);
+    var arrow = document.getElementById('arc-arrow-' + id);
+    var open  = body.style.display === 'block';
+    body.style.display  = open ? 'none'   : 'block';
+    arrow.style.transform = open ? ''     : 'rotate(180deg)';
+  }
+
+  function switchTab(btn, targetId) {
+    btn.closest('.dash-section').querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    const section = btn.closest('.dash-section');
+    section.querySelectorAll('.meeting-list').forEach(l => l.style.display = 'none');
+    const target = section.querySelector('#' + targetId);
+    target.style.display = 'flex';
+    target.style.flexDirection = 'column';
+  }
+</script>
+{% endblock %}

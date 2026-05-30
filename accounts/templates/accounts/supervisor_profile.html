@@ -1,0 +1,124 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>My Profile — Etmam</title>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap');
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root { --bg:#f4f6fb; --white:#fff; --blue:#2563eb; --blue-dk:#1d4ed8; --border:#e2e8f0; --text:#0f172a; --muted:#64748b; --r:8px; --green:#16a34a; }
+    body { font-family:'Plus Jakarta Sans',system-ui,sans-serif; background:var(--bg); color:var(--text); font-size:14px; min-height:100vh; }
+
+    .topbar { background:var(--white); border-bottom:1px solid var(--border); padding:0 28px; height:54px; display:flex; align-items:center; gap:12px; position:sticky; top:0; z-index:10; }
+    .topbar a { font-size:.82rem; color:var(--muted); text-decoration:none; }
+    .topbar a:hover { color:var(--blue); }
+    .topbar .sep { color:var(--border); }
+    .topbar strong { font-size:.85rem; }
+
+    .page { max-width:760px; margin:36px auto; padding:0 20px 60px; }
+
+    .profile-header { background:linear-gradient(135deg,#1e3a8a,#312e81); border-radius:12px; padding:28px; margin-bottom:24px; display:flex; align-items:center; gap:20px; color:white; }
+    .profile-avatar { width:64px; height:64px; border-radius:14px; background:rgba(255,255,255,.2); display:grid; place-items:center; font-size:1.8rem; flex-shrink:0; }
+    .profile-name { font-size:1.1rem; font-weight:700; }
+    .profile-meta { font-size:.82rem; opacity:.75; margin-top:4px; }
+    .avail-badge { display:inline-flex; align-items:center; gap:5px; padding:4px 10px; border-radius:20px; font-size:.75rem; font-weight:600; margin-top:8px; }
+    .avail-on  { background:rgba(34,197,94,.2); color:#86efac; }
+    .avail-off { background:rgba(239,68,68,.2); color:#fca5a5; }
+
+    .card { background:var(--white); border:1px solid var(--border); border-radius:var(--r); padding:24px; margin-bottom:20px; }
+    .card h2 { font-size:.9rem; font-weight:700; margin-bottom:18px; padding-bottom:10px; border-bottom:1px solid var(--border); }
+
+    .field { display:flex; flex-direction:column; gap:5px; margin-bottom:14px; }
+    .field:last-child { margin-bottom:0; }
+    .field label { font-size:.72rem; font-weight:600; color:var(--muted); text-transform:uppercase; letter-spacing:.4px; }
+    .field input, .field select, .field textarea { padding:8px 12px; border:1px solid var(--border); border-radius:6px; font-size:.875rem; font-family:inherit; color:var(--text); background:var(--white); outline:none; transition:border-color .15s; }
+    .field input:focus, .field textarea:focus { border-color:var(--blue); box-shadow:0 0 0 3px rgba(37,99,235,.1); }
+    .field textarea { resize:vertical; min-height:100px; }
+    .field .hint { font-size:.72rem; color:var(--muted); margin-top:3px; }
+
+    .grid2 { display:grid; grid-template-columns:1fr 1fr; gap:14px; }
+
+    .check-row { display:flex; align-items:center; gap:8px; font-size:.875rem; cursor:pointer; }
+    .check-row input { accent-color:var(--blue); width:15px; height:15px; }
+
+    .btn { display:inline-flex; align-items:center; gap:6px; padding:8px 18px; border-radius:6px; font-size:.85rem; font-weight:600; cursor:pointer; border:none; transition:background .15s; text-decoration:none; }
+    .btn-blue { background:var(--blue); color:white; }
+    .btn-blue:hover { background:var(--blue-dk); }
+    .btn-out { background:transparent; border:1px solid var(--border); color:var(--muted); }
+    .btn-out:hover { border-color:var(--blue); color:var(--blue); }
+
+    .alert-success { background:#f0fdf4; border:1px solid #bbf7d0; color:var(--green); padding:.75rem 1rem; border-radius:6px; margin-bottom:20px; font-size:.875rem; }
+
+    @media (max-width:600px) { .grid2 { grid-template-columns:1fr; } }
+  </style>
+</head>
+<body>
+
+<div class="topbar">
+  <a href="{% url 'dashboard:supervisor' %}">← Dashboard</a>
+  <span class="sep">/</span>
+  <strong>My Supervisor Profile</strong>
+</div>
+
+<div class="page">
+
+  {% if messages %}
+    {% for message in messages %}
+      <div class="alert-success">{{ message }}</div>
+    {% endfor %}
+  {% endif %}
+
+  <!-- Header card -->
+  <div class="profile-header">
+    <div class="profile-avatar">🧑‍🏫</div>
+    <div>
+      <div class="profile-name">{{ user.full_name|default:user.username }}</div>
+      <div class="profile-meta">{{ user.department|default:"No department set" }} · {{ user.current_load }} / {{ user.max_teams_supervise }} teams</div>
+      <div class="avail-badge {% if user.available %}avail-on{% else %}avail-off{% endif %}">
+        {% if user.available %}● Accepting students{% else %}● Not available{% endif %}
+      </div>
+    </div>
+  </div>
+
+  <form method="post">
+    {% csrf_token %}
+
+    <!-- About -->
+    <div class="card">
+      <h2>About Me</h2>
+      <div class="field">
+        <label>Bio</label>
+        <textarea name="bio" placeholder="Introduce yourself — your background, research interests, teaching style...">{{ user.bio }}</textarea>
+        <span class="hint">This is what students will see when browsing supervisors.</span>
+      </div>
+      <div class="field">
+        <label>Areas of Expertise</label>
+        <textarea name="expertise" placeholder="e.g. Machine Learning, Computer Vision, Cybersecurity..." style="min-height:70px;">{{ user.expertise }}</textarea>
+      </div>
+      <div class="field">
+        <label>Office Hours / Contact Preference</label>
+        <input type="text" name="office_hours" value="{{ user.office_hours }}" placeholder="e.g. Sun–Tue 10am–12pm, or by appointment via email" />
+      </div>
+    </div>
+
+    <!-- Past Projects -->
+    <div class="card">
+      <h2>Previous Projects Supervised</h2>
+      <div class="field">
+        <textarea name="past_projects" placeholder="List previous projects you've supervised — title, year, brief description. One per line." style="min-height:140px;">{{ user.past_projects }}</textarea>
+        <span class="hint">Students use this to understand your experience.</span>
+      </div>
+    </div>
+
+
+    <div style="display:flex;gap:12px;">
+      <button type="submit" class="btn btn-blue">Save Profile</button>
+      <a href="{% url 'dashboard:supervisor' %}" class="btn btn-out">Cancel</a>
+    </div>
+  </form>
+
+</div>
+</body>
+</html>
