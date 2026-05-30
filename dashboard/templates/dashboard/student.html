@@ -13,7 +13,7 @@
       <span class="brand-text">Etmam</span>
     </div>
 
-    <div class="sidebar-user">
+    <a href="{% url 'dashboard:student_edit_profile' %}" class="sidebar-user" style="text-decoration:none;color:inherit;transition:background .15s;" onmouseover="this.style.background='rgba(37,99,235,.1)'" onmouseout="this.style.background=''">
       <div class="user-avatar">
         {% if user.avatar %}
           <img src="{{ user.avatar.url }}" alt="" style="width:100%;height:100%;object-fit:cover;border-radius:50%;">
@@ -25,7 +25,7 @@
         <div class="user-name">{{ user.full_name|default:user.username }}</div>
         <div class="user-role">Student{% if user.department %} · {{ user.department }}{% endif %}</div>
       </div>
-    </div>
+    </a>
 
     <nav class="sidebar-nav">
       <span class="nav-section-label">Main</span>
@@ -71,10 +71,6 @@
     </nav>
 
     <div class="sidebar-bottom">
-      <a href="{% url 'dashboard:student_edit_profile' %}" class="nav-item" style="display:flex;align-items:center;gap:.75rem;padding:.65rem 1rem;text-decoration:none;color:inherit;">
-        <span class="nav-icon">✏️</span>
-        <span class="nav-label">Edit Profile</span>
-      </a>
       <form method="post" action="{% url 'accounts:logout' %}">
         {% csrf_token %}
         <button type="submit" class="nav-item" style="color:#ef4444;background:none;border:none;cursor:pointer;width:100%;">
@@ -95,7 +91,6 @@
           🔔
           {% if unread_count %}<span class="topbar-notif-dot" id="notif-topbar-dot"></span>{% endif %}
         </button>
-        <div class="user-avatar" style="width:34px;height:34px;font-size:.85rem;">🎓</div>
       </div>
     </header>
 
@@ -233,6 +228,10 @@
           <div class="team-name-row">
             <h3>🏷️ {{ team.name }}</h3>
             <span class="card-status-tag tag-active" style="position:static">Active</span>
+            {% if current_phase < 2 and membership.role == 'leader' %}
+            <button class="btn btn-outline btn-sm" onclick="openDeleteTeamModal()"
+              style="border-color:#ef4444;color:#ef4444;margin-left:auto;">🗑 Delete Team</button>
+            {% endif %}
           </div>
           <div class="member-list">
             {% for m in team_members %}
@@ -254,6 +253,10 @@
               </div>
               {% if m.user == user %}
                 <span class="member-role-badge badge-leader">You ({{ m.role }})</span>
+                {% if current_phase < 2 and m.role != 'leader' %}
+                <button class="btn btn-outline btn-sm" onclick="openLeaveTeamModal()"
+                  style="border-color:#f59e0b;color:#f59e0b;padding:.25rem .6rem;margin-left:.5rem;">Exit</button>
+                {% endif %}
               {% else %}
                 <span class="member-role-badge badge-member">{{ m.role|capfirst }}</span>
                 {% if membership.role == 'leader' %}
@@ -461,6 +464,19 @@
         </div>
         {% endif %}
 
+        {% if graded_weight > 0 %}
+        <div style="background:rgba(99,102,241,.06);border:1px solid rgba(99,102,241,.18);border-radius:13px;padding:16px 20px;margin-bottom:18px;display:flex;align-items:center;justify-content:space-between;gap:16px;">
+          <div>
+            <div style="font-size:.6rem;font-weight:800;text-transform:uppercase;letter-spacing:.6px;color:#818cf8;margin-bottom:5px;">Running Total</div>
+            <div style="font-size:2rem;font-weight:800;color:#a5b4fc;line-height:1;">{{ running_total }}<span style="font-size:.82rem;font-weight:500;color:#64748b;"> / {{ graded_weight }}</span></div>
+          </div>
+          <div style="text-align:right;">
+            <div style="font-size:.72rem;color:#64748b;line-height:1.5;">From <strong style="color:#94a3b8;">{{ graded_weight }}%</strong> of milestones graded</div>
+            <div style="font-size:.68rem;color:#475569;margin-top:2px;">Updates after each milestone is fully graded</div>
+          </div>
+        </div>
+        {% endif %}
+
         {% if global_milestones %}
         <style>
           .ms-layout { display:grid; grid-template-columns:280px 1fr; gap:14px; align-items:start; }
@@ -487,8 +503,6 @@
           .ms-li-pill { font-size:.58rem; font-weight:800; letter-spacing:.4px; padding:2px 7px; border-radius:20px; text-transform:uppercase; flex-shrink:0; }
           .ms-li-pill--pending   { background:rgba(100,116,139,.2);  color:#94a3b8; }
           .ms-li-pill--submitted { background:rgba(59,130,246,.25);  color:#93c5fd; }
-          .ms-li-pill--approved  { background:rgba(34,197,94,.2);    color:#86efac; }
-          .ms-li-pill--revision  { background:rgba(249,115,22,.25);  color:#fdba74; }
           .ms-li-pill--locked    { background:rgba(51,65,85,.3);     color:#64748b; }
           .ms-li-sub { display:flex; align-items:center; justify-content:space-between; gap:8px; }
           .ms-li-due { font-size:.7rem; color:#64748b; }
@@ -507,13 +521,9 @@
           .ms-sbanner { padding:11px 18px; display:flex; align-items:center; gap:9px; border-bottom:1px solid rgba(255,255,255,.05); font-size:.8rem; }
           .ms-sbanner--pending   { background:rgba(100,116,139,.06); color:#94a3b8; }
           .ms-sbanner--submitted { background:rgba(37,99,235,.07);   color:#93c5fd; }
-          .ms-sbanner--approved  { background:rgba(22,163,74,.07);   color:#86efac; }
-          .ms-sbanner--revision  { background:rgba(234,88,12,.07);   color:#fdba74; }
           .ms-sdot { width:7px; height:7px; border-radius:50%; flex-shrink:0; }
           .ms-sdot--pending   { background:#64748b; }
           .ms-sdot--submitted { background:#3b82f6; box-shadow:0 0 5px rgba(59,130,246,.5); }
-          .ms-sdot--approved  { background:#22c55e; box-shadow:0 0 5px rgba(34,197,94,.5); }
-          .ms-sdot--revision  { background:#f97316; box-shadow:0 0 5px rgba(249,115,22,.5); }
           .ms-sbanner-label { font-weight:700; }
           .ms-sbanner-date  { margin-left:auto; font-size:.7rem; color:#475569; }
 
@@ -593,37 +603,6 @@
             <div class="ms-li-sub"><div class="ms-li-due">Opens {{ m.start_date|date:"M d" }}</div></div>
           </div>
 
-          {% elif sub and sub.status == 'approved' %}
-          <div class="ms-li" id="ms-li-{{ m.pk }}" data-pk="{{ m.pk }}" onclick="selectMs({{ m.pk }})">
-            <div class="ms-li-row1">
-              <div class="ms-li-num">{{ m.order }}</div>
-              <div class="ms-li-title">{{ m.title }}</div>
-              <span class="ms-li-pill ms-li-pill--approved">Approved</span>
-            </div>
-            <div class="ms-li-sub">
-              {% if sub.grade is not None %}<div class="ms-li-grade">{{ sub.grade|floatformat:1 }}<span style="font-size:.7rem;font-weight:500;color:#64748b;"> / 100</span></div>
-              {% elif m.due_date %}<div class="ms-li-due ms-li-due-js" data-due="{{ m.due_date|date:'Y-m-d' }}"></div>{% endif %}
-            </div>
-            {% if item.task_total > 0 %}
-            <div class="ms-tbar"><div class="ms-tbar-label"><span>Tasks</span><span>{{ item.task_done }}/{{ item.task_total }}</span></div><div class="ms-tbar-track"><div class="ms-tbar-fill" style="width:{% widthratio item.task_done item.task_total 100 %}%"></div></div></div>
-            {% endif %}
-          </div>
-
-          {% elif sub and sub.status == 'revision' %}
-          <div class="ms-li" id="ms-li-{{ m.pk }}" data-pk="{{ m.pk }}" onclick="selectMs({{ m.pk }})">
-            <div class="ms-li-row1">
-              <div class="ms-li-num">{{ m.order }}</div>
-              <div class="ms-li-title">{{ m.title }}</div>
-              <span class="ms-li-pill ms-li-pill--revision">Revision</span>
-            </div>
-            <div class="ms-li-sub">
-              {% if m.due_date %}<div class="ms-li-due ms-li-due-js" data-due="{{ m.due_date|date:'Y-m-d' }}"></div>{% endif %}
-            </div>
-            {% if item.task_total > 0 %}
-            <div class="ms-tbar"><div class="ms-tbar-label"><span>Tasks</span><span>{{ item.task_done }}/{{ item.task_total }}</span></div><div class="ms-tbar-track"><div class="ms-tbar-fill" style="width:{% widthratio item.task_done item.task_total 100 %}%"></div></div></div>
-            {% endif %}
-          </div>
-
           {% elif sub %}
           <div class="ms-li" id="ms-li-{{ m.pk }}" data-pk="{{ m.pk }}" onclick="selectMs({{ m.pk }})">
             <div class="ms-li-row1">
@@ -633,6 +612,7 @@
             </div>
             <div class="ms-li-sub">
               {% if m.due_date %}<div class="ms-li-due ms-li-due-js" data-due="{{ m.due_date|date:'Y-m-d' }}"></div>{% endif %}
+              {% if item.all_graded and sub.grade is not None %}<div class="ms-li-grade">{{ sub.grade|floatformat:1 }}</div>{% endif %}
             </div>
             {% if item.task_total > 0 %}
             <div class="ms-tbar"><div class="ms-tbar-label"><span>Tasks</span><span>{{ item.task_done }}/{{ item.task_total }}</span></div><div class="ms-tbar-track"><div class="ms-tbar-fill" style="width:{% widthratio item.task_done item.task_total 100 %}%"></div></div></div>
@@ -672,11 +652,7 @@
             <div class="ms-dp" id="ms-dp-{{ m.pk }}">
 
               <!-- Status banner -->
-              {% if sub and sub.status == 'approved' %}
-              <div class="ms-sbanner ms-sbanner--approved"><div class="ms-sdot ms-sdot--approved"></div><span class="ms-sbanner-label">Approved</span><span class="ms-sbanner-date">{{ sub.submitted_at|date:"M d, Y" }}</span></div>
-              {% elif sub and sub.status == 'revision' %}
-              <div class="ms-sbanner ms-sbanner--revision"><div class="ms-sdot ms-sdot--revision"></div><span class="ms-sbanner-label">Needs Revision</span><span class="ms-sbanner-date">{{ sub.submitted_at|date:"M d, Y" }}</span></div>
-              {% elif sub %}
+              {% if sub %}
               <div class="ms-sbanner ms-sbanner--submitted"><div class="ms-sdot ms-sdot--submitted"></div><span class="ms-sbanner-label">Submitted · Pending Review</span><span class="ms-sbanner-date">v{{ sub.version }} · {{ sub.submitted_at|date:"M d, Y" }}</span></div>
               {% else %}
               <div class="ms-sbanner ms-sbanner--pending"><div class="ms-sdot ms-sdot--pending"></div><span class="ms-sbanner-label">Not Submitted</span>{% if m.due_date %}<span class="ms-sbanner-date">Due {{ m.due_date|date:"M d, Y" }}</span>{% endif %}</div>
@@ -706,7 +682,7 @@
                 {% endif %}
 
                 <!-- Grade -->
-                {% if sub and sub.grade is not None %}
+                {% if sub and sub.grade is not None and item.all_graded %}
                 <div class="ms-grade">
                   <div class="ms-grade-lbl">Final Grade</div>
                   <div class="ms-grade-score">{{ sub.grade|floatformat:1 }}<span> / 100</span></div>
@@ -1148,6 +1124,44 @@
     </form>
   </div>
 </div>
+<!-- Leave Team Modal -->
+<div id="leave-team-modal" style="display:none;position:fixed;inset:0;z-index:1000;background:rgba(0,0,0,.6);align-items:center;justify-content:center;">
+  <div style="background:#1e2433;border:1px solid rgba(255,255,255,.1);border-radius:14px;padding:28px;width:100%;max-width:420px;margin:20px;">
+    <div style="font-size:2rem;margin-bottom:12px;">🚪</div>
+    <h3 style="font-size:1rem;font-weight:700;margin-bottom:8px;">Leave Team?</h3>
+    <p style="font-size:.85rem;color:#94a3b8;margin-bottom:24px;">
+      You will be removed from <strong style="color:#e2e8f0;">{{ team.name }}</strong>.
+      You will need a new invite to rejoin.
+    </p>
+    <div style="display:flex;gap:.75rem;">
+      <form method="post" action="{% url 'teams:leave' %}">
+        {% csrf_token %}
+        <button type="submit" class="btn btn-primary" style="background:#f59e0b;border-color:#f59e0b;">Yes, Leave</button>
+      </form>
+      <button type="button" class="btn btn-outline" onclick="closeLeaveTeamModal()">Cancel</button>
+    </div>
+  </div>
+</div>
+
+<!-- Delete Team Modal -->
+<div id="delete-team-modal" style="display:none;position:fixed;inset:0;z-index:1000;background:rgba(0,0,0,.6);align-items:center;justify-content:center;">
+  <div style="background:#1e2433;border:1px solid rgba(239,68,68,.25);border-radius:14px;padding:28px;width:100%;max-width:420px;margin:20px;">
+    <div style="font-size:2rem;margin-bottom:12px;">🗑️</div>
+    <h3 style="font-size:1rem;font-weight:700;margin-bottom:8px;color:#f87171;">Delete Team?</h3>
+    <p style="font-size:.85rem;color:#94a3b8;margin-bottom:24px;">
+      This will permanently delete <strong style="color:#e2e8f0;">{{ team.name }}</strong>
+      and remove all members. Any associated project will be reset. This cannot be undone.
+    </p>
+    <div style="display:flex;gap:.75rem;">
+      <form method="post" action="{% url 'teams:delete' %}">
+        {% csrf_token %}
+        <button type="submit" class="btn btn-primary" style="background:#ef4444;border-color:#ef4444;">Yes, Delete Team</button>
+      </form>
+      <button type="button" class="btn btn-outline" onclick="closeDeleteTeamModal()">Cancel</button>
+    </div>
+  </div>
+</div>
+
 {% endblock %}
 
 {% block extra_js %}
@@ -1247,6 +1261,26 @@
     body.style.display  = open ? 'none'   : 'block';
     arrow.style.transform = open ? ''     : 'rotate(180deg)';
   }
+
+  function openLeaveTeamModal() {
+    document.getElementById('leave-team-modal').style.display = 'flex';
+  }
+  function closeLeaveTeamModal() {
+    document.getElementById('leave-team-modal').style.display = 'none';
+  }
+  document.getElementById('leave-team-modal').addEventListener('click', function(e) {
+    if (e.target === this) closeLeaveTeamModal();
+  });
+
+  function openDeleteTeamModal() {
+    document.getElementById('delete-team-modal').style.display = 'flex';
+  }
+  function closeDeleteTeamModal() {
+    document.getElementById('delete-team-modal').style.display = 'none';
+  }
+  document.getElementById('delete-team-modal').addEventListener('click', function(e) {
+    if (e.target === this) closeDeleteTeamModal();
+  });
 
   function switchTab(btn, targetId) {
     btn.closest('.dash-section').querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));

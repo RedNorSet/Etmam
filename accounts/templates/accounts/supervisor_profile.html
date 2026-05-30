@@ -1,124 +1,239 @@
+{% extends 'base.html' %}
 {% load static %}
-<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>My Profile — Etmam</title>
-  <style>
-    @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap');
-    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-    :root { --bg:#f4f6fb; --white:#fff; --blue:#2563eb; --blue-dk:#1d4ed8; --border:#e2e8f0; --text:#0f172a; --muted:#64748b; --r:8px; --green:#16a34a; }
-    body { font-family:'Plus Jakarta Sans',system-ui,sans-serif; background:var(--bg); color:var(--text); font-size:14px; min-height:100vh; }
 
-    .topbar { background:var(--white); border-bottom:1px solid var(--border); padding:0 28px; height:54px; display:flex; align-items:center; gap:12px; position:sticky; top:0; z-index:10; }
-    .topbar a { font-size:.82rem; color:var(--muted); text-decoration:none; }
-    .topbar a:hover { color:var(--blue); }
-    .topbar .sep { color:var(--border); }
-    .topbar strong { font-size:.85rem; }
+{% block title %}My Profile — Etmam{% endblock %}
 
-    .page { max-width:760px; margin:36px auto; padding:0 20px 60px; }
+{% block content %}
+<div class="dash-layout">
 
-    .profile-header { background:linear-gradient(135deg,#1e3a8a,#312e81); border-radius:12px; padding:28px; margin-bottom:24px; display:flex; align-items:center; gap:20px; color:white; }
-    .profile-avatar { width:64px; height:64px; border-radius:14px; background:rgba(255,255,255,.2); display:grid; place-items:center; font-size:1.8rem; flex-shrink:0; }
-    .profile-name { font-size:1.1rem; font-weight:700; }
-    .profile-meta { font-size:.82rem; opacity:.75; margin-top:4px; }
-    .avail-badge { display:inline-flex; align-items:center; gap:5px; padding:4px 10px; border-radius:20px; font-size:.75rem; font-weight:600; margin-top:8px; }
-    .avail-on  { background:rgba(34,197,94,.2); color:#86efac; }
-    .avail-off { background:rgba(239,68,68,.2); color:#fca5a5; }
+  <!-- Sidebar -->
+  <aside class="sidebar">
+    <div class="sidebar-brand">
+      <img src="{% static 'images/logo_trans.png' %}" alt="Etmam" style="height:28px;" onerror="this.style.display='none'">
+      <span class="brand-text">Etmam</span>
+    </div>
 
-    .card { background:var(--white); border:1px solid var(--border); border-radius:var(--r); padding:24px; margin-bottom:20px; }
-    .card h2 { font-size:.9rem; font-weight:700; margin-bottom:18px; padding-bottom:10px; border-bottom:1px solid var(--border); }
+    <div class="sidebar-user" style="background:rgba(37,99,235,.08);border-left:3px solid var(--primary);cursor:default;">
+      <div class="user-avatar">
+        {% if user.avatar %}
+          <img src="{{ user.avatar.url }}" alt="" style="width:100%;height:100%;object-fit:cover;border-radius:50%;">
+        {% else %}
+          🧑‍🏫
+        {% endif %}
+      </div>
+      <div class="user-info">
+        <div class="user-name">{{ user.full_name|default:user.username }}</div>
+        <div class="user-role">Supervisor{% if user.department %} · {{ user.department }}{% endif %}</div>
+      </div>
+    </div>
 
-    .field { display:flex; flex-direction:column; gap:5px; margin-bottom:14px; }
-    .field:last-child { margin-bottom:0; }
-    .field label { font-size:.72rem; font-weight:600; color:var(--muted); text-transform:uppercase; letter-spacing:.4px; }
-    .field input, .field select, .field textarea { padding:8px 12px; border:1px solid var(--border); border-radius:6px; font-size:.875rem; font-family:inherit; color:var(--text); background:var(--white); outline:none; transition:border-color .15s; }
-    .field input:focus, .field textarea:focus { border-color:var(--blue); box-shadow:0 0 0 3px rgba(37,99,235,.1); }
-    .field textarea { resize:vertical; min-height:100px; }
-    .field .hint { font-size:.72rem; color:var(--muted); margin-top:3px; }
+    <div style="flex:1;"></div>
 
-    .grid2 { display:grid; grid-template-columns:1fr 1fr; gap:14px; }
+    <div class="sidebar-bottom">
+      <a href="{% url 'dashboard:supervisor' %}" class="nav-item" style="text-decoration:none;">
+        <span class="nav-icon">🏠</span>
+        <span class="nav-label">Dashboard</span>
+      </a>
+      <form method="post" action="{% url 'accounts:logout' %}">
+        {% csrf_token %}
+        <button type="submit" class="nav-item" style="color:#ef4444;background:none;border:none;cursor:pointer;width:100%;">
+          <span class="nav-icon">🚪</span>
+          <span class="nav-label">Sign Out</span>
+        </button>
+      </form>
+    </div>
+  </aside>
 
-    .check-row { display:flex; align-items:center; gap:8px; font-size:.875rem; cursor:pointer; }
-    .check-row input { accent-color:var(--blue); width:15px; height:15px; }
+  <!-- Main -->
+  <div class="dash-main">
+    <header class="dash-topbar">
+      <span class="topbar-title">My Profile</span>
+      <div class="topbar-right">
+        <span style="font-size:.78rem;padding:.25rem .75rem;border-radius:999px;font-weight:600;
+          {% if user.available %}background:rgba(16,185,129,.15);color:#6ee7b7;border:1px solid rgba(16,185,129,.3);
+          {% else %}background:rgba(239,68,68,.12);color:#fca5a5;border:1px solid rgba(239,68,68,.25);{% endif %}">
+          {% if user.available %}● Accepting Students{% else %}● Not Available{% endif %}
+        </span>
+      </div>
+    </header>
 
-    .btn { display:inline-flex; align-items:center; gap:6px; padding:8px 18px; border-radius:6px; font-size:.85rem; font-weight:600; cursor:pointer; border:none; transition:background .15s; text-decoration:none; }
-    .btn-blue { background:var(--blue); color:white; }
-    .btn-blue:hover { background:var(--blue-dk); }
-    .btn-out { background:transparent; border:1px solid var(--border); color:var(--muted); }
-    .btn-out:hover { border-color:var(--blue); color:var(--blue); }
+    <div class="dash-body">
+      <div style="max-width:700px;">
 
-    .alert-success { background:#f0fdf4; border:1px solid #bbf7d0; color:var(--green); padding:.75rem 1rem; border-radius:6px; margin-bottom:20px; font-size:.875rem; }
+        <!-- Profile banner -->
+        <div class="welcome-banner" style="margin-bottom:1.75rem;">
+          <div class="welcome-text">
+            <h2>{{ user.full_name|default:user.username }}</h2>
+            <p>Supervisor{% if user.department %} · {{ user.department }}{% endif %} · {{ user.current_load }} / {{ user.max_teams_supervise }} teams</p>
+          </div>
+          <div class="welcome-emoji">🧑‍🏫</div>
+        </div>
 
-    @media (max-width:600px) { .grid2 { grid-template-columns:1fr; } }
-  </style>
-</head>
-<body>
+        <!-- Account info -->
+        <div class="settings-card" style="margin-bottom:1.25rem;">
+          <h3>Account Information</h3>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:.75rem 1.5rem;">
+            <div>
+              <div style="font-size:.68rem;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--text-muted);margin-bottom:.3rem;">Full Name</div>
+              <div style="font-size:.9rem;font-weight:600;">{{ user.full_name|default:"—" }}</div>
+            </div>
+            <div>
+              <div style="font-size:.68rem;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--text-muted);margin-bottom:.3rem;">Username</div>
+              <div style="font-size:.9rem;font-weight:600;">{{ user.username }}</div>
+            </div>
+            <div>
+              <div style="font-size:.68rem;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--text-muted);margin-bottom:.3rem;">Email</div>
+              <div style="font-size:.9rem;font-weight:600;">{{ user.email|default:"—" }}</div>
+            </div>
+            <div>
+              <div style="font-size:.68rem;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--text-muted);margin-bottom:.3rem;">Staff ID</div>
+              <div style="font-size:.9rem;font-weight:600;">{{ user.student_id|default:"—" }}</div>
+            </div>
+            <div>
+              <div style="font-size:.68rem;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--text-muted);margin-bottom:.3rem;">Department</div>
+              <div style="font-size:.9rem;font-weight:600;">{{ user.department|default:"—" }}</div>
+            </div>
+            <div>
+              <div style="font-size:.68rem;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--text-muted);margin-bottom:.3rem;">Gender</div>
+              <div style="font-size:.9rem;font-weight:600;">{{ user.get_gender_display|default:"—" }}</div>
+            </div>
+          </div>
+          <p style="font-size:.75rem;color:var(--text-muted);margin-top:.85rem;">To change your name, email, or other account details contact the administrator.</p>
+        </div>
 
-<div class="topbar">
-  <a href="{% url 'dashboard:supervisor' %}">← Dashboard</a>
-  <span class="sep">/</span>
-  <strong>My Supervisor Profile</strong>
-</div>
+        <!-- Profile form -->
+        <form method="post" action="{% url 'accounts:supervisor_profile' %}">
+          {% csrf_token %}
+          <input type="hidden" name="action" value="profile">
 
-<div class="page">
+          <div class="settings-card" style="margin-bottom:1rem;">
+            <h3>About Me</h3>
+            <div class="form-group">
+              <label>Bio</label>
+              <textarea name="bio" class="form-input" style="min-height:120px;" placeholder="Introduce yourself — your background, research interests, teaching style...">{{ user.bio }}</textarea>
+              <span style="font-size:.72rem;color:var(--text-muted);margin-top:.35rem;display:block;">This is what students will see when browsing supervisors.</span>
+            </div>
+            <div class="form-group">
+              <label>Areas of Expertise</label>
+              <textarea name="expertise" class="form-input" style="min-height:72px;" placeholder="e.g. Machine Learning, Computer Vision, Cybersecurity...">{{ user.expertise }}</textarea>
+            </div>
+            <div class="form-group" style="margin-bottom:0;">
+              <label>Office Hours / Contact Preference</label>
+              <input type="text" name="office_hours" class="form-input" value="{{ user.office_hours }}" placeholder="e.g. Sun–Tue 10am–12pm, or by appointment via email">
+            </div>
+          </div>
 
-  {% if messages %}
-    {% for message in messages %}
-      <div class="alert-success">{{ message }}</div>
-    {% endfor %}
-  {% endif %}
+          <div class="settings-card" style="margin-bottom:1rem;">
+            <h3>Previous Projects Supervised</h3>
+            <div class="form-group" style="margin-bottom:0;">
+              <label>Past Projects</label>
+              <textarea name="past_projects" class="form-input" style="min-height:140px;" placeholder="List previous projects — title, year, brief description. One per line.">{{ user.past_projects }}</textarea>
+              <span style="font-size:.72rem;color:var(--text-muted);margin-top:.35rem;display:block;">Students use this to understand your experience.</span>
+            </div>
+          </div>
 
-  <!-- Header card -->
-  <div class="profile-header">
-    <div class="profile-avatar">🧑‍🏫</div>
-    <div>
-      <div class="profile-name">{{ user.full_name|default:user.username }}</div>
-      <div class="profile-meta">{{ user.department|default:"No department set" }} · {{ user.current_load }} / {{ user.max_teams_supervise }} teams</div>
-      <div class="avail-badge {% if user.available %}avail-on{% else %}avail-off{% endif %}">
-        {% if user.available %}● Accepting students{% else %}● Not available{% endif %}
+          <div style="display:flex;gap:.75rem;margin-bottom:1.5rem;">
+            <button type="submit" class="btn btn-primary btn-sm">Save Profile</button>
+            <a href="{% url 'dashboard:supervisor' %}" class="btn btn-outline btn-sm">Cancel</a>
+          </div>
+        </form>
+
+        <!-- Password form -->
+        <form method="post" action="{% url 'accounts:supervisor_profile' %}">
+          {% csrf_token %}
+          <input type="hidden" name="action" value="password">
+          <div class="settings-card" style="margin-bottom:1rem;">
+            <h3>Change Password</h3>
+
+            <div class="form-group">
+              <label>Current Password</label>
+              <input type="password" name="current_password" class="form-input" required autocomplete="current-password">
+            </div>
+
+            <div class="form-group">
+              <label>New Password</label>
+              <div style="position:relative;">
+                <input type="password" name="new_password" id="new_pw" class="form-input" required autocomplete="new-password"
+                       oninput="checkPwStrength(this.value)" style="padding-right:40px;">
+                <button type="button" onclick="togglePw('new_pw','eye1','eye1off')"
+                        style="position:absolute;right:10px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;color:var(--text-muted);padding:0;line-height:1;">
+                  <svg id="eye1" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+                  <svg id="eye1off" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:none;"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/></svg>
+                </button>
+              </div>
+              <div style="display:flex;gap:4px;margin-top:8px;">
+                <div id="pw-bar1" style="flex:1;height:4px;border-radius:2px;background:var(--border);transition:background .2s;"></div>
+                <div id="pw-bar2" style="flex:1;height:4px;border-radius:2px;background:var(--border);transition:background .2s;"></div>
+                <div id="pw-bar3" style="flex:1;height:4px;border-radius:2px;background:var(--border);transition:background .2s;"></div>
+                <div id="pw-bar4" style="flex:1;height:4px;border-radius:2px;background:var(--border);transition:background .2s;"></div>
+              </div>
+              <div style="margin-top:6px;display:flex;flex-direction:column;gap:3px;">
+                <span id="rule-len"     style="font-size:.72rem;color:var(--text-muted);">○ At least 8 characters</span>
+                <span id="rule-letter"  style="font-size:.72rem;color:var(--text-muted);">○ At least one letter</span>
+                <span id="rule-digit"   style="font-size:.72rem;color:var(--text-muted);">○ At least one number</span>
+                <span id="rule-special" style="font-size:.72rem;color:var(--text-muted);">○ At least one special character</span>
+              </div>
+            </div>
+
+            <div class="form-group" style="margin-bottom:0;">
+              <label>Confirm New Password</label>
+              <div style="position:relative;">
+                <input type="password" name="confirm_password" id="confirm_pw" class="form-input" required autocomplete="new-password"
+                       oninput="checkMatch()" style="padding-right:40px;">
+                <button type="button" onclick="togglePw('confirm_pw','eye2','eye2off')"
+                        style="position:absolute;right:10px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;color:var(--text-muted);padding:0;line-height:1;">
+                  <svg id="eye2" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+                  <svg id="eye2off" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:none;"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/></svg>
+                </button>
+              </div>
+              <span id="match-msg" style="font-size:.72rem;display:none;margin-top:4px;"></span>
+            </div>
+          </div>
+          <div>
+            <button type="submit" class="btn btn-primary btn-sm">Change Password</button>
+          </div>
+        </form>
+
       </div>
     </div>
   </div>
-
-  <form method="post">
-    {% csrf_token %}
-
-    <!-- About -->
-    <div class="card">
-      <h2>About Me</h2>
-      <div class="field">
-        <label>Bio</label>
-        <textarea name="bio" placeholder="Introduce yourself — your background, research interests, teaching style...">{{ user.bio }}</textarea>
-        <span class="hint">This is what students will see when browsing supervisors.</span>
-      </div>
-      <div class="field">
-        <label>Areas of Expertise</label>
-        <textarea name="expertise" placeholder="e.g. Machine Learning, Computer Vision, Cybersecurity..." style="min-height:70px;">{{ user.expertise }}</textarea>
-      </div>
-      <div class="field">
-        <label>Office Hours / Contact Preference</label>
-        <input type="text" name="office_hours" value="{{ user.office_hours }}" placeholder="e.g. Sun–Tue 10am–12pm, or by appointment via email" />
-      </div>
-    </div>
-
-    <!-- Past Projects -->
-    <div class="card">
-      <h2>Previous Projects Supervised</h2>
-      <div class="field">
-        <textarea name="past_projects" placeholder="List previous projects you've supervised — title, year, brief description. One per line." style="min-height:140px;">{{ user.past_projects }}</textarea>
-        <span class="hint">Students use this to understand your experience.</span>
-      </div>
-    </div>
-
-
-    <div style="display:flex;gap:12px;">
-      <button type="submit" class="btn btn-blue">Save Profile</button>
-      <a href="{% url 'dashboard:supervisor' %}" class="btn btn-out">Cancel</a>
-    </div>
-  </form>
-
 </div>
-</body>
-</html>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+var PW_COLORS = { 1:'#ef4444', 2:'#f97316', 3:'#eab308', 4:'#22c55e' };
+function checkPwStrength(v) {
+  var len     = v.length >= 8;
+  var letter  = /[A-Za-z]/.test(v);
+  var digit   = /[0-9]/.test(v);
+  var special = /[^A-Za-z0-9]/.test(v);
+  document.getElementById('rule-len').style.color     = len     ? '#4ade80' : 'var(--text-muted)';
+  document.getElementById('rule-letter').style.color  = letter  ? '#4ade80' : 'var(--text-muted)';
+  document.getElementById('rule-digit').style.color   = digit   ? '#4ade80' : 'var(--text-muted)';
+  document.getElementById('rule-special').style.color = special ? '#4ade80' : 'var(--text-muted)';
+  var score = [len, letter, digit, special].filter(Boolean).length;
+  var color = PW_COLORS[score] || 'var(--border)';
+  for (var i = 1; i <= 4; i++) {
+    document.getElementById('pw-bar' + i).style.background = (i <= score) ? color : 'var(--border)';
+  }
+  checkMatch();
+}
+function checkMatch() {
+  var pw  = document.getElementById('new_pw').value;
+  var cpw = document.getElementById('confirm_pw').value;
+  var msg = document.getElementById('match-msg');
+  if (!cpw) { msg.style.display = 'none'; return; }
+  msg.style.display = 'block';
+  if (pw === cpw) { msg.style.color = '#4ade80'; msg.textContent = '✓ Passwords match'; }
+  else            { msg.style.color = '#f87171'; msg.textContent = '✕ Passwords do not match'; }
+}
+function togglePw(inputId, eyeOnId, eyeOffId) {
+  var input = document.getElementById(inputId);
+  var on    = document.getElementById(eyeOnId);
+  var off   = document.getElementById(eyeOffId);
+  if (input.type === 'password') { input.type = 'text';     on.style.display = 'none';   off.style.display = 'inline'; }
+  else                           { input.type = 'password'; on.style.display = 'inline'; off.style.display = 'none';   }
+}
+</script>
+{% endblock %}

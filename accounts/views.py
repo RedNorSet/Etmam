@@ -16,6 +16,8 @@ def _password_error(password):
         return 'Password must contain at least one letter.'
     if not re.search(r'\d', password):
         return 'Password must contain at least one number.'
+    if not re.search(r'[^A-Za-z0-9]', password):
+        return 'Password must contain at least one special character.'
     return None
 
 
@@ -45,15 +47,34 @@ def supervisor_profile(request):
         return redirect('dashboard:index')
     user = request.user
     if request.method == 'POST':
-        user.bio          = request.POST.get('bio', '').strip()
-        user.expertise    = request.POST.get('expertise', '').strip()
-        user.office_hours = request.POST.get('office_hours', '').strip()
-        user.past_projects = request.POST.get('past_projects', '').strip()
-        user.available    = 'available' in request.POST
-        user.max_teams_supervise = int(request.POST.get('max_teams_supervise', user.max_teams_supervise) or user.max_teams_supervise)
-        user.max_teams_review    = int(request.POST.get('max_teams_review', user.max_teams_review) or user.max_teams_review)
-        user.save()
-        messages.success(request, 'Profile updated.')
+        action = request.POST.get('action', 'profile')
+
+        if action == 'password':
+            current_pw = request.POST.get('current_password', '')
+            new_pw     = request.POST.get('new_password', '')
+            confirm_pw = request.POST.get('confirm_password', '')
+            if not user.check_password(current_pw):
+                messages.error(request, 'Current password is incorrect.')
+            else:
+                pw_err = _password_error(new_pw)
+                if pw_err:
+                    messages.error(request, pw_err)
+                elif new_pw != confirm_pw:
+                    messages.error(request, 'New passwords do not match.')
+                else:
+                    user.set_password(new_pw)
+                    user.save()
+                    from django.contrib.auth import update_session_auth_hash
+                    update_session_auth_hash(request, user)
+                    messages.success(request, 'Password changed successfully.')
+        else:
+            user.bio           = request.POST.get('bio', '').strip()
+            user.expertise     = request.POST.get('expertise', '').strip()
+            user.office_hours  = request.POST.get('office_hours', '').strip()
+            user.past_projects = request.POST.get('past_projects', '').strip()
+            user.save(update_fields=['bio', 'expertise', 'office_hours', 'past_projects'])
+            messages.success(request, 'Profile updated.')
+
         return redirect('accounts:supervisor_profile')
     return render(request, 'accounts/supervisor_profile.html', {'user': user})
 
@@ -118,17 +139,20 @@ def add_user(request):
             return render(request, 'accounts/add_user.html')
 
         user = User(
-            username   = username,
-            full_name  = full_name,
-            email      = email,
-            role       = role,
-            gender     = gender,
-            department = department,
-            student_id = student_id or None,
-            expertise  = request.POST.get('expertise', '').strip(),
-            can_review = 'can_review' in request.POST,
-            available  = 'available' in request.POST,
-            is_active  = True,
+            username      = username,
+            full_name     = full_name,
+            email         = email,
+            role          = role,
+            gender        = gender,
+            department    = department,
+            student_id    = student_id or None,
+            expertise     = request.POST.get('expertise', '').strip(),
+            bio           = request.POST.get('bio', '').strip(),
+            office_hours  = request.POST.get('office_hours', '').strip(),
+            past_projects = request.POST.get('past_projects', '').strip(),
+            can_review    = 'can_review' in request.POST,
+            available     = 'available' in request.POST,
+            is_active     = True,
         )
         max_teams_supervise = request.POST.get('max_teams_supervise', '').strip()
         if max_teams_supervise.isdigit():
@@ -182,15 +206,18 @@ def edit_user(request, user_id):
                 return render(request, 'accounts/edit_user.html', {'target': target})
             target.set_password(new_password)
 
-        target.full_name   = full_name
-        target.username    = username
-        target.email       = email
-        target.role        = request.POST.get('role', target.role)
-        target.department  = department
-        target.student_id  = request.POST.get('student_id', '').strip() or None
-        target.expertise   = request.POST.get('expertise', '').strip()
-        target.can_review  = 'can_review' in request.POST
-        target.available   = 'available' in request.POST
+        target.full_name     = full_name
+        target.username      = username
+        target.email         = email
+        target.role          = request.POST.get('role', target.role)
+        target.department    = department
+        target.student_id    = request.POST.get('student_id', '').strip() or None
+        target.expertise     = request.POST.get('expertise', '').strip()
+        target.bio           = request.POST.get('bio', '').strip()
+        target.office_hours  = request.POST.get('office_hours', '').strip()
+        target.past_projects = request.POST.get('past_projects', '').strip()
+        target.can_review    = 'can_review' in request.POST
+        target.available     = 'available' in request.POST
         # Gender is editable only for inactive (archive placeholder) users
         if not target.is_active:
             gender = request.POST.get('gender', '').strip()

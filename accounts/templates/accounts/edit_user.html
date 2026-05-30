@@ -174,6 +174,18 @@
           <label>Expertise</label>
           <textarea name="expertise">{{ target.expertise }}</textarea>
         </div>
+        <div class="field span2">
+          <label>Bio</label>
+          <textarea name="bio" placeholder="Background, research interests, teaching style...">{{ target.bio }}</textarea>
+        </div>
+        <div class="field span2">
+          <label>Office Hours</label>
+          <input type="text" name="office_hours" value="{{ target.office_hours }}" placeholder="e.g. Sun–Tue 10am–12pm, or by appointment" />
+        </div>
+        <div class="field span2">
+          <label>Previous Projects Supervised</label>
+          <textarea name="past_projects" placeholder="List previous projects — title, year, brief description. One per line.">{{ target.past_projects }}</textarea>
+        </div>
       </div>
       <div class="checks" style="margin-top:16px;">
         <label class="check-row">

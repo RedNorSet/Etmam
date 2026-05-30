@@ -13,7 +13,7 @@
       <span class="brand-text">Etmam</span>
     </div>
 
-    <div class="sidebar-user">
+    <a href="{% url 'accounts:supervisor_profile' %}" class="sidebar-user" style="text-decoration:none;color:inherit;transition:background .15s;" onmouseover="this.style.background='rgba(37,99,235,.1)'" onmouseout="this.style.background=''">
       <div class="user-avatar">
         {% if user.avatar %}
           <img src="{{ user.avatar.url }}" alt="" style="width:100%;height:100%;object-fit:cover;border-radius:50%;">
@@ -25,7 +25,7 @@
         <div class="user-name">{{ user.full_name|default:user.username }}</div>
         <div class="user-role">Supervisor{% if user.department %} · {{ user.department }}{% endif %}</div>
       </div>
-    </div>
+    </a>
 
     <nav class="sidebar-nav">
       <span class="nav-section-label">Main</span>
@@ -40,11 +40,6 @@
         <span class="nav-label">My Teams</span>
       </button>
 
-      <button class="nav-item" onclick="showSection('submissions', this)">
-        <span class="nav-icon">📊</span>
-        <span class="nav-label">Submissions</span>
-        {% if pending_subs_count %}<span class="nav-badge">{{ pending_subs_count }}</span>{% endif %}
-      </button>
 
       <button class="nav-item" onclick="showSection('meetings', this)">
         <span class="nav-icon">📅</span>
@@ -68,10 +63,6 @@
     </nav>
 
     <div class="sidebar-bottom">
-      <a href="{% url 'accounts:supervisor_profile' %}" class="nav-item" style="display:flex;align-items:center;gap:.75rem;padding:.65rem 1rem;text-decoration:none;color:inherit;">
-        <span class="nav-icon">✏️</span>
-        <span class="nav-label">Edit Profile</span>
-      </a>
       <form method="post" action="{% url 'accounts:logout' %}">
         {% csrf_token %}
         <button type="submit" class="nav-item" style="color:#ef4444;background:none;border:none;cursor:pointer;width:100%;">
@@ -92,7 +83,6 @@
           🔔
           {% if unread_count %}<span class="topbar-notif-dot" id="notif-topbar-dot"></span>{% endif %}
         </button>
-        <div class="user-avatar" style="width:34px;height:34px;font-size:.85rem;">🧑‍🏫</div>
       </div>
     </header>
 
@@ -269,12 +259,16 @@
           .sup-panel {
             display:none; background:rgba(0,0,0,.22); border:1px solid #6366f1;
             border-top:none; border-radius:0 0 14px 14px;
-            padding:20px 22px; margin-bottom:12px;
+            margin-bottom:12px; overflow:hidden;
           }
           .sup-panel.open { display:block; }
 
-          .sup-panel-grid { display:grid; grid-template-columns:1fr 1.6fr; gap:24px; }
-          @media(max-width:700px){ .sup-panel-grid { grid-template-columns:1fr; } }
+          .panel-tabs { display:flex; gap:2px; padding:0 18px; border-bottom:1px solid rgba(255,255,255,.07); background:rgba(255,255,255,.02); }
+          .panel-tab-btn { padding:10px 16px; font-size:.78rem; font-weight:600; border:none; background:none; color:#64748b; cursor:pointer; border-bottom:2px solid transparent; margin-bottom:-1px; transition:color .15s,border-color .15s; }
+          .panel-tab-btn:hover { color:#94a3b8; }
+          .panel-tab-btn.ptab-active { color:#818cf8; border-bottom-color:#818cf8; }
+          .panel-tab-content { display:none; padding:18px 20px; }
+          .panel-tab-content.ptab-active { display:block; }
 
           .sup-section-label {
             font-size:.68rem; font-weight:700; text-transform:uppercase; letter-spacing:.6px;
@@ -327,6 +321,34 @@
             border-color:rgba(5,150,105,.4); color:#34d399;
           }
           .grade-btn-rev:hover { background:rgba(5,150,105,.12); }
+
+          /* scoreboard grade input */
+          .grade-scoreboard { display:flex; flex-direction:column; align-items:center; gap:6px; }
+          .grade-dial { display:flex; align-items:center; gap:14px; }
+          .grade-nudge {
+            width:36px; height:36px; border-radius:50%;
+            border:1px solid rgba(255,255,255,.13);
+            background:rgba(255,255,255,.05);
+            color:#94a3b8; font-size:1.3rem; line-height:1;
+            cursor:pointer; display:flex; align-items:center; justify-content:center;
+            transition:background .15s,color .15s;
+          }
+          .grade-nudge:hover { background:rgba(99,102,241,.2); color:#818cf8; }
+          .grade-number-input {
+            width:110px; text-align:center;
+            font-size:3.2rem; font-weight:800; letter-spacing:-2px;
+            background:transparent; border:none;
+            border-bottom:3px solid rgba(99,102,241,.5);
+            color:#818cf8; outline:none;
+            -moz-appearance:textfield;
+          }
+          .grade-number-input:focus { border-bottom-color:#818cf8; }
+          .grade-number-input::-webkit-outer-spin-button,
+          .grade-number-input::-webkit-inner-spin-button { -webkit-appearance:none; margin:0; }
+          .grade-scoreboard-label {
+            font-size:.6rem; font-weight:700; text-transform:uppercase;
+            letter-spacing:1px; color:#475569;
+          }
         </style>
 
         {% for item in supervised_data %}
@@ -335,8 +357,11 @@
         <div class="sup-team-row" id="sup-row-{{ proj.pk }}" onclick="toggleSupPanel({{ proj.pk }})">
           <div class="team-row-icon" style="background:linear-gradient(135deg,#1d4ed8,#7c3aed);flex-shrink:0;">🏷️</div>
           <div class="team-row-info" style="flex:1;">
-            <div class="team-row-name">{{ proj.team.name }}</div>
-            <div class="team-row-sub">{{ proj.title }} · {{ members|length }} member{{ members|length|pluralize }}</div>
+            <div class="team-row-name">
+              {{ proj.team.name }}
+              {% if item.needs_my_grade %}<span title="Ungraded submission" style="display:inline-block;width:8px;height:8px;border-radius:50%;background:#f59e0b;box-shadow:0 0 6px rgba(245,158,11,.7);margin-left:7px;vertical-align:middle;flex-shrink:0;"></span>{% endif %}
+            </div>
+            <div class="team-row-sub">{{ proj.title }} · {{ members|length }} member{{ members|length|pluralize }}{% with revs=proj.reviewers.all %}{% if revs %} · Reviewed by {% for r in revs %}{{ r.full_name|default:r.username }}{% if not forloop.last %}, {% endif %}{% endfor %}{% endif %}{% endwith %}</div>
           </div>
           <div style="display:flex;align-items:center;gap:10px;">
             <span class="card-status-tag tag-active" style="position:static;">{{ proj.get_status_display }}</span>
@@ -345,179 +370,182 @@
         </div>
 
         <div class="sup-panel" id="sup-panel-{{ proj.pk }}">
-          <div class="sup-panel-grid">
 
-            <!-- Project Edit Request -->
-            {% with pe=proj.pending_edit %}
-            {% if pe %}
-            <div style="grid-column:1/-1;background:rgba(245,158,11,.08);border:1px solid rgba(245,158,11,.3);border-radius:12px;padding:14px 18px;margin-bottom:4px;">
-              <div style="font-size:.8rem;font-weight:700;color:#fbbf24;margin-bottom:8px;">📝 Pending Project Edit Request</div>
-              <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;font-size:.78rem;color:#94a3b8;margin-bottom:12px;">
-                <div>
-                  <div style="font-size:.68rem;text-transform:uppercase;letter-spacing:.4px;color:#64748b;margin-bottom:3px;">Current Title</div>
-                  <div style="color:#e2e8f0;font-weight:600;">{{ proj.title }}</div>
+          <!-- Pending edit banner (always visible, above tabs) -->
+          {% with pe=proj.pending_edit %}
+          {% if pe %}
+          <div style="margin:14px 18px 0;background:rgba(245,158,11,.08);border:1px solid rgba(245,158,11,.3);border-radius:12px;padding:14px 18px;">
+            <div style="font-size:.8rem;font-weight:700;color:#fbbf24;margin-bottom:8px;">📝 Pending Project Edit Request</div>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;font-size:.78rem;color:#94a3b8;margin-bottom:12px;">
+              <div>
+                <div style="font-size:.68rem;text-transform:uppercase;letter-spacing:.4px;color:#64748b;margin-bottom:3px;">Current Title</div>
+                <div style="color:#e2e8f0;font-weight:600;">{{ proj.title }}</div>
+              </div>
+              <div>
+                <div style="font-size:.68rem;text-transform:uppercase;letter-spacing:.4px;color:#64748b;margin-bottom:3px;">Proposed Title</div>
+                <div style="color:#fbbf24;font-weight:600;">{{ pe.new_title }}</div>
+              </div>
+              {% if proj.description or pe.new_description %}
+              <div>
+                <div style="font-size:.68rem;text-transform:uppercase;letter-spacing:.4px;color:#64748b;margin-bottom:3px;">Current Description</div>
+                <div>{{ proj.description|truncatechars:80 }}</div>
+              </div>
+              <div>
+                <div style="font-size:.68rem;text-transform:uppercase;letter-spacing:.4px;color:#64748b;margin-bottom:3px;">Proposed Description</div>
+                <div style="color:#fbbf24;">{{ pe.new_description|truncatechars:80 }}</div>
+              </div>
+              {% endif %}
+            </div>
+            <div style="font-size:.72rem;color:#64748b;margin-bottom:10px;">Submitted by {{ pe.submitted_by.full_name|default:pe.submitted_by.username }} · {{ pe.submitted_at|timesince }} ago</div>
+            <div style="display:flex;gap:8px;">
+              <form method="post" action="{% url 'projects:approve_edit' proj.pk %}">
+                {% csrf_token %}
+                <button type="submit" style="padding:6px 14px;border-radius:7px;border:none;background:#16a34a;color:white;font-size:.75rem;font-weight:700;cursor:pointer;">✔ Approve</button>
+              </form>
+              <form method="post" action="{% url 'projects:reject_edit' proj.pk %}">
+                {% csrf_token %}
+                <button type="submit" style="padding:6px 14px;border-radius:7px;border:1px solid rgba(239,68,68,.4);background:transparent;color:#f87171;font-size:.75rem;font-weight:700;cursor:pointer;">✕ Reject</button>
+              </form>
+            </div>
+          </div>
+          {% endif %}
+          {% endwith %}
+
+          <!-- Tab bar -->
+          <div class="panel-tabs">
+            <button class="panel-tab-btn ptab-active" onclick="switchPanelTab('sup{{ proj.pk }}','members',this,event)">👥 Members</button>
+            <button class="panel-tab-btn" onclick="switchPanelTab('sup{{ proj.pk }}','milestones',this,event)">📋 Milestones</button>
+          </div>
+
+          <!-- Members tab -->
+          <div class="panel-tab-content ptab-active" id="tab-sup{{ proj.pk }}-members">
+            <div style="background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.07);border-radius:10px;overflow:hidden;">
+              {% for m in members %}
+              <div class="sup-member">
+                <div class="sup-member-av">{{ m.user.full_name|default:m.user.username|first|upper }}</div>
+                <div style="flex:1;min-width:0;">
+                  <div class="sup-member-name">{{ m.user.full_name|default:m.user.username }}</div>
+                  <div class="sup-member-meta">{{ m.user.student_id|default:"—" }}{% if m.user.department %} · {{ m.user.department }}{% endif %}</div>
                 </div>
-                <div>
-                  <div style="font-size:.68rem;text-transform:uppercase;letter-spacing:.4px;color:#64748b;margin-bottom:3px;">Proposed Title</div>
-                  <div style="color:#fbbf24;font-weight:600;">{{ pe.new_title }}</div>
-                </div>
-                {% if proj.description or pe.new_description %}
-                <div>
-                  <div style="font-size:.68rem;text-transform:uppercase;letter-spacing:.4px;color:#64748b;margin-bottom:3px;">Current Description</div>
-                  <div>{{ proj.description|truncatechars:80 }}</div>
-                </div>
-                <div>
-                  <div style="font-size:.68rem;text-transform:uppercase;letter-spacing:.4px;color:#64748b;margin-bottom:3px;">Proposed Description</div>
-                  <div style="color:#fbbf24;">{{ pe.new_description|truncatechars:80 }}</div>
-                </div>
+                <span style="font-size:.68rem;padding:2px 8px;border-radius:20px;font-weight:700;
+                  {% if m.role == 'leader' %}background:rgba(245,158,11,.2);color:#fbbf24;{% else %}background:rgba(100,116,139,.15);color:#94a3b8;{% endif %}">
+                  {{ m.role|capfirst }}
+                </span>
+              </div>
+              {% empty %}
+              <div style="padding:14px;text-align:center;font-size:.82rem;color:#64748b;">No members.</div>
+              {% endfor %}
+            </div>
+          </div>
+
+          <!-- Milestones tab -->
+          <div class="panel-tab-content" id="tab-sup{{ proj.pk }}-milestones">
+            <div style="background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.07);border-radius:10px;overflow:hidden;">
+              {% for item in milestones %}
+              {% with m=item.milestone sub=item.submission %}
+              <div class="sup-ms-row">
+                <div class="sup-ms-num">{{ m.order }}</div>
+                <div class="sup-ms-title">{{ m.title }}</div>
+                {% if sub %}
+                  <span style="font-size:.7rem;padding:2px 8px;border-radius:20px;background:rgba(59,130,246,.2);color:#60a5fa;font-weight:700;">📤 Submitted</span>
+                  {% if sub.supervisor_grade is not None %}
+                    <span style="font-size:.78rem;font-weight:700;color:#818cf8;white-space:nowrap;">My Grade: {{ sub.supervisor_grade|floatformat:1 }}</span>
+                  {% endif %}
+                  {% if item.all_graded and sub.grade is not None %}
+                    <span class="sup-ms-grade" style="white-space:nowrap;">Avg: {{ sub.grade|floatformat:1 }}</span>
+                  {% endif %}
+                  {% if sub.files.exists %}
+                  <a href="{{ sub.files.first.file.url }}" target="_blank"
+                     style="font-size:.7rem;color:#818cf8;text-decoration:none;padding:2px 7px;border:1px solid rgba(99,102,241,.3);border-radius:6px;">📎 Files</a>
+                  {% endif %}
+                  <button class="grade-btn" onclick="toggleGradePanel('s{{ sub.pk }}');event.stopPropagation();">
+                    {% if sub.supervisor_grade is not None %}✎ Edit{% else %}🖊 Grade{% endif %}
+                  </button>
+                {% else %}
+                  <span style="font-size:.7rem;padding:2px 8px;border-radius:20px;background:rgba(100,116,139,.15);color:#64748b;">— Not submitted</span>
                 {% endif %}
               </div>
-              <div style="font-size:.72rem;color:#64748b;margin-bottom:10px;">Submitted by {{ pe.submitted_by.full_name|default:pe.submitted_by.username }} · {{ pe.submitted_at|timesince }} ago</div>
-              <div style="display:flex;gap:8px;">
-                <form method="post" action="{% url 'projects:approve_edit' proj.pk %}">
+              {% if sub %}
+              <div class="sup-grade-panel" id="gp-s{{ sub.pk }}">
+                <form method="post" action="{% url 'submissions:supervisor_grade' sub.pk %}">
                   {% csrf_token %}
-                  <button type="submit" style="padding:6px 14px;border-radius:7px;border:none;background:#16a34a;color:white;font-size:.75rem;font-weight:700;cursor:pointer;">✔ Approve</button>
-                </form>
-                <form method="post" action="{% url 'projects:reject_edit' proj.pk %}">
-                  {% csrf_token %}
-                  <button type="submit" style="padding:6px 14px;border-radius:7px;border:1px solid rgba(239,68,68,.4);background:transparent;color:#f87171;font-size:.75rem;font-weight:700;cursor:pointer;">✕ Reject</button>
-                </form>
-              </div>
-            </div>
-            {% endif %}
-            {% endwith %}
-
-            <!-- LEFT: Members -->
-            <div>
-              <div class="sup-section-label">👥 Members</div>
-              <div style="background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.07);border-radius:10px;overflow:hidden;">
-                {% for m in members %}
-                <div class="sup-member">
-                  <div class="sup-member-av">{{ m.user.full_name|default:m.user.username|first|upper }}</div>
-                  <div style="flex:1;min-width:0;">
-                    <div class="sup-member-name">{{ m.user.full_name|default:m.user.username }}</div>
-                    <div class="sup-member-meta">
-                      {{ m.user.student_id|default:"—" }}{% if m.user.department %} · {{ m.user.department }}{% endif %}
+                  {% if m.has_split %}
+                  <div style="font-size:.65rem;color:#94a3b8;margin-bottom:8px;">
+                    This milestone is split: <strong>Report {{ m.report_weight }}%</strong> + <strong>Presentation {{ m.presentation_weight }}%</strong>
+                  </div>
+                  <div style="display:flex;flex-direction:column;align-items:center;gap:12px;padding:8px 0 4px;">
+                    <div style="display:flex;gap:32px;justify-content:center;flex-wrap:wrap;">
+                      <div class="grade-scoreboard">
+                        <div class="grade-scoreboard-label">Report ({{ m.report_weight }}%)</div>
+                        <div class="grade-dial">
+                          <button type="button" class="grade-nudge" onclick="nudgeGrade(this,-1)">−</button>
+                          <input type="number" name="grade_report" min="0" max="100" step="0.5"
+                                 class="grade-number-input"
+                                 value="{{ sub.supervisor_report_grade|default:'' }}"
+                                 placeholder="—"
+                                 oninput="clampGrade(this)">
+                          <button type="button" class="grade-nudge" onclick="nudgeGrade(this,1)">+</button>
+                        </div>
+                        <div class="grade-scoreboard-label">/100</div>
+                      </div>
+                      <div class="grade-scoreboard">
+                        <div class="grade-scoreboard-label">Presentation ({{ m.presentation_weight }}%)</div>
+                        <div class="grade-dial">
+                          <button type="button" class="grade-nudge" onclick="nudgeGrade(this,-1)">−</button>
+                          <input type="number" name="grade_presentation" min="0" max="100" step="0.5"
+                                 class="grade-number-input"
+                                 value="{{ sub.supervisor_presentation_grade|default:'' }}"
+                                 placeholder="—"
+                                 oninput="clampGrade(this)">
+                          <button type="button" class="grade-nudge" onclick="nudgeGrade(this,1)">+</button>
+                        </div>
+                        <div class="grade-scoreboard-label">/100</div>
+                      </div>
+                    </div>
+                    <div style="width:100%;">
+                      <div style="font-size:.65rem;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:#64748b;margin-bottom:4px;">Feedback</div>
+                      <textarea name="feedback" rows="2"
+                                style="width:100%;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.12);border-radius:6px;padding:5px 8px;color:#e2e8f0;font-size:.78rem;resize:vertical;box-sizing:border-box;">{{ sub.supervisor_feedback }}</textarea>
+                    </div>
+                    <div style="display:flex;align-items:center;gap:6px;width:100%;justify-content:flex-end;">
+                      <button type="submit" class="btn btn-primary btn-sm">Save</button>
                     </div>
                   </div>
-                  <span style="font-size:.68rem;padding:2px 8px;border-radius:20px;font-weight:700;
-                    {% if m.role == 'leader' %}background:rgba(245,158,11,.2);color:#fbbf24;{% else %}background:rgba(100,116,139,.15);color:#94a3b8;{% endif %}">
-                    {{ m.role|capfirst }}
-                  </span>
-                </div>
-                {% empty %}
-                <div style="padding:14px;text-align:center;font-size:.82rem;color:#64748b;">No members.</div>
-                {% endfor %}
-              </div>
-            </div>
-
-            <!-- RIGHT: Milestones & Submissions -->
-            <div>
-              <div class="sup-section-label">📋 Milestones &amp; Submissions</div>
-              <div style="background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.07);border-radius:10px;overflow:hidden;">
-                {% for item in milestones %}
-                {% with m=item.milestone sub=item.submission %}
-                <div class="sup-ms-row">
-                  <div class="sup-ms-num">{{ m.order }}</div>
-                  <div class="sup-ms-title">{{ m.title }}</div>
-                  {% if sub %}
-                    {% if sub.status == 'approved' %}
-                      <span style="font-size:.7rem;padding:2px 8px;border-radius:20px;background:rgba(34,197,94,.2);color:#4ade80;font-weight:700;">✔ Approved</span>
-                    {% elif sub.status == 'revision' %}
-                      <span style="font-size:.7rem;padding:2px 8px;border-radius:20px;background:rgba(249,115,22,.2);color:#fb923c;font-weight:700;">↺ Revision</span>
-                    {% else %}
-                      <span style="font-size:.7rem;padding:2px 8px;border-radius:20px;background:rgba(59,130,246,.2);color:#60a5fa;font-weight:700;">📤 Submitted</span>
-                    {% endif %}
-                    {% if sub.grade is not None %}<span class="sup-ms-grade">{{ sub.grade|floatformat:1 }}/100</span>{% endif %}
-                    {% if sub.files.exists %}
-                    <a href="{{ sub.files.first.file.url }}" target="_blank"
-                       style="font-size:.7rem;color:#818cf8;text-decoration:none;padding:2px 7px;border:1px solid rgba(99,102,241,.3);border-radius:6px;">
-                      📎 Files
-                    </a>
-                    {% endif %}
-                    <button class="grade-btn" onclick="toggleGradePanel('s{{ sub.pk }}');event.stopPropagation();">
-                      {% if sub.supervisor_grade is not None %}✎ {{ sub.supervisor_grade|floatformat:1 }}{% else %}🖊 Grade{% endif %}
-                    </button>
                   {% else %}
-                    <span style="font-size:.7rem;padding:2px 8px;border-radius:20px;background:rgba(100,116,139,.15);color:#64748b;">— Not submitted</span>
-                  {% endif %}
-                </div>
-                {% if sub %}
-                <div class="sup-grade-panel" id="gp-s{{ sub.pk }}">
-                  <form method="post" action="{% url 'submissions:supervisor_grade' sub.pk %}">
-                    {% csrf_token %}
-                    {% if m.has_split %}
-                    <div style="font-size:.65rem;color:#94a3b8;margin-bottom:8px;">
-                      This milestone is split: <strong>Report {{ m.report_weight }}%</strong> + <strong>Presentation {{ m.presentation_weight }}%</strong>
-                    </div>
-                    <div style="display:flex;gap:10px;align-items:flex-start;flex-wrap:wrap;">
-                      <div>
-                        <div style="font-size:.65rem;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:#64748b;margin-bottom:4px;">Report ({{ m.report_weight }}%)</div>
-                        <input type="number" name="grade_report" min="0" max="100" step="0.5"
-                               value="{{ sub.supervisor_report_grade|default:'' }}"
-                               style="width:80px;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.12);border-radius:6px;padding:5px 8px;color:#e2e8f0;font-size:.82rem;">
-                      </div>
-                      <div>
-                        <div style="font-size:.65rem;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:#64748b;margin-bottom:4px;">Presentation ({{ m.presentation_weight }}%)</div>
-                        <input type="number" name="grade_presentation" min="0" max="100" step="0.5"
-                               value="{{ sub.supervisor_presentation_grade|default:'' }}"
-                               style="width:80px;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.12);border-radius:6px;padding:5px 8px;color:#e2e8f0;font-size:.82rem;">
-                      </div>
-                      <div style="flex:1;min-width:160px;">
-                        <div style="font-size:.65rem;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:#64748b;margin-bottom:4px;">Feedback</div>
-                        <textarea name="feedback" rows="2"
-                                  style="width:100%;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.12);border-radius:6px;padding:5px 8px;color:#e2e8f0;font-size:.78rem;resize:vertical;box-sizing:border-box;">{{ sub.supervisor_feedback }}</textarea>
-                      </div>
-                      <div style="display:flex;align-items:flex-end;gap:4px;padding-bottom:2px;">
-                        <button type="submit" class="btn btn-primary btn-sm">Save</button>
-                        <form method="post" action="{% url 'submissions:supervisor_status' sub.pk %}" style="display:inline;">
-                          {% csrf_token %}
-                          <button type="submit" name="status" value="approved" style="font-size:.65rem;padding:4px 8px;border-radius:5px;border:1px solid rgba(34,197,94,.4);background:transparent;color:#4ade80;cursor:pointer;">✔</button>
-                          <button type="submit" name="status" value="revision" style="font-size:.65rem;padding:4px 8px;border-radius:5px;border:1px solid rgba(249,115,22,.4);background:transparent;color:#fb923c;cursor:pointer;">↺</button>
-                        </form>
-                      </div>
-                    </div>
-                    {% else %}
-                    <div style="display:flex;gap:10px;align-items:flex-start;flex-wrap:wrap;">
-                      <div>
-                        <div style="font-size:.65rem;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:#64748b;margin-bottom:4px;">Grade (0–100)</div>
+                  <div style="display:flex;flex-direction:column;align-items:center;gap:12px;padding:8px 0 4px;">
+                    <div class="grade-scoreboard">
+                      <div class="grade-scoreboard-label">Grade</div>
+                      <div class="grade-dial">
+                        <button type="button" class="grade-nudge" onclick="nudgeGrade(this,-1)">−</button>
                         <input type="number" name="grade" min="0" max="100" step="0.5"
+                               class="grade-number-input"
                                value="{{ sub.supervisor_grade|default:'' }}"
-                               style="width:80px;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.12);border-radius:6px;padding:5px 8px;color:#e2e8f0;font-size:.82rem;">
+                               placeholder="—"
+                               oninput="clampGrade(this)">
+                        <button type="button" class="grade-nudge" onclick="nudgeGrade(this,1)">+</button>
                       </div>
-                      <div style="flex:1;min-width:160px;">
-                        <div style="font-size:.65rem;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:#64748b;margin-bottom:4px;">Feedback to Team</div>
-                        <textarea name="feedback" rows="2"
-                                  style="width:100%;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.12);border-radius:6px;padding:5px 8px;color:#e2e8f0;font-size:.78rem;resize:vertical;box-sizing:border-box;">{{ sub.supervisor_feedback }}</textarea>
-                      </div>
-                      <div style="display:flex;align-items:flex-end;gap:4px;padding-bottom:2px;">
-                        <button type="submit" class="btn btn-primary btn-sm">Save</button>
-                        <form method="post" action="{% url 'submissions:supervisor_status' sub.pk %}" style="display:inline;">
-                          {% csrf_token %}
-                          <button type="submit" name="status" value="approved" style="font-size:.65rem;padding:4px 8px;border-radius:5px;border:1px solid rgba(34,197,94,.4);background:transparent;color:#4ade80;cursor:pointer;">✔</button>
-                          <button type="submit" name="status" value="revision" style="font-size:.65rem;padding:4px 8px;border-radius:5px;border:1px solid rgba(249,115,22,.4);background:transparent;color:#fb923c;cursor:pointer;">↺</button>
-                        </form>
-                      </div>
+                      <div class="grade-scoreboard-label">/100</div>
                     </div>
-                    {% endif %}
-                    <div style="margin-top:7px;font-size:.72rem;color:#64748b;">
-                      {% if sub.supervisor_grade is not None %}
-                        {% if sub.grade is not None %}Final avg: <span style="color:#4ade80;font-weight:700;">{{ sub.grade|floatformat:1 }}</span>{% else %}Waiting for reviewer(s) to grade.{% endif %}
-                      {% else %}
-                        Grade first to see the running average (blind grading).
-                      {% endif %}
+                    <div style="width:100%;">
+                      <div style="font-size:.65rem;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:#64748b;margin-bottom:4px;">Feedback to Team</div>
+                      <textarea name="feedback" rows="2"
+                                style="width:100%;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.12);border-radius:6px;padding:5px 8px;color:#e2e8f0;font-size:.78rem;resize:vertical;box-sizing:border-box;">{{ sub.supervisor_feedback }}</textarea>
                     </div>
-                  </form>
-                </div>
-                {% endif %}
-                {% endwith %}
-                {% empty %}
-                <div style="padding:14px;text-align:center;font-size:.82rem;color:#64748b;">No milestones defined yet.</div>
-                {% endfor %}
+                    <div style="display:flex;align-items:center;gap:6px;width:100%;justify-content:flex-end;">
+                      <button type="submit" class="btn btn-primary btn-sm">Save</button>
+                    </div>
+                  </div>
+                  {% endif %}
+                </form>
               </div>
+              {% endif %}
+              {% endwith %}
+              {% empty %}
+              <div style="padding:14px;text-align:center;font-size:.82rem;color:#64748b;">No milestones defined yet.</div>
+              {% endfor %}
             </div>
-
           </div>
+
         </div>
 
         {% endwith %}
@@ -530,6 +558,15 @@
         {% endif %}
 
         <script>
+          function switchPanelTab(panelId, tabName, btn, e) {
+            if (e) e.stopPropagation();
+            var panel = btn.closest('.sup-panel');
+            panel.querySelectorAll('.panel-tab-btn').forEach(function(b){ b.classList.remove('ptab-active'); });
+            panel.querySelectorAll('.panel-tab-content').forEach(function(c){ c.classList.remove('ptab-active'); });
+            btn.classList.add('ptab-active');
+            document.getElementById('tab-' + panelId + '-' + tabName).classList.add('ptab-active');
+          }
+
           var _openSup = null;
           function toggleSupPanel(pk) {
             var panel = document.getElementById('sup-panel-' + pk);
@@ -555,7 +592,10 @@
         <div class="sup-team-row" id="rev-row-{{ proj.pk }}" onclick="toggleRevPanel({{ proj.pk }})">
           <div class="team-row-icon" style="background:linear-gradient(135deg,#059669,#0284c7);flex-shrink:0;">📋</div>
           <div class="team-row-info" style="flex:1;">
-            <div class="team-row-name">{{ proj.team.name }}</div>
+            <div class="team-row-name">
+              {{ proj.team.name }}
+              {% if item.needs_my_grade %}<span title="Awaiting your grade" style="display:inline-block;width:8px;height:8px;border-radius:50%;background:#f59e0b;box-shadow:0 0 6px rgba(245,158,11,.7);margin-left:7px;vertical-align:middle;flex-shrink:0;"></span>{% endif %}
+            </div>
             <div class="team-row-sub">{{ proj.title }} · Supervised by {{ proj.supervisor.full_name|default:proj.supervisor.username|default:"—" }}</div>
           </div>
           <div style="display:flex;align-items:center;gap:10px;">
@@ -565,123 +605,155 @@
         </div>
 
         <div class="sup-panel" id="rev-panel-{{ proj.pk }}">
-          <div class="sup-panel-grid">
 
-            <div>
-              <div class="sup-section-label">👥 Members</div>
-              <div style="background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.07);border-radius:10px;overflow:hidden;">
-                {% for m in members %}
-                <div class="sup-member">
-                  <div class="sup-member-av">{{ m.user.full_name|default:m.user.username|first|upper }}</div>
-                  <div style="flex:1;min-width:0;">
-                    <div class="sup-member-name">{{ m.user.full_name|default:m.user.username }}</div>
-                    <div class="sup-member-meta">{{ m.user.student_id|default:"—" }}{% if m.user.department %} · {{ m.user.department }}{% endif %}</div>
-                  </div>
-                  <span style="font-size:.68rem;padding:2px 8px;border-radius:20px;font-weight:700;
-                    {% if m.role == 'leader' %}background:rgba(245,158,11,.2);color:#fbbf24;{% else %}background:rgba(100,116,139,.15);color:#94a3b8;{% endif %}">
-                    {{ m.role|capfirst }}
-                  </span>
-                </div>
-                {% empty %}
-                <div style="padding:14px;text-align:center;font-size:.82rem;color:#64748b;">No members.</div>
-                {% endfor %}
-              </div>
-            </div>
-
-            <div>
-              <div class="sup-section-label">📋 Milestones &amp; Submissions</div>
-              <div style="background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.07);border-radius:10px;overflow:hidden;">
-                {% for ms_item in milestones %}
-                {% with m=ms_item.milestone sub=ms_item.submission my_rgs=ms_item.my_reviewer_grades %}
-                <div class="sup-ms-row">
-                  <div class="sup-ms-num">{{ m.order }}</div>
-                  <div class="sup-ms-title">{{ m.title }}</div>
-                  {% if sub %}
-                    {% if sub.status == 'approved' %}
-                      <span style="font-size:.7rem;padding:2px 8px;border-radius:20px;background:rgba(34,197,94,.2);color:#4ade80;font-weight:700;">✔ Approved</span>
-                    {% elif sub.status == 'revision' %}
-                      <span style="font-size:.7rem;padding:2px 8px;border-radius:20px;background:rgba(249,115,22,.2);color:#fb923c;font-weight:700;">↺ Revision</span>
-                    {% else %}
-                      <span style="font-size:.7rem;padding:2px 8px;border-radius:20px;background:rgba(59,130,246,.2);color:#60a5fa;font-weight:700;">📤 Submitted</span>
-                    {% endif %}
-                    {% if sub.grade is not None %}<span class="sup-ms-grade">{{ sub.grade|floatformat:1 }}/100</span>{% endif %}
-                    {% if sub.files.exists %}
-                    <a href="{{ sub.files.first.file.url }}" target="_blank"
-                       style="font-size:.7rem;color:#818cf8;text-decoration:none;padding:2px 7px;border:1px solid rgba(99,102,241,.3);border-radius:6px;">📎 Files</a>
-                    {% endif %}
-                    <button class="grade-btn grade-btn-rev" onclick="toggleGradePanel('r{{ sub.pk }}');event.stopPropagation();">
-                      {% if m.has_split %}
-                        {% if my_rgs.report or my_rgs.presentation %}✎ Split graded{% else %}🖊 My Grade{% endif %}
-                      {% else %}
-                        {% if my_rgs.single and my_rgs.single.grade is not None %}✎ {{ my_rgs.single.grade|floatformat:1 }}{% else %}🖊 My Grade{% endif %}
-                      {% endif %}
-                    </button>
-                  {% else %}
-                    <span style="font-size:.7rem;padding:2px 8px;border-radius:20px;background:rgba(100,116,139,.15);color:#64748b;">— Not submitted</span>
-                  {% endif %}
-                </div>
-                {% if sub %}
-                <div class="sup-grade-panel" id="gp-r{{ sub.pk }}">
-                  <form method="post" action="{% url 'submissions:reviewer_grade' sub.pk %}">
-                    {% csrf_token %}
-                    {% if m.has_split %}
-                    <div style="font-size:.65rem;color:#94a3b8;margin-bottom:8px;">
-                      Split: <strong>Report {{ m.report_weight }}%</strong> + <strong>Presentation {{ m.presentation_weight }}%</strong>
-                    </div>
-                    <div style="display:flex;gap:10px;align-items:flex-start;flex-wrap:wrap;">
-                      <div>
-                        <div style="font-size:.65rem;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:#64748b;margin-bottom:4px;">Report ({{ m.report_weight }}%)</div>
-                        <input type="number" name="grade_report" min="0" max="100" step="0.5"
-                               value="{% if my_rgs.report and my_rgs.report.grade is not None %}{{ my_rgs.report.grade }}{% endif %}"
-                               style="width:80px;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.12);border-radius:6px;padding:5px 8px;color:#e2e8f0;font-size:.82rem;">
-                      </div>
-                      <div>
-                        <div style="font-size:.65rem;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:#64748b;margin-bottom:4px;">Presentation ({{ m.presentation_weight }}%)</div>
-                        <input type="number" name="grade_presentation" min="0" max="100" step="0.5"
-                               value="{% if my_rgs.presentation and my_rgs.presentation.grade is not None %}{{ my_rgs.presentation.grade }}{% endif %}"
-                               style="width:80px;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.12);border-radius:6px;padding:5px 8px;color:#e2e8f0;font-size:.82rem;">
-                      </div>
-                      <div style="flex:1;min-width:160px;">
-                        <div style="font-size:.65rem;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:#64748b;margin-bottom:4px;">Feedback</div>
-                        <textarea name="feedback" rows="2"
-                                  style="width:100%;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.12);border-radius:6px;padding:5px 8px;color:#e2e8f0;font-size:.78rem;resize:vertical;box-sizing:border-box;">{% if my_rgs.report %}{{ my_rgs.report.feedback }}{% endif %}</textarea>
-                      </div>
-                      <div style="display:flex;align-items:flex-end;padding-bottom:2px;">
-                        <button type="submit" class="btn btn-primary btn-sm">Save</button>
-                      </div>
-                    </div>
-                    {% else %}
-                    <div style="display:flex;gap:10px;align-items:flex-start;flex-wrap:wrap;">
-                      <div>
-                        <div style="font-size:.65rem;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:#64748b;margin-bottom:4px;">My Grade (0–100)</div>
-                        <input type="number" name="grade" min="0" max="100" step="0.5"
-                               value="{% if my_rgs.single and my_rgs.single.grade is not None %}{{ my_rgs.single.grade }}{% endif %}"
-                               style="width:80px;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.12);border-radius:6px;padding:5px 8px;color:#e2e8f0;font-size:.82rem;">
-                      </div>
-                      <div style="flex:1;min-width:160px;">
-                        <div style="font-size:.65rem;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:#64748b;margin-bottom:4px;">My Feedback to Team</div>
-                        <textarea name="feedback" rows="2"
-                                  style="width:100%;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.12);border-radius:6px;padding:5px 8px;color:#e2e8f0;font-size:.78rem;resize:vertical;box-sizing:border-box;">{% if my_rgs.single %}{{ my_rgs.single.feedback }}{% endif %}</textarea>
-                      </div>
-                      <div style="display:flex;align-items:flex-end;padding-bottom:2px;">
-                        <button type="submit" class="btn btn-primary btn-sm">Save</button>
-                      </div>
-                    </div>
-                    {% endif %}
-                    <div style="margin-top:7px;font-size:.72rem;color:#64748b;">
-                      {% if sub.grade is not None %}Final avg: <span style="color:#4ade80;font-weight:700;">{{ sub.grade|floatformat:1 }}</span>{% else %}Pending all graders.{% endif %}
-                    </div>
-                  </form>
-                </div>
-                {% endif %}
-                {% endwith %}
-                {% empty %}
-                <div style="padding:14px;text-align:center;font-size:.82rem;color:#64748b;">No milestones defined yet.</div>
-                {% endfor %}
-              </div>
-            </div>
-
+          <!-- Tab bar -->
+          <div class="panel-tabs">
+            <button class="panel-tab-btn ptab-active" onclick="switchPanelTab('rev{{ proj.pk }}','members',this,event)">👥 Members</button>
+            <button class="panel-tab-btn" onclick="switchPanelTab('rev{{ proj.pk }}','milestones',this,event)">📋 Milestones</button>
           </div>
+
+          <!-- Members tab -->
+          <div class="panel-tab-content ptab-active" id="tab-rev{{ proj.pk }}-members">
+            <div style="background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.07);border-radius:10px;overflow:hidden;">
+              {% for m in members %}
+              <div class="sup-member">
+                <div class="sup-member-av">{{ m.user.full_name|default:m.user.username|first|upper }}</div>
+                <div style="flex:1;min-width:0;">
+                  <div class="sup-member-name">{{ m.user.full_name|default:m.user.username }}</div>
+                  <div class="sup-member-meta">{{ m.user.student_id|default:"—" }}{% if m.user.department %} · {{ m.user.department }}{% endif %}</div>
+                </div>
+                <span style="font-size:.68rem;padding:2px 8px;border-radius:20px;font-weight:700;
+                  {% if m.role == 'leader' %}background:rgba(245,158,11,.2);color:#fbbf24;{% else %}background:rgba(100,116,139,.15);color:#94a3b8;{% endif %}">
+                  {{ m.role|capfirst }}
+                </span>
+              </div>
+              {% empty %}
+              <div style="padding:14px;text-align:center;font-size:.82rem;color:#64748b;">No members.</div>
+              {% endfor %}
+            </div>
+          </div>
+
+          <!-- Milestones tab -->
+          <div class="panel-tab-content" id="tab-rev{{ proj.pk }}-milestones">
+            <div style="background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.07);border-radius:10px;overflow:hidden;">
+              {% for ms_item in milestones %}
+              {% with m=ms_item.milestone sub=ms_item.submission my_rgs=ms_item.my_reviewer_grades %}
+              <div class="sup-ms-row">
+                <div class="sup-ms-num">{{ m.order }}</div>
+                <div class="sup-ms-title">{{ m.title }}</div>
+                {% if sub %}
+                  {% if sub.status == 'approved' %}
+                    <span style="font-size:.7rem;padding:2px 8px;border-radius:20px;background:rgba(34,197,94,.2);color:#4ade80;font-weight:700;">✔ Approved</span>
+                  {% elif sub.status == 'revision' %}
+                    <span style="font-size:.7rem;padding:2px 8px;border-radius:20px;background:rgba(249,115,22,.2);color:#fb923c;font-weight:700;">↺ Revision</span>
+                  {% else %}
+                    <span style="font-size:.7rem;padding:2px 8px;border-radius:20px;background:rgba(59,130,246,.2);color:#60a5fa;font-weight:700;">📤 Submitted</span>
+                  {% endif %}
+                  {% if m.has_split %}
+                    {% if my_rgs.report and my_rgs.report.grade is not None %}<span style="font-size:.78rem;font-weight:700;color:#818cf8;white-space:nowrap;">My Grade (R): {{ my_rgs.report.grade|floatformat:1 }}</span>{% endif %}
+                    {% if my_rgs.presentation and my_rgs.presentation.grade is not None %}<span style="font-size:.78rem;font-weight:700;color:#818cf8;white-space:nowrap;">My Grade (P): {{ my_rgs.presentation.grade|floatformat:1 }}</span>{% endif %}
+                  {% else %}
+                    {% if my_rgs.single and my_rgs.single.grade is not None %}<span style="font-size:.78rem;font-weight:700;color:#818cf8;white-space:nowrap;">My Grade: {{ my_rgs.single.grade|floatformat:1 }}</span>{% endif %}
+                  {% endif %}
+                  {% if ms_item.all_graded and sub.grade is not None %}
+                    <span class="sup-ms-grade" style="white-space:nowrap;">Avg: {{ sub.grade|floatformat:1 }}</span>
+                  {% endif %}
+                  {% if sub.files.exists %}
+                  <a href="{{ sub.files.first.file.url }}" target="_blank"
+                     style="font-size:.7rem;color:#818cf8;text-decoration:none;padding:2px 7px;border:1px solid rgba(99,102,241,.3);border-radius:6px;">📎 Files</a>
+                  {% endif %}
+                  <button class="grade-btn grade-btn-rev" onclick="toggleGradePanel('r{{ sub.pk }}');event.stopPropagation();">
+                    {% if m.has_split %}
+                      {% if my_rgs.report or my_rgs.presentation %}✎ Edit{% else %}🖊 Grade{% endif %}
+                    {% else %}
+                      {% if my_rgs.single and my_rgs.single.grade is not None %}✎ Edit{% else %}🖊 Grade{% endif %}
+                    {% endif %}
+                  </button>
+                {% else %}
+                  <span style="font-size:.7rem;padding:2px 8px;border-radius:20px;background:rgba(100,116,139,.15);color:#64748b;">— Not submitted</span>
+                {% endif %}
+              </div>
+              {% if sub %}
+              <div class="sup-grade-panel" id="gp-r{{ sub.pk }}">
+                <form method="post" action="{% url 'submissions:reviewer_grade' sub.pk %}">
+                  {% csrf_token %}
+                  {% if m.has_split %}
+                  <div style="font-size:.65rem;color:#94a3b8;margin-bottom:8px;">
+                    Split: <strong>Report {{ m.report_weight }}%</strong> + <strong>Presentation {{ m.presentation_weight }}%</strong>
+                  </div>
+                  <div style="display:flex;flex-direction:column;align-items:center;gap:12px;padding:8px 0 4px;">
+                    <div style="display:flex;gap:32px;justify-content:center;flex-wrap:wrap;">
+                      <div class="grade-scoreboard">
+                        <div class="grade-scoreboard-label">Report ({{ m.report_weight }}%)</div>
+                        <div class="grade-dial">
+                          <button type="button" class="grade-nudge" onclick="nudgeGrade(this,-1)">−</button>
+                          <input type="number" name="grade_report" min="0" max="100" step="0.5"
+                                 class="grade-number-input"
+                                 value="{% if my_rgs.report and my_rgs.report.grade is not None %}{{ my_rgs.report.grade }}{% endif %}"
+                                 placeholder="—"
+                                 oninput="clampGrade(this)">
+                          <button type="button" class="grade-nudge" onclick="nudgeGrade(this,1)">+</button>
+                        </div>
+                        <div class="grade-scoreboard-label">/100</div>
+                      </div>
+                      <div class="grade-scoreboard">
+                        <div class="grade-scoreboard-label">Presentation ({{ m.presentation_weight }}%)</div>
+                        <div class="grade-dial">
+                          <button type="button" class="grade-nudge" onclick="nudgeGrade(this,-1)">−</button>
+                          <input type="number" name="grade_presentation" min="0" max="100" step="0.5"
+                                 class="grade-number-input"
+                                 value="{% if my_rgs.presentation and my_rgs.presentation.grade is not None %}{{ my_rgs.presentation.grade }}{% endif %}"
+                                 placeholder="—"
+                                 oninput="clampGrade(this)">
+                          <button type="button" class="grade-nudge" onclick="nudgeGrade(this,1)">+</button>
+                        </div>
+                        <div class="grade-scoreboard-label">/100</div>
+                      </div>
+                    </div>
+                    <div style="width:100%;">
+                      <div style="font-size:.65rem;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:#64748b;margin-bottom:4px;">Feedback</div>
+                      <textarea name="feedback" rows="2"
+                                style="width:100%;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.12);border-radius:6px;padding:5px 8px;color:#e2e8f0;font-size:.78rem;resize:vertical;box-sizing:border-box;">{% if my_rgs.report %}{{ my_rgs.report.feedback }}{% endif %}</textarea>
+                    </div>
+                    <div style="display:flex;justify-content:flex-end;width:100%;">
+                      <button type="submit" class="btn btn-primary btn-sm">Save</button>
+                    </div>
+                  </div>
+                  {% else %}
+                  <div style="display:flex;flex-direction:column;align-items:center;gap:12px;padding:8px 0 4px;">
+                    <div class="grade-scoreboard">
+                      <div class="grade-scoreboard-label">My Grade</div>
+                      <div class="grade-dial">
+                        <button type="button" class="grade-nudge" onclick="nudgeGrade(this,-1)">−</button>
+                        <input type="number" name="grade" min="0" max="100" step="0.5"
+                               class="grade-number-input"
+                               value="{% if my_rgs.single and my_rgs.single.grade is not None %}{{ my_rgs.single.grade }}{% endif %}"
+                               placeholder="—"
+                               oninput="clampGrade(this)">
+                        <button type="button" class="grade-nudge" onclick="nudgeGrade(this,1)">+</button>
+                      </div>
+                      <div class="grade-scoreboard-label">/100</div>
+                    </div>
+                    <div style="width:100%;">
+                      <div style="font-size:.65rem;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:#64748b;margin-bottom:4px;">My Feedback to Team</div>
+                      <textarea name="feedback" rows="2"
+                                style="width:100%;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.12);border-radius:6px;padding:5px 8px;color:#e2e8f0;font-size:.78rem;resize:vertical;box-sizing:border-box;">{% if my_rgs.single %}{{ my_rgs.single.feedback }}{% endif %}</textarea>
+                    </div>
+                    <div style="display:flex;justify-content:flex-end;width:100%;">
+                      <button type="submit" class="btn btn-primary btn-sm">Save</button>
+                    </div>
+                  </div>
+                  {% endif %}
+                </form>
+              </div>
+              {% endif %}
+              {% endwith %}
+              {% empty %}
+              <div style="padding:14px;text-align:center;font-size:.82rem;color:#64748b;">No milestones defined yet.</div>
+              {% endfor %}
+            </div>
+          </div>
+
         </div>
         {% endwith %}
         {% endfor %}
@@ -694,99 +766,6 @@
 
       </section>
 
-      <!-- SECTION: SUBMISSIONS -->
-      <section class="dash-section" id="sec-submissions">
-
-        <div class="section-hdr"><h2>Submissions</h2></div>
-
-        {% if not submissions_sections %}
-        <div style="text-align:center;padding:4rem;color:var(--text-muted);">No milestones defined yet.</div>
-        {% else %}
-
-        {% for sec in submissions_sections %}
-        {% with ms=sec.milestone %}
-        <div class="sup-team-row" id="sms-row-{{ ms.pk }}" onclick="toggleSmsPanel({{ ms.pk }})">
-          <div style="width:36px;height:36px;border-radius:9px;flex-shrink:0;background:linear-gradient(135deg,#1d4ed8,#7c3aed);display:grid;place-items:center;font-size:.85rem;font-weight:800;color:white;">{{ ms.order }}</div>
-          <div class="team-row-info" style="flex:1;">
-            <div class="team-row-name">{{ ms.title }}</div>
-            <div class="team-row-sub">{{ sec.submitted_count }}/{{ sec.total_count }} submitted &nbsp;·&nbsp; {{ sec.graded_count }} graded by you</div>
-          </div>
-          <div style="display:flex;align-items:center;gap:10px;">
-            {% if sec.submitted_count %}
-            <span style="font-size:.7rem;padding:2px 9px;border-radius:20px;background:rgba(59,130,246,.2);color:#60a5fa;font-weight:600;">{{ sec.submitted_count }} submitted</span>
-            {% endif %}
-            <span style="color:#64748b;font-size:1rem;transition:transform .2s;" id="sms-arrow-{{ ms.pk }}">›</span>
-          </div>
-        </div>
-
-        <div class="sup-panel" id="sms-panel-{{ ms.pk }}">
-          <div style="background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.07);border-radius:10px;overflow:hidden;">
-            {% for row in sec.rows %}
-            {% with proj=row.project sub=row.submission is_sup=row.is_supervised %}
-            <div style="border-bottom:1px solid rgba(255,255,255,.05);">
-              <div style="display:flex;align-items:center;gap:10px;padding:10px 14px;font-size:.82rem;">
-                <div style="flex:1;min-width:0;">
-                  <div style="font-weight:600;color:#e2e8f0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">{{ proj.team.name }}</div>
-                  <div style="font-size:.7rem;color:#64748b;margin-top:1px;">
-                    {% if is_sup %}Supervising{% else %}Reviewing · Sup: {{ proj.supervisor.full_name|default:proj.supervisor.username|default:"—" }}{% endif %}
-                  </div>
-                </div>
-                {% if sub %}
-                  {% if sub.status == 'approved' %}
-                    <span style="font-size:.7rem;padding:2px 8px;border-radius:20px;background:rgba(34,197,94,.2);color:#4ade80;font-weight:700;flex-shrink:0;">✔ Approved</span>
-                  {% elif sub.status == 'revision' %}
-                    <span style="font-size:.7rem;padding:2px 8px;border-radius:20px;background:rgba(249,115,22,.2);color:#fb923c;font-weight:700;flex-shrink:0;">↺ Revision</span>
-                  {% else %}
-                    <span style="font-size:.7rem;padding:2px 8px;border-radius:20px;background:rgba(59,130,246,.2);color:#60a5fa;font-weight:700;flex-shrink:0;">📤 Pending</span>
-                  {% endif %}
-                  {% if sub.files.exists %}
-                  <a href="{{ sub.files.first.file.url }}" target="_blank"
-                     style="font-size:.7rem;color:#818cf8;text-decoration:none;padding:2px 7px;border:1px solid rgba(99,102,241,.3);border-radius:6px;flex-shrink:0;">📎 Files</a>
-                  {% endif %}
-                  {% if is_sup %}
-                  <form method="post" action="{% url 'submissions:supervisor_status' sub.pk %}" style="display:inline-flex;gap:3px;flex-shrink:0;" onclick="event.stopPropagation();">
-                    {% csrf_token %}
-                    <button type="submit" name="status" value="approved" style="font-size:.62rem;padding:2px 6px;border-radius:4px;border:1px solid rgba(34,197,94,.4);background:transparent;color:#4ade80;cursor:pointer;">✔</button>
-                    <button type="submit" name="status" value="revision" style="font-size:.62rem;padding:2px 6px;border-radius:4px;border:1px solid rgba(249,115,22,.4);background:transparent;color:#fb923c;cursor:pointer;">↺</button>
-                  </form>
-                  {% endif %}
-                  {% if sub.grade is not None %}
-                  <span style="font-size:.75rem;font-weight:700;color:#4ade80;flex-shrink:0;">{{ sub.grade|floatformat:1 }}/100</span>
-                  {% endif %}
-                {% else %}
-                  <span style="font-size:.7rem;padding:2px 8px;border-radius:20px;background:rgba(100,116,139,.15);color:#64748b;flex-shrink:0;">— Not submitted</span>
-                {% endif %}
-              </div>
-            </div>
-            {% endwith %}
-            {% endfor %}
-          </div>
-        </div>
-        {% endwith %}
-        {% endfor %}
-
-        {% endif %}
-
-        <script>
-          var _openSms = null;
-          function toggleSmsPanel(pk) {
-            var panel = document.getElementById('sms-panel-' + pk);
-            var row   = document.getElementById('sms-row-'   + pk);
-            var arrow = document.getElementById('sms-arrow-' + pk);
-            if (_openSms && _openSms !== pk) {
-              document.getElementById('sms-panel-' + _openSms).classList.remove('open');
-              document.getElementById('sms-row-'   + _openSms).classList.remove('sup-open');
-              document.getElementById('sms-arrow-' + _openSms).style.transform = '';
-            }
-            var opening = !panel.classList.contains('open');
-            panel.classList.toggle('open', opening);
-            row.classList.toggle('sup-open', opening);
-            arrow.style.transform = opening ? 'rotate(90deg)' : '';
-            _openSms = opening ? pk : null;
-          }
-        </script>
-
-      </section>
 
       <!-- SECTION: MEETINGS -->
       <section class="dash-section" id="sec-meetings">
@@ -1000,6 +979,18 @@
     const target = section.querySelector('#' + targetId);
     target.style.display = 'flex';
     target.style.flexDirection = 'column';
+  }
+
+  function nudgeGrade(btn, delta) {
+    var input = btn.closest('.grade-dial').querySelector('input[type="number"]');
+    var val = parseFloat(input.value);
+    if (isNaN(val)) val = 0;
+    val = Math.min(100, Math.max(0, val + delta));
+    input.value = val % 1 === 0 ? val : val.toFixed(1);
+  }
+  function clampGrade(input) {
+    var val = parseFloat(input.value);
+    if (!isNaN(val)) input.value = Math.min(100, Math.max(0, val));
   }
 </script>
 {% endblock %}

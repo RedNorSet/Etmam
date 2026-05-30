@@ -277,9 +277,9 @@
       Teams &amp; Projects <span class="n-badge">{{ total_teams }}</span>
     </button>
     <button class="nav-tab" onclick="showPanel('milestones', this)">
-      Milestones {% if overdue %}<span class="n-badge">{{ overdue }}</span>{% endif %}
+      Milestones
     </button>
-    <button class="nav-tab" onclick="showPanel('submissions', this)">Submissions</button>
+    <button class="nav-tab" onclick="showPanel('submissions', this)">Submissions {% if overdue %}<span class="n-badge">{{ overdue }}</span>{% endif %}</button>
     <button class="nav-tab" onclick="showPanel('grades', this)">
       Grades {% if pending_grades %}<span class="n-badge">{{ pending_grades }}</span>{% endif %}
     </button>
@@ -316,8 +316,8 @@
       <div class="stat-box" onclick="showPanel('teams_projects', document.querySelectorAll('.nav-tab')[2])">
         <div class="val">{{ total_teams }}</div><div class="lbl">Active Teams</div><div class="arrow">→</div>
       </div>
-      <div class="stat-box" onclick="showPanel('milestones', document.querySelectorAll('.nav-tab')[3])">
-        <div class="val {% if overdue %}red{% endif %}">{{ overdue }}</div><div class="lbl">Missed Milestones</div><div class="arrow">→</div>
+      <div class="stat-box" onclick="showPanel('submissions', document.querySelectorAll('.nav-tab')[4])">
+        <div class="val {% if overdue %}red{% endif %}">{{ overdue }}</div><div class="lbl">Missed Submissions</div><div class="arrow">→</div>
       </div>
       <div class="stat-box" onclick="showPanel('grades', document.querySelectorAll('.nav-tab')[5])">
         <div class="val {% if pending_grades %}orange{% endif %}">{{ pending_grades }}</div><div class="lbl">Pending Grades</div><div class="arrow">→</div>
@@ -648,17 +648,8 @@
     <!-- ── Filter bar ── -->
     <div class="filter-bar">
       <button class="filter-btn active" onclick="filterTeams('all', this)">All Teams</button>
-      <button class="filter-btn" onclick="filterTeams('active', this)">Active Only</button>
-      <button class="filter-btn" onclick="filterTeams('has-project', this)">Has Project</button>
       <button class="filter-btn" onclick="filterTeams('no-project', this)">No Project</button>
       <button class="filter-btn" onclick="filterTeams('dissolved', this)">Dissolved</button>
-      <select class="filter-select" onchange="filterTeamsByStatus(this.value)">
-        <option value="">All Project Statuses</option>
-        <option value="in_progress">In Progress</option>
-        <option value="active">Active</option>
-        <option value="needs_review">Needs Review</option>
-        <option value="completed">Completed</option>
-      </select>
       <select class="filter-select" onchange="filterTeamsByDept(this.value)" style="min-width:180px;">
         <option value="">All Departments</option>
         <option value="computer science">Computer Science</option>
@@ -724,7 +715,9 @@
             <td>
               {% if project %}
                 <div style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-weight:500;">{{ project.title|truncatechars:38 }}</div>
-                <span class="badge {% if project.status == 'active' %}b-green{% elif project.status == 'completed' %}b-blue{% elif project.status == 'rejected' %}b-orange{% else %}b-gray{% endif %}" style="margin-top:3px;">{{ project.get_status_display }}</span>
+                {% if project.status != 'active' and project.status != 'in_progress' %}
+                <span class="badge {% if project.status == 'completed' %}b-blue{% elif project.status == 'rejected' %}b-orange{% else %}b-gray{% endif %}" style="margin-top:3px;">{{ project.get_status_display }}</span>
+                {% endif %}
               {% else %}
                 <span style="color:var(--light);font-style:italic;">— No project yet —</span>
               {% endif %}
@@ -1076,10 +1069,6 @@
             <label class="det-label">Due Date</label>
             <input type="date" name="due_date" class="det-input">
           </div>
-          <div class="det-field">
-            <label class="det-label">Weight (% of final grade)</label>
-            <input type="number" name="weight" class="det-input" value="10" min="0" max="100">
-          </div>
           <div style="display:flex;align-items:flex-end;">
             <button type="submit" class="btn btn-blue" style="width:100%;justify-content:center;">✔ Create Objective</button>
           </div>
@@ -1140,10 +1129,6 @@
             <div class="det-field">
               <label class="det-label">Due Date</label>
               <input type="date" name="due_date" class="det-input" value="{{ m.due_date|date:'Y-m-d'|default:'' }}">
-            </div>
-            <div class="det-field">
-              <label class="det-label">Weight (%)</label>
-              <input type="number" name="weight" class="det-input" value="{{ m.weight }}" min="0" max="100">
             </div>
             <div class="det-field">
               <label class="det-label">Display Order</label>
@@ -1228,22 +1213,7 @@
               </form>
             </td>
             <td>
-              <span class="badge {% if s.status == 'approved' %}b-green{% elif s.status == 'revision' %}b-orange{% elif s.status == 'reviewed' %}b-blue{% else %}b-gray{% endif %}">
-                {{ s.get_status_display }}
-              </span>
-            </td>
-            <td>
               <div style="display:flex;gap:6px;flex-wrap:wrap;">
-                <form method="post" action="{% url 'dashboard:admin_submission_status' s.pk %}">
-                  {% csrf_token %}
-                  <input type="hidden" name="status" value="approved">
-                  <button type="submit" class="btn btn-ghost btn-sm" style="color:var(--green);" title="Approve">✔ Approve</button>
-                </form>
-                <form method="post" action="{% url 'dashboard:admin_submission_status' s.pk %}">
-                  {% csrf_token %}
-                  <input type="hidden" name="status" value="revision">
-                  <button type="submit" class="btn btn-ghost btn-sm" style="color:var(--orange);" title="Request revision">↺ Revise</button>
-                </form>
                 <form method="post" action="{% url 'dashboard:admin_delete_submission' s.pk %}"
                       onsubmit="return confirm('Delete this submission? This cannot be undone.');">
                   {% csrf_token %}
@@ -1259,14 +1229,15 @@
 
         {% if pending %}
         <div>
-          <div class="pending-sub-header {% if subs %}pending-sub-header--bordered{% endif %}">
-            ⏳ Not yet submitted ({{ pending|length }})
-          </div>
           {% for p in pending %}
           <div style="display:flex;align-items:center;gap:12px;padding:10px 18px;border-top:1px solid var(--border);">
             <span style="flex:1;font-size:.83rem;">{{ p.team.name }}</span>
             <span style="font-size:.75rem;color:var(--muted);">{{ p.title|truncatechars:35 }}</span>
+            {% if item.is_overdue %}
+            <span class="badge b-red">Missed</span>
+            {% else %}
             <span class="badge b-gray">Pending</span>
+            {% endif %}
           </div>
           {% endfor %}
         </div>
@@ -1981,7 +1952,7 @@ function toggleTeam(rawId, event) {
 /* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
    FILTER
    ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */
-let _curFilter = 'all', _curStatus = '';
+let _curFilter = 'all';
 
 function filterTeams(filter, btn) {
   _curFilter = filter;
@@ -1989,7 +1960,6 @@ function filterTeams(filter, btn) {
   if (btn) btn.classList.add('active');
   _applyFilters();
 }
-function filterTeamsByStatus(status) { _curStatus = status; _applyFilters(); }
 var _curDept = '';
 function filterTeamsByDept(dept) { _curDept = dept; _applyFilters(); }
 function _applyFilters() {
@@ -1997,16 +1967,12 @@ function _applyFilters() {
     const id         = row.dataset.teamId;
     const isActive   = row.dataset.isActive === 'true';
     const hasProject = row.dataset.hasProject === 'true';
-    const status     = row.dataset.status;
     const dept       = row.dataset.dept || '';
     const detailRow  = document.getElementById('detail-' + id);
     let show = true;
-    if (_curFilter === 'active'      && !isActive)                show = false;
-    if (_curFilter === 'dissolved'   && isActive)                 show = false;
-    if (_curFilter === 'has-project' && (!isActive || !hasProject)) show = false;
-    if (_curFilter === 'no-project'  && (!isActive || hasProject))  show = false;
-    if (_curStatus && status !== _curStatus)                      show = false;
-    if (_curDept   && dept !== _curDept)                          show = false;
+    if (_curFilter === 'dissolved'  && isActive)                show = false;
+    if (_curFilter === 'no-project' && (!isActive || hasProject)) show = false;
+    if (_curDept && dept !== _curDept)                          show = false;
     row.style.display = show ? '' : 'none';
     if (!show && detailRow) detailRow.style.display = 'none';
   });

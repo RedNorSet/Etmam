@@ -125,23 +125,48 @@ def student_dashboard(request):
             s.milestone_id: s
             for s in Submission.objects.filter(project=project, is_latest=True)
                                .select_related('milestone', 'submitted_by')
-                               .prefetch_related('files')
+                               .prefetch_related('files', 'reviewer_grades')
         }
         task_map = {}
         for t in Task.objects.filter(project=project).select_related('assigned_to', 'created_by'):
             task_map.setdefault(t.milestone_id, []).append(t)
+        num_reviewers = project.reviewers.count()
     else:
-        sub_map  = {}
-        task_map = {}
+        sub_map       = {}
+        task_map      = {}
+        num_reviewers = 0
     global_milestones = []
+    running_total  = 0.0
+    graded_weight  = 0
     for m in global_milestones_qs:
+        sub   = sub_map.get(m.pk)
         tasks = task_map.get(m.pk, [])
+
+        all_graded = False
+        if sub and project:
+            rgs = list(sub.reviewer_grades.all())
+            if m.has_split:
+                sup_done = (sub.supervisor_report_grade is not None and
+                            sub.supervisor_presentation_grade is not None)
+                rev_done = len({rg.reviewer_id for rg in rgs
+                                if rg.component == 'report' and rg.grade is not None})
+            else:
+                sup_done = sub.supervisor_grade is not None
+                rev_done = len({rg.reviewer_id for rg in rgs
+                                if rg.component == 'single' and rg.grade is not None})
+            all_graded = sup_done and rev_done >= num_reviewers
+
+        if all_graded and sub and sub.grade is not None and m.weight:
+            running_total += float(sub.grade) * (m.weight / 100)
+            graded_weight += m.weight
+
         global_milestones.append({
             'milestone':  m,
-            'submission': sub_map.get(m.pk),
+            'submission': sub,
             'tasks':      tasks,
             'task_total': len(tasks),
             'task_done':  sum(1 for t in tasks if t.status == 'done'),
+            'all_graded': all_graded,
         })
 
     notifications  = Notification.objects.filter(recipient=user).order_by('-created_at')[:15]
@@ -175,6 +200,8 @@ def student_dashboard(request):
         'pending_invite':       pending_invite,
         'project':              project,
         'global_milestones':    global_milestones,
+        'running_total':        round(running_total, 1),
+        'graded_weight':        graded_weight,
         'notifications':        notifications,
         'unread_count':         unread_count,
         'upcoming':             upcoming,
@@ -193,7 +220,7 @@ def student_dashboard(request):
 @login_required
 def supervisor_dashboard(request):
     user        = request.user
-    supervised_qs = Project.objects.filter(supervisor=user).select_related('team').prefetch_related('team__memberships__user')
+    supervised_qs = Project.objects.filter(supervisor=user).select_related('team').prefetch_related('team__memberships__user', 'reviewers')
     reviewed_qs   = Project.objects.filter(reviewers=user).select_related('team').prefetch_related('team__memberships__user')
 
     global_milestones = Milestone.objects.filter(is_active=True).order_by('order', 'due_date')
@@ -206,15 +233,46 @@ def supervisor_dashboard(request):
         result = []
         for proj in proj_list:
             members = [m for m in proj.team.memberships.all() if m.status == 'active']
-            sub_map = {
-                s.milestone_id: s
-                for s in Submission.objects.filter(project=proj, is_latest=True)
-                                   .select_related('milestone').prefetch_related('files')
-            }
+            subs_qs = list(
+                Submission.objects.filter(project=proj, is_latest=True)
+                .select_related('milestone')
+                .prefetch_related('files', 'reviewer_grades')
+            )
+            sub_map = {s.milestone_id: s for s in subs_qs}
+            num_reviewers = proj.reviewers.count()
+            milestone_items = []
+            for m in global_ms_list:
+                sub = sub_map.get(m.pk)
+                all_graded = False
+                if sub:
+                    rgs = list(sub.reviewer_grades.all())
+                    if m.has_split:
+                        sup_done = (sub.supervisor_report_grade is not None and
+                                    sub.supervisor_presentation_grade is not None)
+                        rev_done = len({rg.reviewer_id for rg in rgs
+                                        if rg.component == 'report' and rg.grade is not None})
+                    else:
+                        sup_done = sub.supervisor_grade is not None
+                        rev_done = len({rg.reviewer_id for rg in rgs
+                                        if rg.component == 'single' and rg.grade is not None})
+                    all_graded = sup_done and rev_done >= num_reviewers
+                milestone_items.append({'milestone': m, 'submission': sub, 'all_graded': all_graded})
+
+            needs_my_grade = any(
+                ms['submission'] and (
+                    (ms['milestone'].has_split and (
+                        ms['submission'].supervisor_report_grade is None or
+                        ms['submission'].supervisor_presentation_grade is None
+                    )) or
+                    (not ms['milestone'].has_split and ms['submission'].supervisor_grade is None)
+                )
+                for ms in milestone_items
+            )
             result.append({
-                'project':    proj,
-                'members':    members,
-                'milestones': [{'milestone': m, 'submission': sub_map.get(m.pk)} for m in global_ms_list],
+                'project':        proj,
+                'members':        members,
+                'milestones':     milestone_items,
+                'needs_my_grade': needs_my_grade,
             })
         return result
 
@@ -224,21 +282,59 @@ def supervisor_dashboard(request):
     reviewed_data = []
     for proj in reviewed_list:
         members = [m for m in proj.team.memberships.all() if m.status == 'active']
-        subs_qs = list(Submission.objects.filter(project=proj, is_latest=True).select_related('milestone').prefetch_related('files'))
+        subs_qs = list(
+            Submission.objects.filter(project=proj, is_latest=True)
+            .select_related('milestone')
+            .prefetch_related('files', 'reviewer_grades')
+        )
         sub_map = {s.milestone_id: s for s in subs_qs}
-        # Build {submission_id: {component: ReviewerGrade}}
+        num_rev = proj.reviewers.count()
+        # Build {submission_id: {component: ReviewerGrade}} for THIS reviewer
         rg_by_sub = {}
         for rg in ReviewerGrade.objects.filter(submission__in=subs_qs, reviewer=user):
             rg_by_sub.setdefault(rg.submission_id, {})[rg.component] = rg
         milestones_data = []
         for m in global_ms_list:
             sub = sub_map.get(m.pk)
+            all_graded = False
+            if sub:
+                all_rgs = list(sub.reviewer_grades.all())
+                if m.has_split:
+                    sup_done = (sub.supervisor_report_grade is not None and
+                                sub.supervisor_presentation_grade is not None)
+                    rev_done = len({rg.reviewer_id for rg in all_rgs
+                                    if rg.component == 'report' and rg.grade is not None})
+                else:
+                    sup_done = sub.supervisor_grade is not None
+                    rev_done = len({rg.reviewer_id for rg in all_rgs
+                                    if rg.component == 'single' and rg.grade is not None})
+                all_graded = sup_done and rev_done >= num_rev
             milestones_data.append({
                 'milestone':          m,
                 'submission':         sub,
                 'my_reviewer_grades': rg_by_sub.get(sub.pk, {}) if sub else {},
+                'all_graded':         all_graded,
             })
-        reviewed_data.append({'project': proj, 'members': members, 'milestones': milestones_data})
+
+        needs_my_grade = any(
+            ms['submission'] and (
+                (ms['milestone'].has_split and (
+                    'report' not in rg_by_sub.get(ms['submission'].pk, {}) or
+                    rg_by_sub[ms['submission'].pk]['report'].grade is None
+                )) or
+                (not ms['milestone'].has_split and (
+                    'single' not in rg_by_sub.get(ms['submission'].pk, {}) or
+                    rg_by_sub[ms['submission'].pk]['single'].grade is None
+                ))
+            )
+            for ms in milestones_data
+        )
+        reviewed_data.append({
+            'project':        proj,
+            'members':        members,
+            'milestones':     milestones_data,
+            'needs_my_grade': needs_my_grade,
+        })
 
     # Submissions section: milestone-centric, spanning supervised + reviewed projects
     supervised_pks = {p.pk for p in supervised_list}
@@ -343,12 +439,6 @@ def admin_dashboard(request):
     total_students    = User.objects.filter(role='student').count()
     total_supervisors = User.objects.filter(role='supervisor').count()
     total_reviewers   = User.objects.filter(role='reviewer').count()
-    from django.db.models import Exists, OuterRef as _OuterRef
-    overdue           = Milestone.objects.filter(
-        due_date__lt=timezone.now().date(), is_active=True
-    ).exclude(
-        Exists(Submission.objects.filter(milestone=_OuterRef('pk'), is_latest=True))
-    ).count()
 
     from django.db.models import Case, When, IntegerField as _IntField
     students = (User.objects.filter(role='student')
@@ -403,13 +493,17 @@ def admin_dashboard(request):
         )
         submitted_project_ids = {s.project_id for s in subs if s.project_id}
         not_submitted = [p for p in active_projects if p.pk not in submitted_project_ids]
+        is_overdue = bool(m.due_date and m.due_date < timezone.now().date())
         submissions_data.append({
             'milestone':       m,
             'submissions':     subs,
             'not_submitted':   not_submitted,
             'submitted_count': len(submitted_project_ids),
             'total_count':     len(active_projects),
+            'is_overdue':      is_overdue,
         })
+
+    overdue = sum(len(item['not_submitted']) for item in submissions_data if item['is_overdue'])
 
     # ── Grades panel ─────────────────────────────────────────────────────────
     grade_milestones = list(Milestone.objects.filter(is_active=True).order_by('order', 'due_date'))
@@ -1785,6 +1879,25 @@ def student_submit_milestone(request, milestone_id):
         )
 
     messages.success(request, f'Submitted "{milestone.title}" (v{sub.version}).')
+
+    # Notify supervisor and reviewers
+    _sub_link = reverse('dashboard:supervisor') + '#sec-submissions'
+    _recipients = []
+    if project.supervisor:
+        _recipients.append(project.supervisor)
+    _recipients.extend(project.reviewers.all())
+    for _r in _recipients:
+        Notification.objects.create(
+            recipient=_r,
+            type='general',
+            title=f'New submission: {milestone.title}',
+            message=(
+                f'{project.team.name} submitted "{milestone.title}" '
+                f'(v{sub.version}). Please review and grade.'
+            ),
+            link=_sub_link,
+        )
+
     return redirect(_ms_url)
 
 
@@ -1976,10 +2089,17 @@ def student_edit_profile(request):
             current_pw = request.POST.get('current_password', '')
             new_pw     = request.POST.get('new_password', '')
             confirm_pw = request.POST.get('confirm_password', '')
+            import re as _re
             if not user.check_password(current_pw):
                 messages.error(request, 'Current password is incorrect.')
-            elif len(new_pw) < 8 or not any(c.isalpha() for c in new_pw) or not any(c.isdigit() for c in new_pw):
-                messages.error(request, 'New password must be at least 8 characters with at least one letter and one number.')
+            elif len(new_pw) < 8:
+                messages.error(request, 'Password must be at least 8 characters long.')
+            elif not _re.search(r'[A-Za-z]', new_pw):
+                messages.error(request, 'Password must contain at least one letter.')
+            elif not _re.search(r'\d', new_pw):
+                messages.error(request, 'Password must contain at least one number.')
+            elif not _re.search(r'[^A-Za-z0-9]', new_pw):
+                messages.error(request, 'Password must contain at least one special character.')
             elif new_pw != confirm_pw:
                 messages.error(request, 'New passwords do not match.')
             else:

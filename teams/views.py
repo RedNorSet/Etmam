@@ -100,6 +100,11 @@ def invite_member(request):
         messages.error(request, 'You can only invite students from the same department.')
         return redirect(reverse('dashboard:student') + '#sec-team')
 
+    active_count = TeamMember.objects.filter(team=membership.team, status='active').count()
+    if active_count >= 5:
+        messages.error(request, 'Your team already has 5 members. You cannot invite more.')
+        return redirect(reverse('dashboard:student') + '#sec-team')
+
     pending = TeamMember.objects.create(
         team=membership.team,
         user=invitee,
@@ -217,3 +222,41 @@ def admin_cancel_invite(request, member_id):
     invite.delete()
     messages.success(request, 'Invite cancelled.')
     return redirect(reverse('dashboard:admin') + f'?panel=teams_projects&open={team_id}')
+
+
+@login_required
+@require_POST
+def leave_team(request):
+    membership = TeamMember.objects.filter(user=request.user, status='active').first()
+    if not membership:
+        messages.error(request, 'You are not in a team.')
+        return redirect(reverse('dashboard:student') + '#sec-team')
+    if membership.role == 'leader':
+        messages.error(request, 'Team leaders cannot leave — delete the team instead.')
+        return redirect(reverse('dashboard:student') + '#sec-team')
+    team_name = membership.team.name
+    membership.delete()
+    messages.success(request, f'You have left team "{team_name}".')
+    return redirect(reverse('dashboard:student') + '#sec-dashboard')
+
+
+@login_required
+@require_POST
+def delete_team(request):
+    membership = TeamMember.objects.filter(user=request.user, status='active', role='leader').first()
+    if not membership:
+        messages.error(request, 'Only the team leader can delete the team.')
+        return redirect(reverse('dashboard:student') + '#sec-team')
+    team = membership.team
+    team_name = team.name
+    team.memberships.all().delete()
+    team.is_active = False
+    team.save()
+    if hasattr(team, 'project'):
+        project = team.project
+        project.supervisor = None
+        project.reviewers.clear()
+        project.status = 'draft'
+        project.save()
+    messages.success(request, f'Team "{team_name}" has been deleted.')
+    return redirect(reverse('dashboard:student') + '#sec-dashboard')
