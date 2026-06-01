@@ -782,13 +782,20 @@
                   {% elif current_phase < 2 %}
                   <div style="text-align:center;padding:13px;font-size:.82rem;color:#64748b;border:1px dashed rgba(255,255,255,.07);border-radius:8px;">🔒 Submissions open in Phase 2.</div>
                   {% elif membership.role == 'leader' %}
+                  {% if item.subs_maxed %}
+                  <div style="text-align:center;padding:13px;font-size:.82rem;color:#f87171;border:1px dashed rgba(239,68,68,.25);border-radius:8px;">✗ Submission limit reached ({{ item.subs_used }}/{{ item.subs_used }}).</div>
+                  {% else %}
                   <form method="post" action="{% url 'dashboard:student_submit_milestone' m.pk %}" enctype="multipart/form-data">
                     {% csrf_token %}
-                    <div style="font-size:.74rem;color:#64748b;margin-bottom:6px;">{% if sub %}Resubmit (v{{ sub.version|add:1 }}):{% else %}Upload deliverable files:{% endif %}</div>
+                    <div style="font-size:.74rem;color:#64748b;margin-bottom:6px;">
+                      {% if sub %}Resubmit (v{{ sub.version|add:1 }}):{% else %}Upload deliverable files:{% endif %}
+                      <span style="float:right;color:#94a3b8;">{{ item.subs_remaining }} submission{{ item.subs_remaining|pluralize }} remaining · max 3 files</span>
+                    </div>
                     <input type="file" name="files" class="ms-fi" multiple required>
                     <textarea name="notes" class="ms-fnotes" rows="2" placeholder="Notes (optional)…"></textarea>
                     <button type="submit" class="btn btn-primary" style="width:100%;justify-content:center;">{% if sub %}↑ Resubmit{% else %}📤 Submit{% endif %}</button>
                   </form>
+                  {% endif %}
                   {% else %}
                   <div style="text-align:center;padding:13px;font-size:.82rem;color:#64748b;border:1px dashed rgba(255,255,255,.07);border-radius:8px;">🔑 Only the team leader can submit.</div>
                   {% endif %}
@@ -1003,6 +1010,12 @@
 
         <div class="section-hdr">
           <h2>Notifications</h2>
+          {% if notifications %}
+          <form method="post" action="{% url 'notifications:delete_all' %}" onsubmit="return confirm('Delete all notifications?');">
+            {% csrf_token %}
+            <button type="submit" class="btn btn-ghost btn-sm" style="color:var(--red);">🗑 Delete All</button>
+          </form>
+          {% endif %}
         </div>
 
         <div class="notif-list">

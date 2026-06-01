@@ -48,9 +48,10 @@ urlpatterns = [
     path('admin/grades/save/',        views.admin_save_all_grades,      name='admin_save_all_grades'),
 
     # ── Submission admin actions ───────────────────────────────────────────
-    path('admin/submissions/<int:submission_id>/grade/',  views.admin_grade_submission,   name='admin_grade_submission'),
-    path('admin/submissions/<int:submission_id>/status/', views.admin_submission_status,  name='admin_submission_status'),
-    path('admin/submissions/<int:submission_id>/delete/', views.admin_delete_submission,  name='admin_delete_submission'),
+    path('admin/submissions/<int:submission_id>/grade/',  views.admin_grade_submission,       name='admin_grade_submission'),
+    path('admin/submissions/<int:submission_id>/status/', views.admin_submission_status,      name='admin_submission_status'),
+    path('admin/submissions/<int:submission_id>/delete/', views.admin_delete_submission,      name='admin_delete_submission'),
+    path('admin/team/<int:team_id>/max-resubmissions/',   views.admin_set_max_resubmissions,  name='admin_set_max_resubmissions'),
 
     # ── Student submit milestone ───────────────────────────────────────────
     path('student/submit/<int:milestone_id>/', views.student_submit_milestone, name='student_submit_milestone'),

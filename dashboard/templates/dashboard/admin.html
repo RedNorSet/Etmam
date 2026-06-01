@@ -715,8 +715,8 @@
             <td>
               {% if project %}
                 <div style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-weight:500;">{{ project.title|truncatechars:38 }}</div>
-                {% if project.status != 'active' and project.status != 'in_progress' %}
-                <span class="badge {% if project.status == 'completed' %}b-blue{% elif project.status == 'rejected' %}b-orange{% else %}b-gray{% endif %}" style="margin-top:3px;">{{ project.get_status_display }}</span>
+                {% if project.status == 'needs_review' or project.status == 'completed' %}
+                <span class="badge {% if project.status == 'completed' %}b-blue{% else %}b-gray{% endif %}" style="margin-top:3px;">{{ project.get_status_display }}</span>
                 {% endif %}
               {% else %}
                 <span style="color:var(--light);font-style:italic;">— No project yet —</span>
@@ -1181,12 +1181,12 @@
       <!-- Submissions detail -->
       <div id="sub-{{ m.pk }}" style="display:none;">
 
-        {% if subs %}
+        {% if subs or pending %}
         <table class="gt">
           <thead>
             <tr>
               <th>Team</th><th>Submitted By</th><th>Date</th><th>Ver.</th>
-              <th>Files</th><th>Grade (/100)</th><th>Status</th><th>Actions</th>
+              <th>Files</th><th>Grade (/100)</th><th>Submissions Allowed</th><th>Status</th><th>Actions</th>
             </tr>
           </thead>
           <tbody>
@@ -1213,37 +1213,52 @@
               </form>
             </td>
             <td>
-              <div style="display:flex;gap:6px;flex-wrap:wrap;">
-                <form method="post" action="{% url 'dashboard:admin_delete_submission' s.pk %}"
-                      onsubmit="return confirm('Delete this submission? This cannot be undone.');">
-                  {% csrf_token %}
-                  <button type="submit" class="btn btn-ghost btn-sm" style="color:var(--red);" title="Delete">🗑</button>
-                </form>
-              </div>
+              <form method="post" action="{% url 'dashboard:admin_set_max_resubmissions' s.project.team.pk %}" style="display:flex;gap:4px;align-items:center;">
+                {% csrf_token %}
+                <input type="number" name="max_resubmissions" value="{{ s.project.team.max_resubmissions }}" min="1" max="99" class="det-input" style="width:54px;padding:4px 6px;font-size:.82rem;" title="Max total submissions allowed">
+                <button type="submit" class="btn btn-ghost btn-sm" title="Save">💾</button>
+              </form>
             </td>
+            <td><span class="badge b-green">Submitted</span></td>
+            <td>
+              <form method="post" action="{% url 'dashboard:admin_delete_submission' s.pk %}"
+                    onsubmit="return confirm('Delete this submission? This cannot be undone.');">
+                {% csrf_token %}
+                <button type="submit" class="btn btn-ghost btn-sm" style="color:var(--red);" title="Delete">🗑</button>
+              </form>
+            </td>
+          </tr>
+          {% endfor %}
+          {% for p in pending %}
+          <tr>
+            <td>
+              <div style="font-weight:600;">{{ p.team.name }}</div>
+            </td>
+            <td></td>
+            <td></td>
+            <td></td>
+            <td></td>
+            <td></td>
+            <td>
+              <form method="post" action="{% url 'dashboard:admin_set_max_resubmissions' p.team.pk %}" style="display:flex;gap:4px;align-items:center;">
+                {% csrf_token %}
+                <input type="number" name="max_resubmissions" value="{{ p.team.max_resubmissions }}" min="1" max="99" class="det-input" style="width:54px;padding:4px 6px;font-size:.82rem;" title="Max total submissions allowed">
+                <button type="submit" class="btn btn-ghost btn-sm" title="Save">💾</button>
+              </form>
+            </td>
+            <td>
+              {% if item.is_overdue %}
+              <span class="badge b-red">Missed</span>
+              {% else %}
+              <span class="badge b-gray">Pending</span>
+              {% endif %}
+            </td>
+            <td></td>
           </tr>
           {% endfor %}
           </tbody>
         </table>
-        {% endif %}
-
-        {% if pending %}
-        <div>
-          {% for p in pending %}
-          <div style="display:flex;align-items:center;gap:12px;padding:10px 18px;border-top:1px solid var(--border);">
-            <span style="flex:1;font-size:.83rem;">{{ p.team.name }}</span>
-            <span style="font-size:.75rem;color:var(--muted);">{{ p.title|truncatechars:35 }}</span>
-            {% if item.is_overdue %}
-            <span class="badge b-red">Missed</span>
-            {% else %}
-            <span class="badge b-gray">Pending</span>
-            {% endif %}
-          </div>
-          {% endfor %}
-        </div>
-        {% endif %}
-
-        {% if not subs and not pending %}
+        {% else %}
         <div class="empty" style="padding:2rem;"><div class="ei">📤</div>No active projects yet.</div>
         {% endif %}
       </div>

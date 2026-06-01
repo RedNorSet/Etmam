@@ -444,7 +444,11 @@
               {% with m=item.milestone sub=item.submission %}
               <div class="sup-ms-row">
                 <div class="sup-ms-num">{{ m.order }}</div>
-                <div class="sup-ms-title">{{ m.title }}</div>
+                <div class="sup-ms-title">
+                  {{ m.title }}
+                  {% if m.description %}<div style="font-size:.7rem;color:#94a3b8;font-weight:400;margin-top:2px;">{{ m.description }}</div>{% endif %}
+                </div>
+                {% if m.due_date %}<span style="font-size:.7rem;color:#94a3b8;white-space:nowrap;flex-shrink:0;">📅 {{ m.due_date|date:"M d, Y" }}</span>{% endif %}
                 {% if sub %}
                   <span style="font-size:.7rem;padding:2px 8px;border-radius:20px;background:rgba(59,130,246,.2);color:#60a5fa;font-weight:700;">📤 Submitted</span>
                   {% if sub.supervisor_grade is not None %}
@@ -461,7 +465,13 @@
                     {% if sub.supervisor_grade is not None %}✎ Edit{% else %}🖊 Grade{% endif %}
                   </button>
                 {% else %}
+                  {% if item.is_overdue %}
+                  <span style="font-size:.7rem;padding:2px 8px;border-radius:20px;background:rgba(239,68,68,.15);color:#f87171;font-weight:700;">✗ Missed</span>
+                  {% elif m.due_date %}
+                  <span style="font-size:.7rem;padding:2px 8px;border-radius:20px;background:rgba(245,158,11,.12);color:#fbbf24;">⏳ Pending</span>
+                  {% else %}
                   <span style="font-size:.7rem;padding:2px 8px;border-radius:20px;background:rgba(100,116,139,.15);color:#64748b;">— Not submitted</span>
+                  {% endif %}
                 {% endif %}
               </div>
               {% if sub %}
@@ -639,7 +649,11 @@
               {% with m=ms_item.milestone sub=ms_item.submission my_rgs=ms_item.my_reviewer_grades %}
               <div class="sup-ms-row">
                 <div class="sup-ms-num">{{ m.order }}</div>
-                <div class="sup-ms-title">{{ m.title }}</div>
+                <div class="sup-ms-title">
+                  {{ m.title }}
+                  {% if m.description %}<div style="font-size:.7rem;color:#94a3b8;font-weight:400;margin-top:2px;">{{ m.description }}</div>{% endif %}
+                </div>
+                {% if m.due_date %}<span style="font-size:.7rem;color:#94a3b8;white-space:nowrap;flex-shrink:0;">📅 {{ m.due_date|date:"M d, Y" }}</span>{% endif %}
                 {% if sub %}
                   {% if sub.status == 'approved' %}
                     <span style="font-size:.7rem;padding:2px 8px;border-radius:20px;background:rgba(34,197,94,.2);color:#4ade80;font-weight:700;">✔ Approved</span>
@@ -669,7 +683,13 @@
                     {% endif %}
                   </button>
                 {% else %}
+                  {% if ms_item.is_overdue %}
+                  <span style="font-size:.7rem;padding:2px 8px;border-radius:20px;background:rgba(239,68,68,.15);color:#f87171;font-weight:700;">✗ Missed</span>
+                  {% elif m.due_date %}
+                  <span style="font-size:.7rem;padding:2px 8px;border-radius:20px;background:rgba(245,158,11,.12);color:#fbbf24;">⏳ Pending</span>
+                  {% else %}
                   <span style="font-size:.7rem;padding:2px 8px;border-radius:20px;background:rgba(100,116,139,.15);color:#64748b;">— Not submitted</span>
+                  {% endif %}
                 {% endif %}
               </div>
               {% if sub %}
@@ -776,6 +796,12 @@
 
         <div class="section-hdr">
           <h2>Notifications</h2>
+          {% if notifications %}
+          <form method="post" action="{% url 'notifications:delete_all' %}" onsubmit="return confirm('Delete all notifications?');">
+            {% csrf_token %}
+            <button type="submit" class="btn btn-ghost btn-sm" style="color:var(--red);">🗑 Delete All</button>
+          </form>
+          {% endif %}
         </div>
 
         <div class="notif-list">

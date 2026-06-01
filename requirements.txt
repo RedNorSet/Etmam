@@ -5,3 +5,4 @@ dj-database-url
 python-decouple
 gunicorn
 whitenoise
+django-axes

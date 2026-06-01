@@ -24,10 +24,12 @@ INSTALLED_APPS = [
     'notifications',
     'meetings',
     'dashboard',
+    'axes',
 ]
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
+    'axes.middleware.AxesMiddleware',
     'whitenoise.middleware.WhiteNoiseMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
@@ -81,7 +83,7 @@ AUTH_PASSWORD_VALIDATORS = [
 SESSION_COOKIE_HTTPONLY         = True          # JS cannot read the session cookie
 SESSION_COOKIE_SAMESITE         = 'Lax'        # Block cross-site cookie sending
 SESSION_COOKIE_SECURE           = not DEBUG    # HTTPS only (auto-off in dev)
-SESSION_COOKIE_AGE              = 28800        # 8-hour max lifetime
+SESSION_COOKIE_AGE              = 900          # 15-minute inactivity timeout
 SESSION_EXPIRE_AT_BROWSER_CLOSE = True         # Expire on browser close
 SESSION_SAVE_EVERY_REQUEST      = True         # Reset 8-hour timer on activity
 
@@ -114,6 +116,17 @@ MEDIA_URL  = '/media/'
 MEDIA_ROOT = BASE_DIR / 'media'
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
+
+AUTHENTICATION_BACKENDS = [
+    'axes.backends.AxesStandaloneBackend',
+    'django.contrib.auth.backends.ModelBackend',
+]
+
+# ── django-axes (failed login tracking) ──────────────────────────────────────
+AXES_FAILURE_LIMIT        = 5       # lock after 5 failed attempts
+AXES_COOLOFF_TIME         = 0.5     # unlock after 30 minutes (in hours)
+AXES_LOCKOUT_PARAMETERS   = ['username', 'ip_address']  # lock by username + IP
+AXES_RESET_ON_SUCCESS     = True    # clear failure count on successful login
 
 # Silence deployment warnings that are intentionally off in development (DEBUG=True)
 if DEBUG:

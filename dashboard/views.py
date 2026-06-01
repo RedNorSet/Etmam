@@ -1,3 +1,4 @@
+import os
 import uuid
 import re as _re
 
@@ -193,13 +194,18 @@ def student_dashboard(request):
             running_total += float(sub.grade) * (m.weight / 100)
             graded_weight += m.weight
 
+        _max_subs  = membership.team.max_resubmissions if membership else 1
+        _subs_used = sub.version if sub else 0
         global_milestones.append({
-            'milestone':  m,
-            'submission': sub,
-            'tasks':      tasks,
-            'task_total': len(tasks),
-            'task_done':  sum(1 for t in tasks if t.status == 'done'),
-            'all_graded': all_graded,
+            'milestone':      m,
+            'submission':     sub,
+            'tasks':          tasks,
+            'task_total':     len(tasks),
+            'task_done':      sum(1 for t in tasks if t.status == 'done'),
+            'all_graded':     all_graded,
+            'subs_used':      _subs_used,
+            'subs_remaining': max(0, _max_subs - _subs_used),
+            'subs_maxed':     _subs_used >= _max_subs,
         })
 
     notifications  = Notification.objects.filter(recipient=user).order_by('-created_at')[:15]
@@ -291,7 +297,12 @@ def supervisor_dashboard(request):
                         rev_done = len({rg.reviewer_id for rg in rgs
                                         if rg.component == 'single' and rg.grade is not None})
                     all_graded = sup_done and rev_done >= num_reviewers
-                milestone_items.append({'milestone': m, 'submission': sub, 'all_graded': all_graded})
+                milestone_items.append({
+                'milestone':  m,
+                'submission': sub,
+                'all_graded': all_graded,
+                'is_overdue': bool(m.due_date and m.due_date < timezone.now().date()),
+            })
 
             needs_my_grade = any(
                 ms['submission'] and (
@@ -349,6 +360,7 @@ def supervisor_dashboard(request):
                 'submission':         sub,
                 'my_reviewer_grades': rg_by_sub.get(sub.pk, {}) if sub else {},
                 'all_graded':         all_graded,
+                'is_overdue':         bool(m.due_date and m.due_date < timezone.now().date()),
             })
 
         needs_my_grade = any(
@@ -1284,6 +1296,11 @@ def admin_create_milestone(request):
     if guide_file:
         m.guide_file = guide_file
     m.save()
+    _notif_msg = f'A new milestone "{title}" has been added' + (f' — due {due_date}.' if due_date else '.')
+    for tm in TeamMember.objects.filter(status='active', team__is_active=True).select_related('user'):
+        Notification.objects.create(recipient=tm.user, type='general', title='New Milestone Added', message=_notif_msg)
+    for sup in User.objects.filter(id__in=Project.objects.filter(supervisor__isnull=False, team__is_active=True).values_list('supervisor_id', flat=True)).distinct():
+        Notification.objects.create(recipient=sup, type='general', title='New Milestone Added', message=_notif_msg)
     messages.success(request, f'Milestone "{title}" created.')
     _total_w = sum(Milestone.objects.filter(is_active=True).values_list('weight', flat=True))
     if _total_w != 100:
@@ -1301,8 +1318,9 @@ def admin_update_milestone(request, milestone_id):
     if not _require_admin(request):
         return redirect('dashboard:index')
     m = get_object_or_404(Milestone, pk=milestone_id)
-    start_date = request.POST.get('start_date') or None
-    due_date   = request.POST.get('due_date') or None
+    start_date        = request.POST.get('start_date') or None
+    due_date          = request.POST.get('due_date') or None
+    _old_due_date_str = str(m.due_date or '')
     if start_date and due_date and due_date < start_date:
         messages.error(request, 'Due date cannot be before start date.')
         return redirect(reverse('dashboard:admin') + '?panel=milestones')
@@ -1324,6 +1342,13 @@ def admin_update_milestone(request, milestone_id):
     elif request.POST.get('clear_guide_file'):
         m.guide_file = None
     m.save()
+    if str(due_date or '') != _old_due_date_str:
+        _due_str      = f' New due date: {due_date}.' if due_date else ' Due date removed.'
+        _notif_msg    = f'The due date for milestone "{m.title}" has changed.{_due_str}'
+        for tm in TeamMember.objects.filter(status='active', team__is_active=True).select_related('user'):
+            Notification.objects.create(recipient=tm.user, type='deadline', title='Milestone Due Date Changed', message=_notif_msg)
+        for sup in User.objects.filter(id__in=Project.objects.filter(supervisor__isnull=False, team__is_active=True).values_list('supervisor_id', flat=True)).distinct():
+            Notification.objects.create(recipient=sup, type='deadline', title='Milestone Due Date Changed', message=_notif_msg)
     messages.success(request, f'Milestone "{m.title}" updated.')
     return redirect(reverse('dashboard:admin') + '?panel=milestones')
 
@@ -1457,6 +1482,25 @@ def admin_grade_submission(request, submission_id):
     grade = request.POST.get('grade', '').strip()
     sub.grade = grade if grade else None
     sub.save()
+    if grade:
+        milestone_title = sub.milestone.title
+        team_name       = sub.project.team.name
+        msg_student     = f'Your submission for "{milestone_title}" has been graded: {grade}/100.'
+        msg_supervisor  = f'Team "{team_name}" submission for "{milestone_title}" has been graded: {grade}/100.'
+        for tm in sub.project.team.memberships.filter(status='active').select_related('user'):
+            Notification.objects.create(
+                recipient=tm.user,
+                type='feedback',
+                title=f'Submission Graded — {milestone_title}',
+                message=msg_student,
+            )
+        if sub.project.supervisor:
+            Notification.objects.create(
+                recipient=sub.project.supervisor,
+                type='feedback',
+                title=f'Submission Graded — {milestone_title}',
+                message=msg_supervisor,
+            )
     messages.success(request, f'Grade saved for submission #{sub.pk}.')
     return redirect(reverse('dashboard:admin') + '?panel=submissions')
 
@@ -1485,6 +1529,19 @@ def admin_delete_submission(request, submission_id):
     sub = get_object_or_404(Submission, pk=submission_id)
     sub.delete()
     messages.success(request, 'Submission deleted.')
+    return redirect(reverse('dashboard:admin') + '?panel=submissions')
+
+
+@login_required
+@require_POST
+def admin_set_max_resubmissions(request, team_id):
+    if not _require_admin(request):
+        return redirect('dashboard:index')
+    team = get_object_or_404(Team, pk=team_id)
+    val  = request.POST.get('max_resubmissions', '').strip()
+    if val.isdigit() and int(val) >= 1:
+        team.max_resubmissions = int(val)
+        team.save(update_fields=['max_resubmissions'])
     return redirect(reverse('dashboard:admin') + '?panel=submissions')
 
 
@@ -1903,9 +1960,27 @@ def student_submit_milestone(request, milestone_id):
         messages.error(request, f'The submission deadline for "{milestone.title}" has passed ({milestone.due_date}).')
         return redirect(_ms_url)
 
+    _ALLOWED_EXTENSIONS = {'.pdf', '.doc', '.docx', '.ppt', '.pptx', '.zip', '.png', '.jpg', '.jpeg', '.txt'}
+
     files = request.FILES.getlist('files')
     if not files:
         messages.error(request, 'Please attach at least one file.')
+        return redirect(_ms_url)
+
+    for f in files:
+        ext = os.path.splitext(f.name)[1].lower()
+        if ext not in _ALLOWED_EXTENSIONS:
+            messages.error(request, f'File type "{ext}" is not allowed. Allowed types: PDF, DOC, DOCX, PPT, PPTX, ZIP, PNG, JPG, JPEG, TXT.')
+            return redirect(_ms_url)
+
+    if len(files) > 3:
+        messages.error(request, 'You can attach a maximum of 3 files per submission.')
+        return redirect(_ms_url)
+
+    team          = membership.team
+    existing_count = Submission.objects.filter(project=project, milestone=milestone).count()
+    if existing_count >= team.max_resubmissions:
+        messages.error(request, f'You have used all {team.max_resubmissions} submission(s) allowed for this milestone.')
         return redirect(_ms_url)
 
     sub = Submission.objects.create(

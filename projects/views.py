@@ -38,7 +38,7 @@ def request_supervision(request, supervisor_id):
         messages.error(request, f'{supervisor.full_name or supervisor.username} has reached their team limit.')
         return redirect(reverse('dashboard:student') + '#sec-supervisors')
 
-    if SupervisionRequest.objects.filter(team=team, supervisor=supervisor).exists():
+    if SupervisionRequest.objects.filter(team=team, supervisor=supervisor, status__in=['pending', 'accepted']).exists():
         messages.error(request, 'You have already sent a request to this supervisor.')
         return redirect(reverse('dashboard:student') + '#sec-supervisors')
 
@@ -53,12 +53,19 @@ def request_supervision(request, supervisor_id):
             messages.error(request, 'Please fill in all fields.')
             return redirect(reverse('dashboard:student') + '#sec-supervisors')
 
-        SupervisionRequest.objects.create(
-            team=team,
-            supervisor=supervisor,
-            title=title,
-            pitch=pitch,
-        )
+        declined = SupervisionRequest.objects.filter(team=team, supervisor=supervisor, status='declined').first()
+        if declined:
+            declined.title = title
+            declined.pitch = pitch
+            declined.status = 'pending'
+            declined.save()
+        else:
+            SupervisionRequest.objects.create(
+                team=team,
+                supervisor=supervisor,
+                title=title,
+                pitch=pitch,
+            )
 
         Notification.objects.create(
             recipient=supervisor,
