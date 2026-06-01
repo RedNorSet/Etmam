@@ -1,0 +1,2312 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Admin Dashboard — Etmam</title>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap');
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --bg: #f4f6fb; --white: #ffffff; --blue: #2563eb; --blue-dk: #1d4ed8;
+      --blue-lt: #eff6ff; --blue-bd: #bfdbfe; --border: #e2e8f0;
+      --text: #0f172a; --muted: #64748b; --light: #94a3b8;
+      --green: #16a34a; --orange: #ea580c; --red: #dc2626; --r: 8px;
+    }
+    body { font-family: 'Plus Jakarta Sans', system-ui, sans-serif; background: var(--bg); color: var(--text); font-size: 14px; }
+
+    /* ── Top nav ── */
+    .topnav { position: fixed; top: 0; left: 0; right: 0; height: 54px; background: var(--white); border-bottom: 1px solid var(--border); display: flex; align-items: center; padding: 0 28px; gap: 28px; z-index: 10; }
+    .brand { font-size: .9rem; font-weight: 700; color: var(--blue); display: flex; align-items: center; gap: 8px; flex-shrink: 0; }
+    .brand img { height: 28px; }
+    .nav-tabs { display: flex; height: 100%; overflow-x: auto; }
+    .nav-tab { display: flex; align-items: center; gap: 6px; padding: 0 14px; height: 100%; white-space: nowrap; font-size: .82rem; font-weight: 500; color: var(--muted); border: none; background: transparent; cursor: pointer; border-bottom: 2px solid transparent; transition: color .15s; }
+    .nav-tab:hover { color: var(--text); }
+    .nav-tab.active { color: var(--blue); border-bottom-color: var(--blue); }
+    .n-badge { background: var(--red); color: white; font-size: .62rem; font-weight: 700; padding: 1px 5px; border-radius: 999px; }
+    .nav-right { margin-left: auto; display: flex; align-items: center; gap: 10px; }
+    .nav-role { font-size: .75rem; font-weight: 600; color: var(--muted); background: var(--bg); border: 1px solid var(--border); padding: 4px 10px; border-radius: 6px; }
+
+    /* ── Page layout ── */
+    .page { margin-top: 54px; padding: 32px 36px; }
+    .panel { display: none; }
+    .panel.active { display: block; }
+    .ph { display: flex; align-items: center; justify-content: space-between; margin-bottom: 28px; gap: 12px; flex-wrap: wrap; }
+    .ph h1 { font-size: 1.15rem; font-weight: 700; }
+    .ph p { font-size: .82rem; color: var(--muted); margin-top: 3px; }
+    .ph-actions { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+
+    /* ── Stat boxes ── */
+    .stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin-bottom: 32px; }
+    .stat-box { background: var(--white); border: 1px solid var(--border); border-radius: var(--r); padding: 36px 28px; cursor: pointer; transition: box-shadow .15s, border-color .15s; position: relative; min-height: 140px; }
+    .stat-box:hover { box-shadow: 0 4px 16px rgba(37,99,235,.1); border-color: var(--blue); }
+    .stat-box .val { font-size: 3rem; font-weight: 700; line-height: 1; }
+    .stat-box .val.red { color: var(--red); }
+    .stat-box .val.orange { color: var(--orange); }
+    .stat-box .lbl { font-size: .78rem; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: .4px; margin-top: 10px; }
+    .stat-box .arrow { position: absolute; bottom: 16px; right: 20px; font-size: 1rem; color: var(--light); }
+
+    /* ── Generic table card ── */
+    .card { background: var(--white); border: 1px solid var(--border); border-radius: var(--r); margin-bottom: 20px; overflow: hidden; }
+    .gt { width: 100%; border-collapse: collapse; font-size: .83rem; }
+    .gt thead tr { background: #fafbfc; border-bottom: 1px solid var(--border); }
+    .gt th { padding: 10px 18px; text-align: left; font-size: .7rem; font-weight: 600; color: var(--light); text-transform: uppercase; letter-spacing: .5px; white-space: nowrap; }
+    .gt td { padding: 13px 18px; border-bottom: 1px solid var(--border); vertical-align: middle; }
+    .gt tbody tr:last-child td { border-bottom: none; }
+    .gt tbody tr:hover td { background: #fafbff; }
+
+    /* ── Badges ── */
+    .badge { display: inline-block; padding: 3px 8px; border-radius: 5px; font-size: .72rem; font-weight: 600; white-space: nowrap; }
+    .b-blue   { background: var(--blue-lt); color: var(--blue); }
+    .b-green  { background: #f0fdf4; color: var(--green); border: 1px solid #bbf7d0; }
+    .b-orange { background: #fff7ed; color: var(--orange); border: 1px solid #fed7aa; }
+    .b-red    { background: #fef2f2; color: var(--red); border: 1px solid #fecaca; }
+    .b-gray   { background: var(--bg); color: var(--muted); border: 1px solid var(--border); }
+    .b-purple { background: #f5f3ff; color: #7c3aed; border: 1px solid #ddd6fe; }
+    .b-amber  { background: #fef3c7; color: #92400e; border: 1px solid #fde68a; }
+
+    /* ── Buttons ── */
+    .btn { display: inline-flex; align-items: center; gap: 5px; padding: 6px 14px; border-radius: 6px; font-size: .8rem; font-weight: 600; cursor: pointer; border: none; transition: background .15s; font-family: inherit; }
+    .btn-blue { background: var(--blue); color: white; }
+    .btn-blue:hover { background: var(--blue-dk); }
+    .btn-out { background: transparent; border: 1px solid var(--border); color: var(--muted); }
+    .btn-out:hover { border-color: var(--blue); color: var(--blue); }
+    .btn-red-out { background: transparent; border: 1px solid #fecaca; color: var(--red); }
+    .btn-red-out:hover { background: #fef2f2; }
+    .btn-del-user { background: transparent; border: 1px solid #fecaca; color: var(--red); margin-left: 6px; }
+    .btn-del-user:hover { background: #fef2f2; }
+    .btn-sm { padding: 3px 8px !important; font-size: .72rem !important; }
+    .btn-ghost { background: transparent; border: 1px solid var(--border); color: var(--muted); }
+    .btn-ghost:hover { background: var(--bg); }
+
+    /* ── Logout ── */
+    .logout-btn { background: none; border: none; cursor: pointer; color: var(--red); font-size: .8rem; font-weight: 600; padding: 6px 10px; border-radius: 6px; display: flex; align-items: center; gap: 4px; }
+    .logout-btn:hover { background: #fef2f2; }
+
+    /* ── Avatar ── */
+    .av { width: 30px; height: 30px; border-radius: 7px; background: var(--blue-lt); border: 1px solid var(--blue-bd); color: var(--blue); font-size: .72rem; font-weight: 700; display: grid; place-items: center; flex-shrink: 0; }
+
+    /* ── Empty state ── */
+    .empty { text-align: center; padding: 3rem 1rem; color: var(--muted); }
+    .empty .ei { font-size: 2.5rem; margin-bottom: .75rem; }
+
+    /* ══════════════════════════════════════
+       TEAMS & PROJECTS — Filter bar
+       ══════════════════════════════════════ */
+    .filter-bar { display: flex; align-items: center; gap: 8px; margin-bottom: 16px; flex-wrap: wrap; }
+    .filter-btn { background: transparent; border: 1px solid var(--border); color: var(--muted); padding: 5px 14px; border-radius: 20px; font-size: .8rem; font-weight: 500; cursor: pointer; transition: all .15s; font-family: inherit; }
+    .filter-btn.active { background: var(--blue); color: white; border-color: var(--blue); }
+    .filter-btn:hover:not(.active) { border-color: var(--blue); color: var(--blue); }
+    .filter-select { margin-left: auto; padding: 5px 10px; border: 1px solid var(--border); border-radius: 6px; font-size: .8rem; font-family: inherit; color: var(--text); background: white; cursor: pointer; }
+
+    /* ══════════════════════════════════════
+       CREATE TEAM FORM
+       ══════════════════════════════════════ */
+    .create-team-card { background: var(--white); border: 1px solid var(--blue-bd); border-radius: var(--r); padding: 20px; margin-bottom: 16px; display: none; }
+    .create-team-card.visible { display: block; }
+    .create-team-title { font-size: .9rem; font-weight: 700; margin-bottom: 16px; display: flex; align-items: center; justify-content: space-between; }
+    .create-team-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+    @media (max-width: 860px) { .create-team-grid { grid-template-columns: 1fr; } }
+
+    .member-chips { display: flex; flex-wrap: wrap; gap: 6px; min-height: 32px; margin: 8px 0; }
+    .member-chip { display: inline-flex; align-items: center; gap: 5px; background: var(--blue-lt); border: 1px solid var(--blue-bd); color: var(--blue); padding: 3px 10px; border-radius: 20px; font-size: .78rem; font-weight: 600; }
+    .chip-remove { background: none; border: none; color: var(--blue); cursor: pointer; font-size: 1rem; line-height: 1; padding: 0 2px; font-weight: 700; }
+    .chip-remove:hover { color: var(--red); }
+
+    /* ══════════════════════════════════════
+       ACCORDION rows
+       ══════════════════════════════════════ */
+    .tp-table { overflow: visible !important; }
+    .team-row { cursor: pointer; transition: background .1s; }
+    .team-row:hover > td { background: #f0f7ff !important; }
+    .team-row.row-open > td { background: #eff6ff; }
+    .expand-icon { display: inline-flex; align-items: center; justify-content: center;
+                   width: 22px; height: 22px; border-radius: 50%; background: var(--bg);
+                   font-size: .85rem; color: var(--muted); transition: transform .2s, background .15s; font-weight: 700; }
+    .expand-icon.open { transform: rotate(90deg); background: var(--blue-lt); color: var(--blue); }
+
+    .team-detail-row > td { padding: 0 !important; background: #f8fafc !important; border-bottom: 2px solid var(--blue-bd) !important; }
+    .team-detail-row > td:hover { background: #f8fafc !important; }
+
+    /* ── Detail panel ── */
+    .detail-panel { padding: 20px; }
+    .det-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+    @media (max-width: 900px) { .det-grid { grid-template-columns: 1fr; } }
+
+    .det-section { margin-bottom: 14px; }
+    .det-section-title { font-size: .7rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .5px; margin-bottom: 8px; display: flex; align-items: center; gap: 6px; }
+    .det-card { background: white; border: 1px solid var(--border); border-radius: var(--r); overflow: hidden; }
+    .det-card-body { padding: 14px; }
+    .with-top-border { border-top: 1px solid var(--border); }
+
+    .member-row { display: flex; align-items: center; gap: 10px; padding: 9px 12px; border-bottom: 1px solid var(--border); }
+    .member-row:last-child { border-bottom: none; }
+    .member-info { flex: 1; min-width: 0; }
+    .member-name { font-weight: 600; font-size: .83rem; }
+    .member-meta { font-size: .72rem; color: var(--muted); }
+    .member-actions { display: flex; gap: 5px; flex-shrink: 0; }
+
+    .person-row { display: flex; align-items: center; gap: 10px; padding: 9px 12px; border-bottom: 1px solid var(--border); }
+    .person-row:last-child { border-bottom: none; }
+    .person-info { flex: 1; min-width: 0; }
+
+    /* form inputs inside accordion */
+    .det-input { width: 100%; padding: 7px 10px; border: 1px solid var(--border); border-radius: 6px; font-size: .83rem; font-family: inherit; color: var(--text); }
+    .det-input:focus { outline: none; border-color: var(--blue); box-shadow: 0 0 0 2px rgba(37,99,235,.12); }
+    .det-select { width: 100%; padding: 7px 10px; border: 1px solid var(--border); border-radius: 6px; font-size: .83rem; font-family: inherit; color: var(--text); background: white; cursor: pointer; }
+    .det-select:focus { outline: none; border-color: var(--blue); }
+    .det-textarea { width: 100%; padding: 7px 10px; border: 1px solid var(--border); border-radius: 6px; font-size: .83rem; font-family: inherit; color: var(--text); resize: vertical; }
+    .det-textarea:focus { outline: none; border-color: var(--blue); box-shadow: 0 0 0 2px rgba(37,99,235,.12); }
+    .det-label { font-size: .72rem; font-weight: 600; color: var(--muted); display: block; margin-bottom: 4px; }
+    .det-field { margin-bottom: 10px; }
+    .det-row-flex { display: flex; gap: 8px; align-items: center; }
+
+    /* search dropdown for add-member */
+    .search-wrap { position: relative; }
+    .admin-search-dd { position: absolute; top: calc(100% + 4px); left: 0; right: 0; z-index: 200; background: white; border: 1px solid var(--border); border-radius: var(--r); box-shadow: 0 6px 20px rgba(0,0,0,.1); max-height: 200px; overflow-y: auto; }
+    .search-opt { padding: 9px 12px; cursor: pointer; border-bottom: 1px solid var(--border); }
+    .search-opt:last-child { border-bottom: none; }
+    .search-opt:hover { background: var(--blue-lt); }
+    .search-opt-name { font-weight: 600; font-size: .83rem; }
+    .search-opt-meta { font-size: .72rem; color: var(--muted); }
+    .search-opt-disabled { padding: 9px 12px; border-bottom: 1px solid var(--border); cursor: not-allowed; opacity: .6; background: #fafafa; }
+    .search-opt-disabled:last-child { border-bottom: none; }
+    .search-selected { font-size: .78rem; color: var(--green); margin-top: 5px; display: none; }
+
+    /* dissolve + buttons */
+    .btn-dissolve { background: #fef2f2; color: var(--red); border: 1px solid #fecaca; width: 100%; justify-content: center; }
+    .btn-dissolve:hover { background: #fecaca; }
+    .btn-del-dissolved { background: transparent; border: 1px solid #fecaca; color: var(--red); font-size: .78rem; padding: 5px 12px; border-radius: 6px; cursor: pointer; font-family: inherit; font-weight: 600; }
+    .btn-del-dissolved:hover { background: #fef2f2; }
+
+    /* dissolved-team banner inside accordion */
+    .dissolved-banner { background: #fef2f2; border: 1px solid #fecaca; border-radius: 8px; padding: 14px 16px; display: flex; align-items: center; gap: 10px; margin-bottom: 14px; }
+    .dissolved-banner-icon { font-size: 1.4rem; }
+    .dissolved-banner-text { font-size: .83rem; color: var(--red); font-weight: 600; }
+    .dissolved-banner-sub { font-size: .75rem; color: #b91c1c; margin-top: 2px; }
+
+    /* ── Submissions panel — pending header ── */
+    .pending-sub-header { padding: 10px 18px; font-size: .72rem; font-weight: 600; color: var(--light); text-transform: uppercase; letter-spacing: .4px; background: #fffbeb; }
+    .pending-sub-header--bordered { border-top: 1px solid var(--border); }
+
+    /* ── Milestone panel ── */
+    .ms-overdue { color: var(--red); font-weight: 600; }
+
+    /* ── Grades panel ── */
+    .wt-badge { font-size: .82rem; padding: 3px 12px; border-radius: 12px; font-weight: 600; }
+    .wt-badge--ok  { background: #d1fae5; color: #065f46; }
+    .wt-badge--err { background: #fee2e2; color: #991b1b; }
+    .split-block { display: none; }
+    .grade-cell { text-align: center; padding: 8px 6px; border-bottom: 1px solid var(--border); border-left: 1px solid var(--border); }
+    .grade-cell--new-ms { border-left: 2px solid var(--border); }
+
+    /* ══════════════════════════════════════
+       DISSOLVE UNDO TOAST
+       ══════════════════════════════════════ */
+    .dissolve-toast { position: fixed; bottom: 28px; left: 50%; transform: translateX(-50%);
+      background: #1e2433; border: 1px solid rgba(220,38,38,.4); border-radius: 12px;
+      padding: 14px 22px; display: flex; align-items: center; gap: 18px;
+      box-shadow: 0 8px 32px rgba(0,0,0,.35); z-index: 9999; color: white;
+      font-size: .88rem; animation: dtSlideUp .25s ease; white-space: nowrap; }
+    .dt-msg { flex: 1; }
+    .dt-countdown { font-weight: 700; color: #fca5a5; }
+    .dt-undo { background: white; color: var(--red); border: none; padding: 7px 18px;
+      border-radius: 6px; font-weight: 700; cursor: pointer; font-size: .82rem; font-family: inherit; }
+    .dt-undo:hover { background: #fee2e2; }
+    .dt-confirm { background: var(--red); color: white; border: none; padding: 7px 18px;
+      border-radius: 6px; font-weight: 700; cursor: pointer; font-size: .82rem; font-family: inherit; }
+    .dt-confirm:hover { background: #b91c1c; }
+    .dt-btns { display: flex; gap: 8px; }
+    @keyframes dtSlideUp {
+      from { transform: translateX(-50%) translateY(16px); opacity: 0; }
+      to   { transform: translateX(-50%) translateY(0);    opacity: 1; }
+    }
+
+    /* ══════════════════════════════════════
+       GENERAL TOASTS
+       ══════════════════════════════════════ */
+    .toast-container { position: fixed; top: 70px; right: 20px; z-index: 9999; display: flex; flex-direction: column; gap: 8px; max-width: 360px; pointer-events: none; }
+    .toast { background: #1e2433; border: 1px solid rgba(255,255,255,.12); border-radius: 10px; padding: 12px 16px; font-size: .85rem; color: #f1f5f9; box-shadow: 0 8px 24px rgba(0,0,0,.4); display: flex; align-items: flex-start; gap: 10px; pointer-events: auto; }
+
+    /* ── Responsive ── */
+    @media (max-width: 640px) {
+      .page { padding: 20px 16px; }
+      .topnav { padding: 0 16px; gap: 16px; }
+      .stats { grid-template-columns: 1fr 1fr; }
+    }
+  </style>
+</head>
+<body>
+
+{% if messages %}
+<div class="toast-container">
+  {% for message in messages %}
+  <div class="toast">
+    {% if message.tags == 'error' %}
+      <span style="color:#f87171;flex-shrink:0;">✕</span>
+      <span style="border-left:3px solid #f87171;padding-left:10px;">{{ message }}</span>
+    {% elif message.tags == 'success' %}
+      <span style="color:#4ade80;flex-shrink:0;">✔</span>
+      <span style="border-left:3px solid #4ade80;padding-left:10px;">{{ message }}</span>
+    {% elif message.tags == 'warning' %}
+      <span style="color:#fbbf24;flex-shrink:0;">⚠</span>
+      <span style="border-left:3px solid #fbbf24;padding-left:10px;">{{ message }}</span>
+    {% else %}
+      <span style="color:#60a5fa;flex-shrink:0;">ℹ</span>
+      <span style="border-left:3px solid #60a5fa;padding-left:10px;">{{ message }}</span>
+    {% endif %}
+  </div>
+  {% endfor %}
+</div>
+<script>setTimeout(function(){document.querySelectorAll('.toast').forEach(function(el){el.style.transition='opacity .4s';el.style.opacity='0';setTimeout(function(){el.remove();},400);});},3500);</script>
+{% endif %}
+
+<!-- ── TOP NAV ── -->
+<nav class="topnav">
+  <div class="brand">
+    <img src="{% static 'images/logo_trans.png' %}" alt="Etmam" onerror="this.style.display='none'">
+    <span>Etmam</span>
+  </div>
+  <div class="nav-tabs">
+    <button class="nav-tab active" onclick="showPanel('overview', this)">Overview</button>
+    <button class="nav-tab" onclick="showPanel('users', this)">
+      Users <span class="n-badge">{{ total_students|add:total_supervisors|add:total_reviewers }}</span>
+    </button>
+    <button class="nav-tab" onclick="showPanel('teams_projects', this)">
+      Teams &amp; Projects <span class="n-badge">{{ total_teams }}</span>
+    </button>
+    <button class="nav-tab" onclick="showPanel('milestones', this)">
+      Milestones
+    </button>
+    <button class="nav-tab" onclick="showPanel('submissions', this)">Submissions {% if overdue %}<span class="n-badge">{{ overdue }}</span>{% endif %}</button>
+    <button class="nav-tab" onclick="showPanel('grades', this)">
+      Grades {% if pending_grades %}<span class="n-badge">{{ pending_grades }}</span>{% endif %}
+    </button>
+    <button class="nav-tab" onclick="showPanel('archive', this)">
+      Archive{% if archive_data %} <span class="n-badge" style="background:#16a34a;">{{ archive_data|length }}</span>{% endif %}
+    </button>
+    <button class="nav-tab" onclick="showPanel('system', this)">
+      System <span class="n-badge" style="background:{% if system_config.phase == 2 %}#16a34a{% else %}#2563eb{% endif %}">P{{ system_config.phase }}</span>
+    </button>
+  </div>
+  <div class="nav-right">
+    <span class="nav-role">Administrator</span>
+    <form method="post" action="{% url 'accounts:logout' %}" style="margin:0">
+      {% csrf_token %}
+      <button type="submit" class="logout-btn">🚪 Sign Out</button>
+    </form>
+  </div>
+</nav>
+
+<div class="page">
+
+  <!-- ═══════════════════════════════════
+       PANEL: OVERVIEW
+       ═══════════════════════════════════ -->
+  <div class="panel active" id="panel-overview">
+    <div class="ph"><div><h1>System Overview</h1><p>Summary of all activity in Etmam</p></div></div>
+    <div class="stats">
+      <div class="stat-box" onclick="showPanelSection('users','section-students')">
+        <div class="val">{{ total_students }}</div><div class="lbl">Students</div><div class="arrow">→</div>
+      </div>
+      <div class="stat-box" onclick="showPanelSection('users','section-staff')">
+        <div class="val">{{ total_supervisors }}</div><div class="lbl">Supervisors</div><div class="arrow">→</div>
+      </div>
+      <div class="stat-box" onclick="showPanel('teams_projects', document.querySelectorAll('.nav-tab')[2])">
+        <div class="val">{{ total_teams }}</div><div class="lbl">Active Teams</div><div class="arrow">→</div>
+      </div>
+      <div class="stat-box" onclick="showPanel('submissions', document.querySelectorAll('.nav-tab')[4])">
+        <div class="val {% if overdue %}red{% endif %}">{{ overdue }}</div><div class="lbl">Missed Submissions</div><div class="arrow">→</div>
+      </div>
+      <div class="stat-box" onclick="showPanel('grades', document.querySelectorAll('.nav-tab')[5])">
+        <div class="val {% if pending_grades %}orange{% endif %}">{{ pending_grades }}</div><div class="lbl">Pending Grades</div><div class="arrow">→</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════════
+       PANEL: USERS
+       ═══════════════════════════════════ -->
+  <div class="panel" id="panel-users">
+    <div class="ph">
+      <div><h1>Users</h1><p>All registered accounts</p></div>
+      <a href="{% url 'accounts:add_user' %}" class="btn btn-blue">+ Add User</a>
+    </div>
+
+    <!-- ── Students ── -->
+    <div id="section-students" style="margin-bottom:28px;">
+      <div style="font-size:.8rem;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:10px;">
+        Students <span style="background:var(--bg);border:1px solid var(--border);border-radius:20px;padding:1px 8px;font-size:.72rem;margin-left:4px;">{{ total_students }}</span>
+      </div>
+      <div class="filter-bar">
+        <input type="text" id="stu-search" class="det-input"
+               placeholder="🔍  Name, username, ID, dept…"
+               style="width:260px;padding:5px 10px;font-size:.82rem;"
+               oninput="filterUsers('stu')">
+        <button class="filter-btn active" onclick="setGenderFilter('stu','',this)">All</button>
+        <button class="filter-btn" onclick="setGenderFilter('stu','male',this)">♂ Male</button>
+        <button class="filter-btn" onclick="setGenderFilter('stu','female',this)">♀ Female</button>
+      </div>
+      <div class="filter-bar dept-filter-bar" style="overflow-x:auto;flex-wrap:nowrap;gap:5px;margin-bottom:10px;">
+        <span style="font-size:.68rem;font-weight:700;color:var(--muted);white-space:nowrap;flex-shrink:0;">Dept:</span>
+        <button class="filter-btn active" onclick="setDeptFilter('stu','',this)">All</button>
+        <button class="filter-btn" onclick="setDeptFilter('stu','computer science',this)">Computer Science</button>
+        <button class="filter-btn" onclick="setDeptFilter('stu','software engineering',this)">Software Engineering</button>
+        <button class="filter-btn" onclick="setDeptFilter('stu','information technology',this)">Information Technology</button>
+        <button class="filter-btn" onclick="setDeptFilter('stu','computer engineering',this)">Computer Engineering</button>
+        <button class="filter-btn" onclick="setDeptFilter('stu','information systems',this)">Information Systems</button>
+        <button class="filter-btn" onclick="setDeptFilter('stu','cybersecurity',this)">Cybersecurity</button>
+        <button class="filter-btn" onclick="setDeptFilter('stu','data science',this)">Data Science</button>
+        <button class="filter-btn" onclick="setDeptFilter('stu','artificial intelligence',this)">Artificial Intelligence</button>
+        <button class="filter-btn" onclick="setDeptFilter('stu','network engineering',this)">Network Engineering</button>
+        <button class="filter-btn" onclick="setDeptFilter('stu','multimedia technology',this)">Multimedia Technology</button>
+      </div>
+      <div class="card">
+        <table class="gt" id="stu-table">
+          <thead><tr><th>Name</th><th>Username</th><th>ID</th><th>Department</th><th>Gender</th><th>Status</th><th>Joined</th><th></th></tr></thead>
+          <tbody>
+            {% for u in students %}
+            <tr data-name="{{ u.full_name|lower }}" data-username="{{ u.username|lower }}"
+                data-id="{{ u.student_id|default:''|lower }}" data-dept="{{ u.department|lower }}"
+                data-gender="{{ u.gender }}">
+              <td><div style="font-weight:600;">{{ u.full_name|default:"—" }}</div><div style="font-size:.75rem;color:var(--muted);">{{ u.email }}</div></td>
+              <td>{{ u.username }}</td>
+              <td>{{ u.student_id|default:"—" }}</td>
+              <td>{{ u.department|default:"—" }}</td>
+              <td>
+                {% if u.gender == 'male' %}<span class="badge b-blue">♂ Male</span>
+                {% elif u.gender == 'female' %}<span class="badge b-purple">♀ Female</span>
+                {% else %}<span class="badge b-gray">—</span>{% endif %}
+              </td>
+              <td>{% if u.is_active %}<span class="badge b-green">Active</span>{% else %}<span class="badge b-red">Inactive</span>{% endif %}</td>
+              <td>{{ u.date_joined|date:"M d, Y" }}</td>
+              <td style="white-space:nowrap;">
+                <a href="{% url 'accounts:edit_user' u.pk %}" class="btn btn-out">Edit</a>
+                <button type="button" class="btn btn-del-user" onclick="confirmDeleteUser({{ u.pk }}, '{{ u.username|escapejs }}')">Delete</button>
+              </td>
+            </tr>
+            {% empty %}
+            <tr><td colspan="8"><div class="empty"><div class="ei">👤</div>No students yet.</div></td></tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+      <div id="stu-no-results" style="display:none;text-align:center;padding:.75rem;font-size:.83rem;color:var(--muted);">No students match your filter.</div>
+    </div>
+
+    <!-- ── Supervisors & Reviewers ── -->
+    <div id="section-staff" style="margin-bottom:28px;">
+      <div style="font-size:.8rem;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:10px;">
+        Supervisors &amp; Reviewers <span style="background:var(--bg);border:1px solid var(--border);border-radius:20px;padding:1px 8px;font-size:.72rem;margin-left:4px;">{{ staff.count }}</span>
+      </div>
+      <div class="filter-bar">
+        <input type="text" id="staff-search" class="det-input"
+               placeholder="🔍  Name, username, dept…"
+               style="width:260px;padding:5px 10px;font-size:.82rem;"
+               oninput="filterUsers('staff')">
+        <button class="filter-btn active" onclick="setGenderFilter('staff','',this)">All</button>
+        <button class="filter-btn" onclick="setGenderFilter('staff','male',this)">♂ Male</button>
+        <button class="filter-btn" onclick="setGenderFilter('staff','female',this)">♀ Female</button>
+      </div>
+      <div class="filter-bar dept-filter-bar" style="overflow-x:auto;flex-wrap:nowrap;gap:5px;margin-bottom:10px;">
+        <span style="font-size:.68rem;font-weight:700;color:var(--muted);white-space:nowrap;flex-shrink:0;">Dept:</span>
+        <button class="filter-btn active" onclick="setDeptFilter('staff','',this)">All</button>
+        <button class="filter-btn" onclick="setDeptFilter('staff','computer science',this)">Computer Science</button>
+        <button class="filter-btn" onclick="setDeptFilter('staff','software engineering',this)">Software Engineering</button>
+        <button class="filter-btn" onclick="setDeptFilter('staff','information technology',this)">Information Technology</button>
+        <button class="filter-btn" onclick="setDeptFilter('staff','computer engineering',this)">Computer Engineering</button>
+        <button class="filter-btn" onclick="setDeptFilter('staff','information systems',this)">Information Systems</button>
+        <button class="filter-btn" onclick="setDeptFilter('staff','cybersecurity',this)">Cybersecurity</button>
+        <button class="filter-btn" onclick="setDeptFilter('staff','data science',this)">Data Science</button>
+        <button class="filter-btn" onclick="setDeptFilter('staff','artificial intelligence',this)">Artificial Intelligence</button>
+        <button class="filter-btn" onclick="setDeptFilter('staff','network engineering',this)">Network Engineering</button>
+        <button class="filter-btn" onclick="setDeptFilter('staff','multimedia technology',this)">Multimedia Technology</button>
+      </div>
+      <div class="card">
+        <table class="gt" id="staff-table">
+          <thead><tr><th>Name</th><th>Username</th><th>Department</th><th>Gender</th><th>Supervising</th><th>Reviewing</th><th>Available</th><th>Can Review</th><th>Status</th><th></th></tr></thead>
+          <tbody>
+            {% for u in staff %}
+            <tr data-name="{{ u.full_name|lower }}" data-username="{{ u.username|lower }}"
+                data-id="" data-dept="{{ u.department|lower }}" data-gender="{{ u.gender }}">
+              <td><div style="font-weight:600;">{{ u.full_name|default:"—" }}</div><div style="font-size:.75rem;color:var(--muted);">{{ u.email }}</div></td>
+              <td>{{ u.username }}</td>
+              <td>{{ u.department|default:"—" }}</td>
+              <td>
+                {% if u.gender == 'male' %}<span class="badge b-blue">♂ Male</span>
+                {% elif u.gender == 'female' %}<span class="badge b-purple">♀ Female</span>
+                {% else %}<span class="badge b-gray">—</span>{% endif %}
+              </td>
+              <td>{{ u.current_load }}/{{ u.max_teams_supervise }}</td>
+              <td>{{ u.current_review_load }}/{{ u.max_teams_review }}</td>
+              <td>{% if u.available %}<span class="badge b-green">Yes</span>{% else %}<span class="badge b-gray">No</span>{% endif %}</td>
+              <td>{% if u.can_review %}<span class="badge b-blue">Yes</span>{% else %}<span class="badge b-gray">No</span>{% endif %}</td>
+              <td>{% if u.is_active %}<span class="badge b-green">Active</span>{% else %}<span class="badge b-red">Inactive</span>{% endif %}</td>
+              <td style="white-space:nowrap;">
+                <a href="{% url 'accounts:edit_user' u.pk %}" class="btn btn-out">Edit</a>
+                <button type="button" class="btn btn-del-user" onclick="confirmDeleteUser({{ u.pk }}, '{{ u.username|escapejs }}')">Delete</button>
+              </td>
+            </tr>
+            {% empty %}
+            <tr><td colspan="10"><div class="empty"><div class="ei">👤</div>No supervisors or reviewers yet.</div></td></tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+      <div id="staff-no-results" style="display:none;text-align:center;padding:.75rem;font-size:.83rem;color:var(--muted);">No staff match your filter.</div>
+    </div>
+
+    <!-- ── Administrators ── -->
+    <div id="section-admins">
+      <div style="font-size:.8rem;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:10px;">
+        Administrators <span style="background:var(--bg);border:1px solid var(--border);border-radius:20px;padding:1px 8px;font-size:.72rem;margin-left:4px;">{{ admins.count }}</span>
+      </div>
+      <div class="filter-bar">
+        <input type="text" id="adm-search" class="det-input"
+               placeholder="🔍  Name or username…"
+               style="width:260px;padding:5px 10px;font-size:.82rem;"
+               oninput="filterUsers('adm')">
+      </div>
+      <div class="filter-bar dept-filter-bar" style="overflow-x:auto;flex-wrap:nowrap;gap:5px;margin-bottom:10px;">
+        <span style="font-size:.68rem;font-weight:700;color:var(--muted);white-space:nowrap;flex-shrink:0;">Dept:</span>
+        <button class="filter-btn active" onclick="setDeptFilter('adm','',this)">All</button>
+        <button class="filter-btn" onclick="setDeptFilter('adm','computer science',this)">Computer Science</button>
+        <button class="filter-btn" onclick="setDeptFilter('adm','software engineering',this)">Software Engineering</button>
+        <button class="filter-btn" onclick="setDeptFilter('adm','information technology',this)">Information Technology</button>
+        <button class="filter-btn" onclick="setDeptFilter('adm','computer engineering',this)">Computer Engineering</button>
+        <button class="filter-btn" onclick="setDeptFilter('adm','information systems',this)">Information Systems</button>
+        <button class="filter-btn" onclick="setDeptFilter('adm','cybersecurity',this)">Cybersecurity</button>
+        <button class="filter-btn" onclick="setDeptFilter('adm','data science',this)">Data Science</button>
+        <button class="filter-btn" onclick="setDeptFilter('adm','artificial intelligence',this)">Artificial Intelligence</button>
+        <button class="filter-btn" onclick="setDeptFilter('adm','network engineering',this)">Network Engineering</button>
+        <button class="filter-btn" onclick="setDeptFilter('adm','multimedia technology',this)">Multimedia Technology</button>
+      </div>
+      <div class="card">
+        <table class="gt" id="adm-table">
+          <thead><tr><th>Name</th><th>Username</th><th>ID</th><th>Email</th><th>Joined</th><th></th></tr></thead>
+          <tbody>
+            {% for u in admins %}
+            <tr data-name="{{ u.full_name|lower }}" data-username="{{ u.username|lower }}"
+                data-id="" data-dept="" data-gender="">
+              <td style="font-weight:600;">{{ u.full_name|default:"—" }}</td>
+              <td>{{ u.username }}</td>
+              <td>{{ u.student_id|default:"—" }}</td>
+              <td>{{ u.email|default:"—" }}</td>
+              <td>{{ u.date_joined|date:"M d, Y" }}</td>
+              <td style="white-space:nowrap;">
+                <a href="{% url 'accounts:edit_user' u.pk %}" class="btn btn-out">Edit</a>
+                <button type="button" class="btn btn-del-user" onclick="confirmDeleteUser({{ u.pk }}, '{{ u.username|escapejs }}')">Delete</button>
+              </td>
+            </tr>
+            {% empty %}
+            <tr><td colspan="6"><div class="empty"><div class="ei">👤</div>No administrators yet.</div></td></tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+      <div id="adm-no-results" style="display:none;text-align:center;padding:.75rem;font-size:.83rem;color:var(--muted);">No admins match your filter.</div>
+    </div>
+
+    <!-- Delete confirmation modal -->
+    <div id="del-user-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:2000;align-items:center;justify-content:center;">
+      <div style="background:#fff;border-radius:10px;padding:28px 32px;width:360px;box-shadow:0 16px 40px rgba(0,0,0,.25);">
+        <div style="font-size:1rem;font-weight:700;margin-bottom:8px;">Delete User?</div>
+        <p id="del-user-msg" style="font-size:.875rem;color:#475569;margin-bottom:24px;"></p>
+        <div style="display:flex;gap:10px;justify-content:flex-end;">
+          <button type="button" onclick="closeDeleteModal()" style="padding:7px 18px;border-radius:6px;border:1px solid #e2e8f0;background:transparent;font-size:.85rem;font-weight:600;cursor:pointer;color:#64748b;">Cancel</button>
+          <form id="del-user-form" method="post" style="display:inline;">
+            {% csrf_token %}
+            <button type="submit" style="padding:7px 18px;border-radius:6px;border:none;background:#dc2626;color:#fff;font-size:.85rem;font-weight:600;cursor:pointer;">Delete</button>
+          </form>
+        </div>
+      </div>
+    </div>
+
+    <script>
+      function confirmDeleteUser(userId, username) {
+        var modal = document.getElementById('del-user-modal');
+        var msg   = document.getElementById('del-user-msg');
+        var form  = document.getElementById('del-user-form');
+        msg.textContent = 'Are you sure you want to permanently delete "' + username + '"? This action cannot be undone.';
+        form.action = '/accounts/delete/' + userId + '/';
+        modal.style.display = 'flex';
+      }
+      function closeDeleteModal() {
+        document.getElementById('del-user-modal').style.display = 'none';
+      }
+      document.getElementById('del-user-modal').addEventListener('click', function(e) {
+        if (e.target === this) closeDeleteModal();
+      });
+    </script>
+
+    <script>
+      var _gf = { stu: '', staff: '', adm: '' };
+      var _df = { stu: '', staff: '', adm: '' };
+
+      function setGenderFilter(sec, gender, btn) {
+        _gf[sec] = gender;
+        btn.closest('.filter-bar').querySelectorAll('.filter-btn').forEach(function(b){ b.classList.remove('active'); });
+        btn.classList.add('active');
+        filterUsers(sec);
+      }
+      function setDeptFilter(sec, dept, btn) {
+        _df[sec] = dept;
+        btn.closest('.dept-filter-bar').querySelectorAll('.filter-btn').forEach(function(b){ b.classList.remove('active'); });
+        btn.classList.add('active');
+        filterUsers(sec);
+      }
+      function filterUsers(sec) {
+        var q  = (document.getElementById(sec + '-search').value || '').toLowerCase();
+        var gf = _gf[sec] || '';
+        var df = _df[sec] || '';
+        var rows = document.querySelectorAll('#' + sec + '-table tbody tr[data-username]');
+        var visible = 0;
+        rows.forEach(function(r) {
+          var match =
+            (!q  || (r.dataset.name||'').includes(q) || (r.dataset.username||'').includes(q) ||
+                    (r.dataset.id||'').includes(q)   || (r.dataset.dept||'').includes(q)) &&
+            (!gf || r.dataset.gender === gf) &&
+            (!df || (r.dataset.dept||'').toLowerCase() === df);
+          r.style.display = match ? '' : 'none';
+          if (match) visible++;
+        });
+        var msg = document.getElementById(sec + '-no-results');
+        if (msg) msg.style.display = (visible === 0 && rows.length > 0) ? 'block' : 'none';
+      }
+    </script>
+  </div>
+
+  <!-- ═══════════════════════════════════════════════════════════
+       PANEL: TEAMS & PROJECTS (accordion + create + bulk-delete)
+       ═══════════════════════════════════════════════════════════ -->
+  <div class="panel" id="panel-teams_projects">
+    <div class="ph">
+      <div>
+        <h1>Teams &amp; Projects</h1>
+        <p>{{ total_teams }} active team{{ total_teams|pluralize }} · {{ total_projects }} project{{ total_projects|pluralize }}{% if dissolved_count %} · <span style="color:var(--red);">{{ dissolved_count }} dissolved</span>{% endif %}</p>
+      </div>
+      <div class="ph-actions">
+        <button class="btn btn-blue" onclick="toggleCreateTeamForm()">＋ Create New Team</button>
+        {% if dissolved_count %}
+        <form method="post" action="{% url 'dashboard:admin_delete_dissolved' %}" style="display:inline;">
+          {% csrf_token %}
+          <button type="submit" class="btn-del-dissolved"
+                  onclick="return confirm('Permanently delete all {{ dissolved_count }} dissolved team{{ dissolved_count|pluralize }}? This cannot be undone.')">
+            🗑 Delete Dissolved ({{ dissolved_count }})
+          </button>
+        </form>
+        {% endif %}
+      </div>
+    </div>
+
+    <!-- ── Create New Team card (hidden by default) ── -->
+    <div class="create-team-card" id="create-team-card">
+      <div class="create-team-title">
+        <span>＋ Create New Team</span>
+        <button type="button" class="btn btn-ghost btn-sm" onclick="toggleCreateTeamForm()">✕ Close</button>
+      </div>
+      <form method="post" action="{% url 'dashboard:admin_create_team' %}" id="create-team-form-el">
+        {% csrf_token %}
+        <div class="create-team-grid">
+          <!-- Left: name + members search -->
+          <div>
+            <div class="det-field">
+              <label class="det-label">Team Name *</label>
+              <input type="text" name="name" class="det-input" placeholder="e.g. Team Alpha" required>
+            </div>
+            <div class="det-field">
+              <label class="det-label">Add Students</label>
+              <div class="search-wrap">
+                <input type="text" id="create-search-input" class="det-input"
+                       placeholder="Search by name or username…"
+                       autocomplete="off"
+                       oninput="createTeamSearch(event)">
+                <div class="admin-search-dd" id="create-search-dd" style="display:none;"></div>
+              </div>
+              <div class="member-chips" id="create-members-chips">
+                <span style="color:var(--muted);font-size:.78rem;align-self:center;">No members added yet.</span>
+              </div>
+              <!-- Hidden inputs injected by JS -->
+              <div id="create-hidden-members"></div>
+            </div>
+          </div>
+          <!-- Right: leader + submit -->
+          <div style="display:flex;flex-direction:column;justify-content:flex-end;gap:12px;">
+            <div class="det-field">
+              <label class="det-label">Team Leader</label>
+              <select name="leader" id="create-leader-select" class="det-select">
+                <option value="">— Pick leader (optional) —</option>
+              </select>
+            </div>
+            <button type="submit" class="btn btn-blue" style="width:100%;justify-content:center;">✔ Create Team</button>
+          </div>
+        </div>
+      </form>
+    </div>
+
+    <!-- ── Filter bar ── -->
+    <div class="filter-bar">
+      <button class="filter-btn active" onclick="filterTeams('all', this)">All Teams</button>
+      <button class="filter-btn" onclick="filterTeams('no-project', this)">No Project</button>
+      <button class="filter-btn" onclick="filterTeams('dissolved', this)">Dissolved</button>
+      <select class="filter-select" onchange="filterTeamsByDept(this.value)" style="min-width:180px;">
+        <option value="">All Departments</option>
+        <option value="computer science">Computer Science</option>
+        <option value="software engineering">Software Engineering</option>
+        <option value="information technology">Information Technology</option>
+        <option value="computer engineering">Computer Engineering</option>
+        <option value="information systems">Information Systems</option>
+        <option value="cybersecurity">Cybersecurity</option>
+        <option value="data science">Data Science</option>
+        <option value="artificial intelligence">Artificial Intelligence</option>
+        <option value="network engineering">Network Engineering</option>
+        <option value="multimedia technology">Multimedia Technology</option>
+      </select>
+    </div>
+
+    <!-- ── Accordion table ── -->
+    <div class="card tp-table">
+      <table class="gt" style="table-layout:fixed;">
+        <colgroup>
+          <col style="width:34px;">
+          <col style="width:14%;">
+          <col style="width:20%;">
+          <col style="width:10%;">
+          <col style="width:6%;">
+          <col style="width:16%;">
+          <col style="width:16%;">
+          <col style="width:10%;">
+        </colgroup>
+        <thead>
+          <tr>
+            <th></th><th>Team</th><th>Project Title</th><th>Dept</th><th>Members</th>
+            <th>Supervisor</th><th>Reviewers</th><th>Created</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for item in teams_data %}
+          {% with team=item.team project=item.project members=item.active_members pending=item.pending_members excl_ids=item.excl_rev_ids %}
+
+          <!-- ── Summary row ── -->
+          {% with team_dept=item.active_members.0.user.department|default:'' %}
+          <tr class="team-row"
+              id="row-{{ team.pk }}"
+              data-team-id="{{ team.pk }}"
+              data-team-name="{{ team.name }}"
+              data-is-active="{% if team.is_active %}true{% else %}false{% endif %}"
+              data-has-project="{% if project %}true{% else %}false{% endif %}"
+              data-status="{{ project.status|default:'' }}"
+              data-dept="{{ team_dept|lower }}"
+              onclick="toggleTeam(this.dataset.teamId, event)">
+            <td style="text-align:center;">
+              <span class="expand-icon" id="icon-{{ team.pk }}">›</span>
+            </td>
+            <td>
+              <div style="font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">{{ team.name }}</div>
+              <div style="font-size:.72rem;margin-top:2px;">
+                {% if team.is_active %}
+                  <span style="color:var(--green);">● Active</span>
+                {% else %}
+                  <span style="color:var(--red);">● Dissolved</span>
+                {% endif %}
+              </div>
+            </td>
+            <td>
+              {% if project %}
+                <div style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-weight:500;">{{ project.title|truncatechars:38 }}</div>
+                {% if project.status != 'active' and project.status != 'in_progress' %}
+                <span class="badge {% if project.status == 'completed' %}b-blue{% elif project.status == 'rejected' %}b-orange{% else %}b-gray{% endif %}" style="margin-top:3px;">{{ project.get_status_display }}</span>
+                {% endif %}
+              {% else %}
+                <span style="color:var(--light);font-style:italic;">— No project yet —</span>
+              {% endif %}
+            </td>
+            <td style="font-size:.78rem;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:110px;" title="{{ team_dept }}">{{ team_dept|default:"—" }}</td>
+            <td style="text-align:center;font-weight:600;">{{ members|length }}</td>
+            <td style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">
+              {% if project and project.supervisor %}{{ project.supervisor.full_name|default:project.supervisor.username|truncatechars:22 }}{% else %}<span style="color:var(--light);">—</span>{% endif %}
+            </td>
+            <td>
+              {% if project %}
+                {% for r in project.reviewers.all %}
+                  <div style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:.8rem;">{{ r.full_name|default:r.username|truncatechars:22 }}</div>
+                {% empty %}<span style="color:var(--light);">—</span>{% endfor %}
+              {% else %}<span style="color:var(--light);">—</span>{% endif %}
+            </td>
+            <td style="font-size:.8rem;color:var(--muted);">{{ team.created_at|date:"M d, Y" }}</td>
+          </tr>
+
+          <!-- ── Detail row (accordion body) ── -->
+          <tr class="team-detail-row" id="detail-{{ team.pk }}" style="display:none;">
+            <td colspan="8">
+              <div class="detail-panel">
+
+                {% if not team.is_active %}
+                <!-- ══ DISSOLVED STATE — read-only ══ -->
+                <div class="dissolved-banner">
+                  <div class="dissolved-banner-icon">🗑️</div>
+                  <div>
+                    <div class="dissolved-banner-text">This team has been dissolved</div>
+                    <div class="dissolved-banner-sub">All members were removed. Use "Delete Dissolved" in the panel header to permanently remove it.</div>
+                  </div>
+                </div>
+                {% if project %}
+                <div style="font-size:.83rem;color:var(--muted);padding:4px 0;">
+                  <strong style="color:var(--text);">Former project:</strong> {{ project.title }}
+                </div>
+                {% endif %}
+
+                {% else %}
+                <!-- ══ ACTIVE STATE — full edit UI ══ -->
+                <div class="det-grid">
+
+                  <!-- ╔══════════ LEFT: Members ══════════╗ -->
+                  <div>
+                    <div class="det-section">
+                      <div class="det-section-title">👥 Members
+                        <span style="background:var(--blue-lt);color:var(--blue);border-radius:20px;padding:1px 7px;font-size:.68rem;">{{ members|length }}</span>
+                      </div>
+                      <div class="det-card">
+                        {% for m in members %}
+                        <div class="member-row">
+                          <div class="av">{{ m.user.full_name|default:m.user.username|first|upper }}</div>
+                          <div class="member-info">
+                            <div class="member-name">{{ m.user.full_name|default:m.user.username }}</div>
+                            <div class="member-meta">{{ m.user.username }}{% if m.user.student_id %} · {{ m.user.student_id }}{% endif %}</div>
+                          </div>
+                          <span class="badge {% if m.role == 'leader' %}b-amber{% else %}b-gray{% endif %}">{{ m.role|capfirst }}</span>
+                          <div class="member-actions">
+                            {% if m.role != 'leader' %}
+                            <form method="post" action="{% url 'dashboard:admin_change_leader' team.pk %}">
+                              {% csrf_token %}
+                              <input type="hidden" name="member_id" value="{{ m.pk }}">
+                              <button type="submit" class="btn btn-out btn-sm">★ Leader</button>
+                            </form>
+                            {% endif %}
+                            <form method="post" action="{% url 'teams:admin_remove_member' m.pk %}">
+                              {% csrf_token %}
+                              <button type="submit" class="btn btn-red-out btn-sm"
+                                onclick="return confirm('Remove {{ m.user.full_name|default:m.user.username }} from {{ team.name }}?')">Remove</button>
+                            </form>
+                          </div>
+                        </div>
+                        {% empty %}
+                        <div style="padding:16px;text-align:center;color:var(--muted);font-size:.82rem;">No active members.</div>
+                        {% endfor %}
+                      </div>
+                    </div>
+
+                    {% if pending %}
+                    <div class="det-section">
+                      <div class="det-section-title">⏳ Pending Invites
+                        <span style="background:#fef3c7;color:#92400e;border-radius:20px;padding:1px 7px;font-size:.68rem;">{{ pending|length }}</span>
+                      </div>
+                      <div class="det-card">
+                        {% for m in pending %}
+                        <div class="member-row">
+                          <div class="av" style="background:#fef3c7;color:#92400e;border-color:#fde68a;">{{ m.user.full_name|default:m.user.username|first|upper }}</div>
+                          <div class="member-info">
+                            <div class="member-name">{{ m.user.full_name|default:m.user.username }}</div>
+                            <div class="member-meta">{{ m.user.username }}</div>
+                          </div>
+                          <span class="badge b-amber">Pending</span>
+                          <div class="member-actions">
+                            <form method="post" action="{% url 'teams:admin_cancel_invite' m.pk %}">
+                              {% csrf_token %}
+                              <button type="submit" class="btn btn-red-out btn-sm"
+                                onclick="return confirm('Cancel invite for {{ m.user.full_name|default:m.user.username }}?')">Cancel</button>
+                            </form>
+                          </div>
+                        </div>
+                        {% endfor %}
+                      </div>
+                    </div>
+                    {% endif %}
+
+                    <div class="det-section">
+                      <div class="det-section-title">＋ Add Member</div>
+                      <div class="det-card det-card-body">
+                        <form method="post" action="{% url 'dashboard:admin_add_member' team.pk %}">
+                          {% csrf_token %}
+                          <div class="search-wrap">
+                            <input type="text"
+                                   id="s-input-{{ team.pk }}"
+                                   class="det-input"
+                                   data-team-id="{{ team.pk }}"
+                                   placeholder="Search by name or username…"
+                                   autocomplete="off"
+                                   oninput="adminSearch(event, this.dataset.teamId)">
+                            <div class="admin-search-dd" id="s-dd-{{ team.pk }}" style="display:none;"></div>
+                          </div>
+                          <div class="search-selected" id="s-sel-{{ team.pk }}">✔ <span></span></div>
+                          <input type="hidden" name="username" id="s-val-{{ team.pk }}">
+                          <button type="submit" class="btn btn-blue" style="width:100%;margin-top:8px;justify-content:center;">Add to Team</button>
+                        </form>
+                      </div>
+                    </div>
+
+                    <div class="det-section">
+                      <!-- Dissolve: JS-driven 30-second undo -->
+                      <button type="button" class="btn btn-dissolve"
+                              data-team-id="{{ team.pk }}"
+                              data-team-name="{{ team.name }}"
+                              onclick="startDissolve(this)">
+                        🗑 Dissolve Team
+                      </button>
+                      <!-- Hidden form — submitted by JS after countdown -->
+                      <form id="dissolve-form-{{ team.pk }}" method="post"
+                            action="{% url 'teams:dissolve' team.pk %}" style="display:none;">
+                        {% csrf_token %}
+                      </form>
+                    </div>
+                  </div><!-- /LEFT -->
+
+                  <!-- ╔══════════ RIGHT: Project + Supervisor + Reviewers ══════════╗ -->
+                  <div>
+                    <!-- Project -->
+                    <div class="det-section">
+                      <div class="det-section-title">📁 Project</div>
+                      {% if project %}
+                      <div class="det-card det-card-body">
+                        <form method="post" action="{% url 'dashboard:admin_update_project' project.pk %}">
+                          {% csrf_token %}
+                          <div class="det-field">
+                            <label class="det-label">Title</label>
+                            <input type="text" name="title" class="det-input" value="{{ project.title }}">
+                          </div>
+                          <div class="det-field">
+                            <label class="det-label">Description</label>
+                            <textarea name="description" class="det-textarea" rows="3">{{ project.description }}</textarea>
+                          </div>
+                          <div class="det-field">
+                            <label class="det-label">Status</label>
+                            <select name="status" class="det-select">
+                              <option value="active"    {% if project.status == 'active'    %}selected{% endif %}>Active</option>
+                              <option value="completed" {% if project.status == 'completed' %}selected{% endif %}>Completed</option>
+                            </select>
+                          </div>
+                          <button type="submit" class="btn btn-blue" style="width:100%;justify-content:center;">💾 Save Project</button>
+                        </form>
+                        {% if project.status == 'completed' %}
+                        <form method="post" action="{% url 'dashboard:admin_toggle_archive' project.pk %}" style="margin-top:8px;">
+                          {% csrf_token %}
+                          <button type="submit" class="btn {% if project.hide_from_archive %}btn-blue{% else %}btn-red-out{% endif %}" style="width:100%;justify-content:center;">
+                            {% if project.hide_from_archive %}👁 Show in Archive{% else %}🚫 Hide from Archive{% endif %}
+                          </button>
+                        </form>
+                        {% endif %}
+                      </div>
+                      {% else %}
+                      <div class="det-card det-card-body">
+                        <p style="font-size:.82rem;color:var(--muted);margin-bottom:10px;">No project yet. Create one:</p>
+                        <form method="post" action="{% url 'dashboard:admin_create_project' team.pk %}">
+                          {% csrf_token %}
+                          <div class="det-field">
+                            <input type="text" name="title" class="det-input" placeholder="Project title…" required>
+                          </div>
+                          <div class="det-field">
+                            <textarea name="description" class="det-textarea" rows="3" placeholder="Brief description…"></textarea>
+                          </div>
+                          <button type="submit" class="btn btn-blue" style="width:100%;justify-content:center;">＋ Create Project</button>
+                        </form>
+                      </div>
+                      {% endif %}
+                    </div>
+
+                    <!-- Supervisor -->
+                    <div class="det-section">
+                      <div class="det-section-title">🧑‍🏫 Supervisor</div>
+                      <div class="det-card">
+                        {% if project and project.supervisor %}
+                        <div class="person-row">
+                          <div class="av">{{ project.supervisor.full_name|default:project.supervisor.username|first|upper }}</div>
+                          <div class="person-info">
+                            <div style="font-weight:600;font-size:.83rem;">{{ project.supervisor.full_name|default:project.supervisor.username }}</div>
+                            <div style="font-size:.72rem;color:var(--muted);">{{ project.supervisor.department|default:"—" }}</div>
+                          </div>
+                          <form method="post" action="{% url 'dashboard:admin_remove_supervisor' project.pk %}">
+                            {% csrf_token %}
+                            <button type="submit" class="btn btn-red-out btn-sm"
+                              onclick="return confirm('Remove supervisor from {{ project.title }}?')">Remove</button>
+                          </form>
+                        </div>
+                        {% endif %}
+                        {% if project %}
+                        <div class="det-card-body {% if project.supervisor %}with-top-border{% endif %}">
+                          <form method="post" action="{% url 'dashboard:admin_assign_supervisor' project.pk %}">
+                            {% csrf_token %}
+                            <div class="det-row-flex">
+                              <select name="supervisor_id" class="det-select" style="flex:1;">
+                                <option value="">— {% if project.supervisor %}Change{% else %}Assign{% endif %} supervisor —</option>
+                                {% for sup in all_supervisors %}
+                                <option value="{{ sup.pk }}" {% if project.supervisor.pk == sup.pk %}selected{% endif %}>
+                                  {{ sup.full_name|default:sup.username }}{% if sup.department %} · {{ sup.department }}{% endif %}
+                                </option>
+                                {% endfor %}
+                              </select>
+                              <button type="submit" class="btn btn-blue btn-sm">Set</button>
+                            </div>
+                          </form>
+                        </div>
+                        {% else %}
+                        <div class="det-card-body" style="font-size:.82rem;color:var(--muted);">Create a project first.</div>
+                        {% endif %}
+                      </div>
+                    </div>
+
+                    <!-- Reviewers (supervisor excluded from dropdown) -->
+                    <div class="det-section">
+                      <div class="det-section-title">
+                        📋 Reviewers
+                        {% if project %}<span style="background:var(--blue-lt);color:var(--blue);border-radius:20px;padding:1px 7px;font-size:.68rem;">{{ project.reviewers.count }}/2</span>{% endif %}
+                      </div>
+                      <div class="det-card">
+                        {% if project %}
+                          {% for r in project.reviewers.all %}
+                          <div class="person-row">
+                            <div class="av" style="background:#f5f3ff;color:#7c3aed;border-color:#ddd6fe;">{{ r.full_name|default:r.username|first|upper }}</div>
+                            <div class="person-info">
+                              <div style="font-weight:600;font-size:.83rem;">{{ r.full_name|default:r.username }}</div>
+                              <div style="font-size:.72rem;color:var(--muted);">{{ r.department|default:"—" }}</div>
+                            </div>
+                            <form method="post" action="{% url 'dashboard:admin_remove_reviewer' project.pk %}">
+                              {% csrf_token %}
+                              <input type="hidden" name="reviewer_id" value="{{ r.pk }}">
+                              <button type="submit" class="btn btn-red-out btn-sm"
+                                onclick="return confirm('Remove {{ r.full_name|default:r.username }} as reviewer?')">Remove</button>
+                            </form>
+                          </div>
+                          {% empty %}
+                          <div style="padding:12px 14px;font-size:.82rem;color:var(--muted);">No reviewers assigned yet.</div>
+                          {% endfor %}
+
+                          {% if project.reviewers.count < 2 %}
+                          <div class="det-card-body with-top-border">
+                            <form method="post" action="{% url 'dashboard:admin_assign_reviewer' project.pk %}">
+                              {% csrf_token %}
+                              <div class="det-row-flex">
+                                <select name="reviewer_id" class="det-select" style="flex:1;">
+                                  <option value="">— Add reviewer —</option>
+                                  {% for r in all_reviewers %}
+                                    {% if r.pk not in excl_ids %}
+                                    <option value="{{ r.pk }}">{{ r.full_name|default:r.username }}{% if r.department %} · {{ r.department }}{% endif %}</option>
+                                    {% endif %}
+                                  {% endfor %}
+                                </select>
+                                <button type="submit" class="btn btn-blue btn-sm">Add</button>
+                              </div>
+                            </form>
+                          </div>
+                          {% else %}
+                          <div style="padding:10px 14px;font-size:.78rem;color:var(--muted);border-top:1px solid var(--border);">✔ Maximum 2 reviewers reached.</div>
+                          {% endif %}
+                        {% else %}
+                        <div class="det-card-body" style="font-size:.82rem;color:var(--muted);">Create a project first to assign reviewers.</div>
+                        {% endif %}
+                      </div>
+                    </div>
+                  </div><!-- /RIGHT -->
+
+                </div><!-- /det-grid -->
+                {% endif %}{# end active/dissolved #}
+              </div><!-- /detail-panel -->
+            </td>
+          </tr>
+
+          {% endwith %}{# team_dept #}
+          {% endwith %}{# team/project/members/... #}
+          {% endfor %}
+
+          {% if not teams_data %}
+          <tr><td colspan="7"><div class="empty"><div class="ei">👥</div>No teams yet.</div></td></tr>
+          {% endif %}
+        </tbody>
+      </table>
+    </div><!-- /card -->
+  </div><!-- /panel-teams_projects -->
+
+  <!-- ═══════════════════════════════════
+       PANEL: MILESTONES
+       ═══════════════════════════════════ -->
+  <div class="panel" id="panel-milestones">
+    <div class="ph">
+      <div>
+        <h1>Milestones</h1>
+        <p>{{ milestones|length }} global objective{{ milestones|length|pluralize }}</p>
+      </div>
+      <div class="ph-actions">
+        <button class="btn btn-blue" onclick="toggleAddMilestone()">＋ Add Objective</button>
+      </div>
+    </div>
+
+    <!-- Add milestone form (hidden) -->
+    <div class="create-team-card" id="add-milestone-card" style="display:none;margin-bottom:20px;">
+      <div class="create-team-title">
+        <span>＋ New Objective</span>
+        <button type="button" class="btn btn-ghost btn-sm" onclick="toggleAddMilestone()">✕ Close</button>
+      </div>
+      <form method="post" action="{% url 'dashboard:admin_create_milestone' %}" enctype="multipart/form-data">
+        {% csrf_token %}
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;">
+          <div class="det-field" style="grid-column:1/-1;">
+            <label class="det-label">Title *</label>
+            <input type="text" name="title" class="det-input" placeholder="e.g. Literature Review" required>
+          </div>
+          <div class="det-field" style="grid-column:1/-1;">
+            <label class="det-label">Description</label>
+            <textarea name="description" class="det-textarea" rows="2" placeholder="What should teams deliver for this objective?"></textarea>
+          </div>
+          <div class="det-field" style="grid-column:1/-1;">
+            <label class="det-label">Guide Document (optional — visible to students)</label>
+            <input type="file" name="guide_file" class="det-input" accept=".pdf,.doc,.docx,.ppt,.pptx,.xls,.xlsx,.txt">
+          </div>
+          <div class="det-field">
+            <label class="det-label">Start Date</label>
+            <input type="date" name="start_date" class="det-input">
+          </div>
+          <div class="det-field">
+            <label class="det-label">Due Date</label>
+            <input type="date" name="due_date" class="det-input">
+          </div>
+          <div style="display:flex;align-items:flex-end;">
+            <button type="submit" class="btn btn-blue" style="width:100%;justify-content:center;">✔ Create Objective</button>
+          </div>
+        </div>
+      </form>
+    </div>
+
+    <!-- Milestone cards (accordion) -->
+    {% for m in milestones %}
+    <div class="card" style="margin-bottom:12px;overflow:visible;">
+      <!-- Summary row -->
+      <div style="display:flex;align-items:center;gap:14px;padding:14px 20px;cursor:pointer;"
+           onclick="toggleMilestoneEdit('mcard-{{ m.pk }}')">
+        <div style="width:28px;height:28px;border-radius:50%;background:var(--blue-lt);border:1px solid var(--blue-bd);display:flex;align-items:center;justify-content:center;font-size:.8rem;font-weight:700;color:var(--blue);flex-shrink:0;">{{ m.order }}</div>
+        <div style="flex:1;min-width:0;">
+          <div style="font-weight:600;font-size:.9rem;">{{ m.title }}</div>
+          <div style="font-size:.75rem;color:var(--muted);margin-top:2px;">
+            {% if m.start_date %}{{ m.start_date|date:"M d" }} →{% endif %}
+            {% if m.due_date %}<span class="{% if m.due_date < today %}ms-overdue{% endif %}">{{ m.due_date|date:"M d, Y" }}</span>{% else %}<span style="color:var(--light);">No due date</span>{% endif %}
+            · Weight: <strong>{{ m.weight }}%</strong>
+          </div>
+        </div>
+        {% if m.due_date and m.due_date < today %}
+        <span class="badge b-red">Past Due</span>
+        {% endif %}
+        <span style="color:var(--light);font-size:1rem;" id="mi-icon-{{ m.pk }}">›</span>
+      </div>
+
+      <!-- Edit form (hidden) -->
+      <div id="mcard-{{ m.pk }}" style="display:none;border-top:1px solid var(--border);padding:18px 20px;background:#fafbfc;">
+        <form method="post" action="{% url 'dashboard:admin_update_milestone' m.pk %}" enctype="multipart/form-data">
+          {% csrf_token %}
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;">
+            <div class="det-field" style="grid-column:1/-1;">
+              <label class="det-label">Title</label>
+              <input type="text" name="title" class="det-input" value="{{ m.title }}" required>
+            </div>
+            <div class="det-field" style="grid-column:1/-1;">
+              <label class="det-label">Description</label>
+              <textarea name="description" class="det-textarea" rows="3">{{ m.description }}</textarea>
+            </div>
+            <div class="det-field" style="grid-column:1/-1;">
+              <label class="det-label">Guide Document</label>
+              {% if m.guide_file %}
+              <div style="display:flex;align-items:center;gap:10px;margin-bottom:6px;font-size:.82rem;">
+                <a href="{{ m.guide_file.url }}" target="_blank" style="color:var(--blue);text-decoration:none;">📎 {{ m.guide_file.name|slice:"18:" }}</a>
+                <label style="cursor:pointer;display:flex;align-items:center;gap:4px;color:var(--muted);font-size:.78rem;">
+                  <input type="checkbox" name="clear_guide_file" value="1"> Remove file
+                </label>
+              </div>
+              {% endif %}
+              <input type="file" name="guide_file" class="det-input" accept=".pdf,.doc,.docx,.ppt,.pptx,.xls,.xlsx,.txt">
+            </div>
+            <div class="det-field">
+              <label class="det-label">Start Date</label>
+              <input type="date" name="start_date" class="det-input" value="{{ m.start_date|date:'Y-m-d'|default:'' }}">
+            </div>
+            <div class="det-field">
+              <label class="det-label">Due Date</label>
+              <input type="date" name="due_date" class="det-input" value="{{ m.due_date|date:'Y-m-d'|default:'' }}">
+            </div>
+            <div class="det-field">
+              <label class="det-label">Display Order</label>
+              <input type="number" name="order" class="det-input" value="{{ m.order }}" min="1">
+            </div>
+          </div>
+          <div style="display:flex;gap:10px;margin-top:14px;">
+            <button type="submit" class="btn btn-blue">💾 Save Changes</button>
+          </div>
+        </form>
+        <form method="post" action="{% url 'dashboard:admin_delete_milestone' m.pk %}" style="margin-top:8px;"
+              data-milestone-name="{{ m.title }}"
+              onsubmit="return confirm('Delete \'' + this.dataset.milestoneName + '\'? All submissions linked to this milestone will also be deleted.');">
+          {% csrf_token %}
+          <button type="submit" class="btn btn-ghost" style="color:var(--red);border-color:var(--red);">🗑 Delete Milestone</button>
+        </form>
+      </div>
+    </div>
+    {% empty %}
+    <div class="card"><div class="empty"><div class="ei">📋</div>No milestones yet. Click "Add Objective" to create the first one.</div></div>
+    {% endfor %}
+  </div>
+
+  <!-- ═══════════════════════════════════
+       PANEL: SUBMISSIONS
+       ═══════════════════════════════════ -->
+  <div class="panel" id="panel-submissions">
+    <div class="ph">
+      <div>
+        <h1>Submissions</h1>
+        <p>File deliverables by milestone — see who submitted and who hasn't</p>
+      </div>
+    </div>
+
+    {% for item in submissions_data %}
+    {% with m=item.milestone subs=item.submissions pending=item.not_submitted %}
+    <div class="card" style="margin-bottom:14px;overflow:visible;">
+      <!-- Milestone header row -->
+      <div style="display:flex;align-items:center;gap:14px;padding:14px 20px;cursor:pointer;background:#fafbfc;border-bottom:1px solid var(--border);"
+           onclick="toggleSubSection('sub-{{ m.pk }}')">
+        <div style="width:26px;height:26px;border-radius:50%;background:var(--blue-lt);border:1px solid var(--blue-bd);display:flex;align-items:center;justify-content:center;font-size:.78rem;font-weight:700;color:var(--blue);flex-shrink:0;">{{ m.order }}</div>
+        <div style="flex:1;font-weight:600;font-size:.88rem;">{{ m.title }}</div>
+        <span class="badge {% if item.submitted_count == item.total_count and item.total_count > 0 %}b-green{% elif item.submitted_count > 0 %}b-blue{% else %}b-gray{% endif %}">
+          {{ item.submitted_count }} / {{ item.total_count }} submitted
+        </span>
+        {% if m.due_date %}<span style="font-size:.75rem;color:var(--muted);">Due {{ m.due_date|date:"M d, Y" }}</span>{% endif %}
+        <span style="color:var(--light);" id="sub-icon-{{ m.pk }}">›</span>
+      </div>
+
+      <!-- Submissions detail -->
+      <div id="sub-{{ m.pk }}" style="display:none;">
+
+        {% if subs %}
+        <table class="gt">
+          <thead>
+            <tr>
+              <th>Team</th><th>Submitted By</th><th>Date</th><th>Ver.</th>
+              <th>Files</th><th>Grade (/100)</th><th>Status</th><th>Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+          {% for s in subs %}
+          <tr>
+            <td>
+              <div style="font-weight:600;">{{ s.project.team.name|default:"—" }}</div>
+              <div style="font-size:.72rem;color:var(--muted);">{{ s.project.title|truncatechars:28 }}</div>
+            </td>
+            <td>{{ s.submitted_by.full_name|default:s.submitted_by.username|default:"—" }}</td>
+            <td style="white-space:nowrap;font-size:.78rem;">{{ s.submitted_at|date:"M d, Y" }}<br><span style="color:var(--muted);">{{ s.submitted_at|date:"g:i A" }}</span></td>
+            <td><span class="badge b-blue">v{{ s.version }}</span></td>
+            <td>
+              {% for f in s.files.all %}
+              <a href="{{ f.file.url }}" target="_blank" style="display:block;font-size:.75rem;color:var(--blue);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:140px;" title="{{ f.file_name }}">📎 {{ f.file_name|truncatechars:22 }}</a>
+              {% empty %}<span style="font-size:.75rem;color:var(--light);">No files</span>{% endfor %}
+            </td>
+            <td>
+              <form method="post" action="{% url 'dashboard:admin_grade_submission' s.pk %}" style="display:flex;gap:6px;align-items:center;">
+                {% csrf_token %}
+                <input type="number" name="grade" class="det-input" style="width:70px;padding:4px 8px;font-size:.82rem;"
+                       value="{{ s.grade|default:'' }}" placeholder="—" min="0" max="100" step="0.5">
+                <button type="submit" class="btn btn-ghost btn-sm" title="Save grade">💾</button>
+              </form>
+            </td>
+            <td>
+              <div style="display:flex;gap:6px;flex-wrap:wrap;">
+                <form method="post" action="{% url 'dashboard:admin_delete_submission' s.pk %}"
+                      onsubmit="return confirm('Delete this submission? This cannot be undone.');">
+                  {% csrf_token %}
+                  <button type="submit" class="btn btn-ghost btn-sm" style="color:var(--red);" title="Delete">🗑</button>
+                </form>
+              </div>
+            </td>
+          </tr>
+          {% endfor %}
+          </tbody>
+        </table>
+        {% endif %}
+
+        {% if pending %}
+        <div>
+          {% for p in pending %}
+          <div style="display:flex;align-items:center;gap:12px;padding:10px 18px;border-top:1px solid var(--border);">
+            <span style="flex:1;font-size:.83rem;">{{ p.team.name }}</span>
+            <span style="font-size:.75rem;color:var(--muted);">{{ p.title|truncatechars:35 }}</span>
+            {% if item.is_overdue %}
+            <span class="badge b-red">Missed</span>
+            {% else %}
+            <span class="badge b-gray">Pending</span>
+            {% endif %}
+          </div>
+          {% endfor %}
+        </div>
+        {% endif %}
+
+        {% if not subs and not pending %}
+        <div class="empty" style="padding:2rem;"><div class="ei">📤</div>No active projects yet.</div>
+        {% endif %}
+      </div>
+    </div>
+    {% endwith %}
+    {% empty %}
+    <div class="card"><div class="empty"><div class="ei">📤</div>No milestones defined yet.</div></div>
+    {% endfor %}
+  </div>
+
+  <!-- ═══════════════════════════════════
+       PANEL: GRADES
+       ═══════════════════════════════════ -->
+  <div class="panel" id="panel-grades">
+    <div class="ph">
+      <div>
+        <h1>Grades</h1>
+        <p>{% if pending_grades %}<span style="color:var(--orange);font-weight:600;">{{ pending_grades }} slot(s) ungraded</span> — {% endif %}Milestone grade sheet · weights must total 100%</p>
+      </div>
+    </div>
+
+    <!-- ── Weight editor ──────────────────────────────────────────────────── -->
+    <form method="post" action="{% url 'dashboard:admin_update_grade_weights' %}">
+      {% csrf_token %}
+      <div class="card" style="margin-bottom:18px;">
+        <div style="padding:16px 20px 14px;">
+          <div style="display:flex;align-items:center;gap:14px;flex-wrap:wrap;margin-bottom:14px;">
+            <span style="font-weight:700;font-size:.95rem;">Milestone Weights</span>
+            <span id="wt-total-badge"
+                  class="wt-badge {% if total_milestone_weight == 100 %}wt-badge--ok{% else %}wt-badge--err{% endif %}">
+              Total: <strong id="wt-total-val">{{ total_milestone_weight }}</strong>%{% if total_milestone_weight != 100 %} ⚠{% endif %}
+            </span>
+          </div>
+          <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:12px;">
+            {% for m in grade_milestones %}
+            <div style="border:1px solid var(--border);border-radius:8px;padding:12px 14px;background:#fafbfc;">
+              <div style="font-weight:600;font-size:.85rem;margin-bottom:10px;color:var(--text);">
+                {{ m.order }}. {{ m.title }}
+              </div>
+              <!-- Overall weight -->
+              <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px;">
+                <label style="font-size:.78rem;color:var(--muted);width:55px;">Weight:</label>
+                <input type="number" name="weight_{{ m.pk }}" value="{{ m.weight }}"
+                       min="0" max="100" class="det-input wt-input" style="width:62px;"
+                       oninput="updateWeightTotal()">
+                <span style="font-size:.78rem;color:var(--muted);">%</span>
+              </div>
+              <!-- Split toggle -->
+              <div style="display:flex;align-items:center;gap:6px;margin-bottom:6px;">
+                <input type="checkbox" name="has_split_{{ m.pk }}" id="hs_{{ m.pk }}"
+                       {% if m.has_split %}checked{% endif %}
+                       onchange="toggleSplitInputs({{ m.pk }}, this.checked)">
+                <label for="hs_{{ m.pk }}" style="font-size:.78rem;cursor:pointer;color:var(--text);">
+                  Split: Report + Presentation
+                </label>
+              </div>
+              <!-- Split sub-weights (visible when has_split) -->
+              <div id="split-block-{{ m.pk }}"
+                   class="split-block"
+                   data-split="{{ m.has_split|yesno:'true,false' }}"
+                   style="background:#f0f4ff;border-radius:6px;padding:8px 10px;margin-top:6px;">
+                <div style="display:flex;align-items:center;gap:6px;margin-bottom:6px;">
+                  <label style="font-size:.75rem;color:var(--muted);width:100px;">Report %:</label>
+                  <input type="number" name="report_weight_{{ m.pk }}" value="{{ m.report_weight }}"
+                         min="0" max="100" class="det-input" style="width:58px;"
+                         oninput="checkSplitTotal({{ m.pk }})">
+                </div>
+                <div style="display:flex;align-items:center;gap:6px;margin-bottom:6px;">
+                  <label style="font-size:.75rem;color:var(--muted);width:100px;">Presentation %:</label>
+                  <input type="number" name="presentation_weight_{{ m.pk }}" value="{{ m.presentation_weight }}"
+                         min="0" max="100" class="det-input" style="width:58px;"
+                         oninput="checkSplitTotal({{ m.pk }})">
+                </div>
+                <div id="split-sum-{{ m.pk }}" style="font-size:.72rem;font-weight:600;"></div>
+              </div>
+            </div>
+            {% empty %}
+            <div style="color:var(--muted);font-size:.85rem;">No milestones yet.</div>
+            {% endfor %}
+          </div>
+        </div>
+        <div style="padding:10px 20px;border-top:1px solid var(--border);background:#f9fafb;">
+          <button type="submit" class="btn btn-blue">💾 Save Weights</button>
+        </div>
+      </div>
+    </form>
+
+    <!-- ── Grade sheet table ──────────────────────────────────────────────── -->
+    <form method="post" action="{% url 'dashboard:admin_save_all_grades' %}">
+      {% csrf_token %}
+      <div class="card" style="overflow:hidden;">
+        <div style="padding:14px 20px;border-bottom:1px solid var(--border);">
+          <span style="font-weight:700;font-size:.95rem;">Grade Sheet</span>
+        </div>
+        <div style="overflow-x:auto;">
+          <table style="border-collapse:collapse;min-width:max-content;width:100%;">
+            <thead>
+              <!-- Row 1: milestone group headers -->
+              <tr style="background:#f8fafc;">
+                <th rowspan="2" style="
+                  min-width:180px;position:sticky;left:0;z-index:3;
+                  background:#f8fafc;text-align:left;padding:10px 16px;
+                  border-bottom:2px solid var(--border);border-right:2px solid var(--border);">
+                  Team / Project
+                </th>
+                {% for m in grade_milestones %}
+                  {% if m.has_split %}
+                  <th colspan="2" style="
+                    text-align:center;padding:8px 12px;
+                    border-left:2px solid var(--border);
+                    border-bottom:1px solid var(--border);
+                    background:#eef2ff;">
+                    <div style="font-size:.82rem;font-weight:700;">{{ m.order }}. {{ m.title }}</div>
+                    <div style="font-size:.72rem;color:var(--muted);">{{ m.weight }}% total</div>
+                  </th>
+                  {% else %}
+                  <th rowspan="2" style="
+                    text-align:center;padding:8px 12px;min-width:110px;
+                    border-left:2px solid var(--border);
+                    border-bottom:2px solid var(--border);">
+                    <div style="font-size:.82rem;font-weight:700;">{{ m.order }}. {{ m.title }}</div>
+                    <div style="font-size:.72rem;color:var(--blue);font-weight:600;">{{ m.weight }}%</div>
+                  </th>
+                  {% endif %}
+                {% endfor %}
+                <th rowspan="2" style="
+                  text-align:center;padding:8px 12px;min-width:80px;
+                  border-left:2px solid var(--border);
+                  border-bottom:2px solid var(--border);
+                  background:#f8fafc;">
+                  Total
+                </th>
+              </tr>
+              <!-- Row 2: sub-component headers for split milestones -->
+              <tr style="background:#f8fafc;">
+                {% for m in grade_milestones %}
+                  {% if m.has_split %}
+                  <th style="
+                    text-align:center;padding:6px 8px;min-width:110px;
+                    border-left:2px solid var(--border);
+                    border-bottom:2px solid var(--border);
+                    font-size:.75rem;color:var(--muted);background:#eef2ff;">
+                    📄 Report<br>
+                    <span style="font-weight:700;color:var(--blue);">{{ m.report_weight }}%</span>
+                  </th>
+                  <th style="
+                    text-align:center;padding:6px 8px;min-width:110px;
+                    border-left:1px solid var(--border);
+                    border-bottom:2px solid var(--border);
+                    font-size:.75rem;color:var(--muted);background:#eef2ff;">
+                    🎤 Presentation<br>
+                    <span style="font-weight:700;color:var(--blue);">{{ m.presentation_weight }}%</span>
+                  </th>
+                  {% endif %}
+                {% endfor %}
+              </tr>
+            </thead>
+            <tbody>
+              {% for row in grade_rows %}
+              <tr>
+                <td style="
+                  position:sticky;left:0;z-index:1;background:#fff;
+                  padding:10px 16px;border-bottom:1px solid var(--border);
+                  border-right:2px solid var(--border);">
+                  <div style="font-weight:600;font-size:.85rem;">{{ row.project.team.name }}</div>
+                  <div style="font-size:.75rem;color:var(--muted);">{{ row.project.title|truncatechars:34 }}</div>
+                </td>
+                {% for cell in row.cells %}
+                <td class="grade-cell {% if cell.is_new_milestone %}grade-cell--new-ms{% endif %}">
+                  <input type="number"
+                         name="grade-{{ cell.project_id }}-{{ cell.milestone_id }}-{{ cell.component }}"
+                         value="{{ cell.score_val }}"
+                         min="0" max="100" step="0.5"
+                         placeholder="—"
+                         data-eff="{{ cell.eff_weight }}"
+                         data-row="gr-{{ row.project.pk }}"
+                         class="det-input grade-score-input"
+                         style="width:72px;text-align:center;padding:4px 6px;"
+                         oninput="recalcRow('gr-{{ row.project.pk }}', {{ grade_columns|length }})">
+                </td>
+                {% endfor %}
+                <td id="gtotal-gr-{{ row.project.pk }}" style="
+                  text-align:center;padding:8px 6px;font-weight:700;
+                  border-bottom:1px solid var(--border);
+                  border-left:2px solid var(--border);">
+                  {% if row.total is not None %}
+                    {% if row.total >= 90 %}<span class="badge b-green">{{ row.total }}</span>
+                    {% elif row.total >= 75 %}<span class="badge b-blue">{{ row.total }}</span>
+                    {% elif row.total >= 60 %}<span class="badge b-orange">{{ row.total }}</span>
+                    {% else %}<span class="badge b-red">{{ row.total }}</span>
+                    {% endif %}
+                  {% elif row.partial_total > 0 %}
+                    <span style="color:var(--muted);font-size:.85rem;" title="Partial — some milestones ungraded">{{ row.partial_total }}*</span>
+                  {% else %}
+                    <span style="color:var(--light);">—</span>
+                  {% endif %}
+                </td>
+              </tr>
+              {% empty %}
+              <tr>
+                <td colspan="99" style="padding:36px;">
+                  <div class="empty"><div class="ei">📊</div>No active projects yet.</div>
+                </td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+        {% if grade_rows %}
+        <div style="padding:12px 20px;border-top:1px solid var(--border);background:#f9fafb;text-align:right;">
+          <button type="submit" class="btn btn-blue">💾 Save All Grades</button>
+        </div>
+        {% endif %}
+      </div>
+    </form>
+  </div>
+
+  <!-- ═══════════════════════════════════
+       PANEL: ARCHIVE
+       ═══════════════════════════════════ -->
+  <div class="panel" id="panel-archive">
+    <div class="ph">
+      <div>
+        <h1>Archive</h1>
+        <p>{{ archive_data|length }} completed project{{ archive_data|length|pluralize }}</p>
+      </div>
+      <button class="btn btn-blue" onclick="toggleArchiveAddForm()">＋ Add Old Project</button>
+    </div>
+
+    <!-- Add old project form -->
+    <div id="archive-add-card" class="create-team-card" style="display:none;margin-bottom:20px;">
+      <div class="create-team-title">
+        <span>＋ Add Historical Project</span>
+        <button type="button" class="btn btn-ghost btn-sm" onclick="toggleArchiveAddForm()">✕ Close</button>
+      </div>
+      <form method="post" action="{% url 'dashboard:admin_create_archive_project' %}">
+        {% csrf_token %}
+
+        <!-- Basic info -->
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:14px;">
+          <div class="det-field">
+            <label class="det-label">Project Title *</label>
+            <input type="text" name="title" class="det-input" placeholder="e.g. Smart Parking System" required>
+          </div>
+          <div class="det-field">
+            <label class="det-label">Team Name (optional)</label>
+            <input type="text" name="team_name" class="det-input" placeholder="Defaults to project title">
+          </div>
+          <div class="det-field" style="grid-column:1/-1;">
+            <label class="det-label">Description (optional)</label>
+            <textarea name="description" class="det-textarea" rows="2" placeholder="Brief summary of the project…"></textarea>
+          </div>
+          <div class="det-field" style="grid-column:1/-1;">
+            <label class="det-label">Supervisor (optional)</label>
+            <select name="supervisor_id" class="det-select">
+              <option value="0">— No supervisor —</option>
+              {% for sup in all_supervisors %}
+              <option value="{{ sup.pk }}">{{ sup.full_name|default:sup.username }}{% if sup.email %} · {{ sup.email }}{% endif %}</option>
+              {% endfor %}
+            </select>
+          </div>
+        </div>
+
+        <!-- Members -->
+        <div style="margin-bottom:14px;">
+          <div style="font-size:.7rem;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.4px;margin-bottom:8px;">Team Members</div>
+          <div id="arc-new-members" style="display:flex;flex-direction:column;gap:6px;margin-bottom:8px;"></div>
+          <button type="button" class="btn btn-out btn-sm" onclick="arcAddMemberRow()">＋ Add Member</button>
+          <div style="font-size:.72rem;color:var(--muted);margin-top:4px;">First member added becomes the team leader.</div>
+        </div>
+
+        <!-- Links -->
+        <div style="margin-bottom:16px;">
+          <div style="font-size:.7rem;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.4px;margin-bottom:8px;">Project Links (optional)</div>
+          <div id="arc-new-links" style="display:flex;flex-direction:column;gap:6px;margin-bottom:8px;"></div>
+          <button type="button" class="btn btn-out btn-sm" onclick="arcAddLinkRow()">＋ Add Link</button>
+        </div>
+
+        <button type="submit" class="btn btn-blue">✔ Add to Archive</button>
+      </form>
+    </div>
+    <script>
+      function toggleArchiveAddForm() {
+        var card = document.getElementById('archive-add-card');
+        card.style.display = card.style.display === 'none' ? 'block' : 'none';
+      }
+      function toggleEl(id) {
+        var el = document.getElementById(id);
+        if (el) el.style.display = el.style.display === 'none' ? 'block' : 'none';
+      }
+
+      var _arcMIdx = 0;
+      function arcAddMemberRow() {
+        _arcMIdx++;
+        var id = 'arc-mrow-new-' + _arcMIdx;
+        var row = document.createElement('div');
+        row.id = id;
+        row.style.cssText = 'display:grid;grid-template-columns:1fr 1fr auto;gap:8px;align-items:center;';
+        row.innerHTML =
+          '<input type="text" name="member_names" class="det-input" placeholder="Full Name *" style="font-size:.83rem;" required>' +
+          '<input type="email" name="member_emails" class="det-input" placeholder="Email (optional)" style="font-size:.83rem;">' +
+          '<button type="button" class="btn btn-red-out btn-sm" onclick="document.getElementById(\'' + id + '\').remove()">✕</button>';
+        document.getElementById('arc-new-members').appendChild(row);
+      }
+
+      var _arcLIdx = 0;
+      function arcAddLinkRow() {
+        _arcLIdx++;
+        var id = 'arc-lrow-new-' + _arcLIdx;
+        var row = document.createElement('div');
+        row.id = id;
+        row.style.cssText = 'display:grid;grid-template-columns:160px 1fr auto;gap:8px;align-items:center;';
+        row.innerHTML =
+          '<input type="text" name="link_labels" class="det-input" placeholder="Label (e.g. GitHub)" style="font-size:.83rem;" required>' +
+          '<input type="url" name="link_urls" class="det-input" placeholder="https://…" style="font-size:.83rem;" required>' +
+          '<button type="button" class="btn btn-red-out btn-sm" onclick="document.getElementById(\'' + id + '\').remove()">✕</button>';
+        document.getElementById('arc-new-links').appendChild(row);
+      }
+    </script>
+
+    {% if archive_data %}
+    {% for item in archive_data %}
+    {% with proj=item.project members=item.members final_files=item.final_files links=item.links %}
+    <div class="card" style="margin-bottom:14px;overflow:visible;">
+
+      <!-- Summary row -->
+      <div style="display:flex;align-items:center;gap:16px;padding:16px 20px;cursor:pointer;"
+           onclick="toggleMilestoneEdit('arc-edit-{{ proj.pk }}')">
+        <div style="flex:1;min-width:0;">
+          <div style="font-weight:700;font-size:.9rem;">{{ proj.title }}</div>
+          <div style="font-size:.75rem;color:var(--muted);margin-top:2px;">
+            {{ proj.team.name }}
+            {% if proj.supervisor %} · Supervisor: {{ proj.supervisor.full_name|default:proj.supervisor.username }}{% endif %}
+            · {{ members|length }} member{{ members|length|pluralize }}
+            {% if final_files %} · {{ final_files|length }} file{{ final_files|length|pluralize }}{% endif %}
+            {% if links %} · {{ links|length }} link{{ links|length|pluralize }}{% endif %}
+          </div>
+          {% if proj.description %}
+          <div style="font-size:.78rem;color:var(--muted);margin-top:3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:560px;">{{ proj.description|truncatechars:140 }}</div>
+          {% endif %}
+        </div>
+        {% if proj.hide_from_archive %}<span class="badge b-gray">Hidden</span>{% else %}<span class="badge b-green">Visible</span>{% endif %}
+        <form method="post" action="{% url 'dashboard:admin_toggle_archive' proj.pk %}" style="display:inline;">
+          {% csrf_token %}
+          <button type="submit" class="btn btn-out btn-sm" title="Toggle visibility in student/supervisor archive">
+            {% if proj.hide_from_archive %}👁 Show{% else %}🙈 Hide{% endif %}
+          </button>
+        </form>
+        <span style="color:var(--light);font-size:1rem;" id="mi-icon-arc-edit-{{ proj.pk }}">›</span>
+      </div>
+
+      <!-- Expanded section -->
+      <div id="arc-edit-{{ proj.pk }}" style="display:none;border-top:1px solid var(--border);padding:20px;background:#fafbfc;">
+
+        <!-- ── Supervisor & members display ── -->
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px;margin-bottom:20px;">
+          <div>
+            <div style="font-size:.7rem;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.4px;margin-bottom:8px;">Supervisor</div>
+            {% if proj.supervisor %}
+            <div style="font-weight:600;font-size:.88rem;">{{ proj.supervisor.full_name|default:proj.supervisor.username }}</div>
+            <div style="font-size:.78rem;color:#3b82f6;margin-top:1px;">{{ proj.supervisor.email|default:"No email" }}</div>
+            {% if proj.supervisor.department %}<div style="font-size:.74rem;color:var(--muted);margin-top:1px;">{{ proj.supervisor.department }}</div>{% endif %}
+            {% else %}<span class="badge b-gray">No supervisor assigned</span>{% endif %}
+          </div>
+          <div>
+            <div style="font-size:.7rem;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.4px;margin-bottom:8px;">Team Members</div>
+            {% for m in members %}
+            <div style="display:flex;justify-content:space-between;align-items:baseline;gap:8px;margin-bottom:4px;">
+              <div style="display:flex;align-items:center;gap:5px;">
+                <span style="font-weight:600;font-size:.85rem;">{{ m.user.full_name|default:m.user.username }}</span>
+                {% if m.role == 'leader' %}<span class="badge b-blue" style="font-size:.62rem;">Leader</span>{% endif %}
+              </div>
+              <span style="font-size:.75rem;color:#3b82f6;white-space:nowrap;">{{ m.user.email|default:"—" }}</span>
+            </div>
+            {% empty %}<span class="badge b-gray">No members</span>{% endfor %}
+          </div>
+        </div>
+
+        <!-- ── Edit Members ── -->
+        <div style="border-top:1px solid var(--border);padding-top:16px;margin-bottom:20px;">
+          <div style="font-size:.7rem;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.4px;margin-bottom:12px;">Edit Members</div>
+
+          {% for m in members %}
+          <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;flex-wrap:wrap;">
+            {% if m.role == 'leader' %}
+            <span class="badge b-blue" style="font-size:.62rem;flex-shrink:0;">Leader</span>
+            {% endif %}
+            <span style="font-weight:600;font-size:.85rem;min-width:130px;">{{ m.user.full_name|default:m.user.username }}</span>
+            <span style="font-size:.75rem;color:var(--muted);">{{ m.user.email|default:"no email" }}</span>
+            <button type="button" class="btn btn-out btn-sm" style="font-size:.75rem;"
+                    onclick="toggleEl('arc-medit-{{ m.pk }}')">✎ Edit</button>
+            {% if m.role != 'leader' %}
+            <form method="post" action="{% url 'dashboard:admin_archive_set_leader' m.pk %}" style="display:inline;">
+              {% csrf_token %}
+              <button type="submit" class="btn btn-out btn-sm" style="font-size:.75rem;">👑 Set Leader</button>
+            </form>
+            {% endif %}
+            <form method="post" action="{% url 'dashboard:admin_archive_remove_member' m.pk %}" style="display:inline;"
+                  onsubmit="return confirm('Remove {{ m.user.full_name|default:m.user.username|escapejs }} from this project?')">
+              {% csrf_token %}
+              <button type="submit" class="btn btn-red-out btn-sm" style="font-size:.75rem;">✕ Remove</button>
+            </form>
+          </div>
+          <div id="arc-medit-{{ m.pk }}" style="display:none;background:#fff;border:1px solid var(--border);border-radius:8px;padding:12px;margin-bottom:10px;">
+            <form method="post" action="{% url 'dashboard:admin_archive_edit_member' m.pk %}">
+              {% csrf_token %}
+              <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+                <div class="det-field">
+                  <label class="det-label">Full Name</label>
+                  <input type="text" name="full_name" class="det-input" value="{{ m.user.full_name }}" placeholder="Full name">
+                </div>
+                <div class="det-field">
+                  <label class="det-label">Email</label>
+                  <input type="email" name="email" class="det-input" value="{{ m.user.email }}" placeholder="email@example.com">
+                </div>
+              </div>
+              <div style="margin-top:10px;display:flex;gap:8px;">
+                <button type="submit" class="btn btn-blue btn-sm">💾 Save</button>
+                <button type="button" class="btn btn-ghost btn-sm" onclick="toggleEl('arc-medit-{{ m.pk }}')">Cancel</button>
+              </div>
+            </form>
+          </div>
+          {% endfor %}
+
+          <!-- Add member form -->
+          <div style="margin-top:10px;">
+            <button type="button" class="btn btn-out btn-sm" onclick="toggleEl('arc-addmember-{{ proj.pk }}')">＋ Add Member</button>
+            <div id="arc-addmember-{{ proj.pk }}" style="display:none;margin-top:10px;background:#fff;border:1px solid var(--border);border-radius:8px;padding:12px;">
+              <form method="post" action="{% url 'dashboard:admin_archive_add_member' proj.team.pk %}">
+                {% csrf_token %}
+                <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:8px;">
+                  <div class="det-field">
+                    <label class="det-label">Full Name *</label>
+                    <input type="text" name="full_name" class="det-input" placeholder="Student's full name">
+                  </div>
+                  <div class="det-field">
+                    <label class="det-label">Email</label>
+                    <input type="email" name="email" class="det-input" placeholder="student@example.com">
+                  </div>
+                </div>
+                <div class="det-field" style="margin-bottom:10px;">
+                  <label class="det-label" style="color:var(--muted);">Or: existing username (optional)</label>
+                  <input type="text" name="username" class="det-input" placeholder="Links to an existing account">
+                </div>
+                <div style="display:flex;gap:8px;">
+                  <button type="submit" class="btn btn-blue btn-sm">＋ Add</button>
+                  <button type="button" class="btn btn-ghost btn-sm" onclick="toggleEl('arc-addmember-{{ proj.pk }}')">Cancel</button>
+                </div>
+              </form>
+            </div>
+          </div>
+        </div>
+
+        <!-- ── Project Links ── -->
+        <div style="border-top:1px solid var(--border);padding-top:16px;margin-bottom:20px;">
+          <div style="font-size:.7rem;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.4px;margin-bottom:12px;">Project Links</div>
+
+          {% if links %}
+          <div style="display:flex;flex-direction:column;gap:6px;margin-bottom:12px;">
+            {% for lnk in links %}
+            <div style="display:flex;align-items:center;gap:10px;">
+              <a href="{{ lnk.url }}" target="_blank" style="font-size:.85rem;color:#3b82f6;font-weight:500;">🔗 {{ lnk.label }}</a>
+              <span style="font-size:.74rem;color:var(--muted);flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">{{ lnk.url }}</span>
+              <form method="post" action="{% url 'dashboard:admin_delete_archive_link' lnk.pk %}" style="display:inline;"
+                    onsubmit="return confirm('Delete link "{{ lnk.label|escapejs }}"?')">
+                {% csrf_token %}
+                <button type="submit" class="btn btn-red-out btn-sm" style="font-size:.73rem;">✕</button>
+              </form>
+            </div>
+            {% endfor %}
+          </div>
+          {% endif %}
+
+          <button type="button" class="btn btn-out btn-sm" onclick="toggleEl('arc-addlink-{{ proj.pk }}')">＋ Add Link</button>
+          <div id="arc-addlink-{{ proj.pk }}" style="display:none;margin-top:10px;background:#fff;border:1px solid var(--border);border-radius:8px;padding:12px;">
+            <form method="post" action="{% url 'dashboard:admin_add_archive_link' proj.pk %}">
+              {% csrf_token %}
+              <div style="display:grid;grid-template-columns:1fr 2fr;gap:10px;margin-bottom:10px;">
+                <div class="det-field">
+                  <label class="det-label">Label *</label>
+                  <input type="text" name="label" class="det-input" placeholder="e.g. GitHub Repo" required>
+                </div>
+                <div class="det-field">
+                  <label class="det-label">URL *</label>
+                  <input type="url" name="url" class="det-input" placeholder="https://…" required>
+                </div>
+              </div>
+              <div style="display:flex;gap:8px;">
+                <button type="submit" class="btn btn-blue btn-sm">＋ Add</button>
+                <button type="button" class="btn btn-ghost btn-sm" onclick="toggleEl('arc-addlink-{{ proj.pk }}')">Cancel</button>
+              </div>
+            </form>
+          </div>
+        </div>
+
+        <!-- ── Final Submitted Files ── -->
+        {% if final_files %}
+        <div style="border-top:1px solid var(--border);padding-top:16px;margin-bottom:20px;">
+          <div style="font-size:.7rem;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.4px;margin-bottom:8px;">Final Submitted Files</div>
+          <div style="display:flex;flex-wrap:wrap;gap:8px;">
+            {% for f in final_files %}
+            <a href="{{ f.file.url }}" target="_blank" class="btn btn-out btn-sm" style="font-size:.78rem;">📎 {{ f.file_name }}</a>
+            {% endfor %}
+          </div>
+        </div>
+        {% endif %}
+
+        <!-- ── Edit Project ── -->
+        <div style="border-top:1px solid var(--border);padding-top:16px;margin-bottom:20px;">
+          <div style="font-size:.7rem;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.4px;margin-bottom:12px;">Edit Project</div>
+          <form method="post" action="{% url 'dashboard:admin_update_project' proj.pk %}">
+            {% csrf_token %}
+            <input type="hidden" name="source" value="archive">
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:14px;">
+              <div class="det-field">
+                <label class="det-label">Title *</label>
+                <input type="text" name="title" class="det-input" value="{{ proj.title }}" required>
+              </div>
+              <div class="det-field">
+                <label class="det-label">Status</label>
+                <select name="status" class="det-select">
+                  <option value="active"    {% if proj.status == 'active' %}selected{% endif %}>Active</option>
+                  <option value="completed" {% if proj.status == 'completed' %}selected{% endif %}>Completed</option>
+                </select>
+              </div>
+              <div class="det-field">
+                <label class="det-label">Supervisor</label>
+                <select name="supervisor_id" class="det-select">
+                  <option value="0">— Remove supervisor —</option>
+                  {% for sup in all_supervisors %}
+                  <option value="{{ sup.pk }}" {% if proj.supervisor and proj.supervisor.pk == sup.pk %}selected{% endif %}>
+                    {{ sup.full_name|default:sup.username }}{% if sup.email %} · {{ sup.email }}{% endif %}
+                  </option>
+                  {% endfor %}
+                </select>
+              </div>
+              <div class="det-field" style="grid-column:1/-1;">
+                <label class="det-label">Description</label>
+                <textarea name="description" class="det-textarea" rows="3">{{ proj.description }}</textarea>
+              </div>
+            </div>
+            <button type="submit" class="btn btn-blue">💾 Save Changes</button>
+          </form>
+        </div>
+
+        <!-- ── Delete Project ── -->
+        <div style="border-top:1px solid var(--border);padding-top:16px;">
+          <form method="post" action="{% url 'dashboard:admin_delete_archive_project' proj.pk %}"
+                onsubmit="return confirm('Permanently delete \"{{ proj.title|escapejs }}\" and all its data? This cannot be undone.')">
+            {% csrf_token %}
+            <button type="submit" class="btn btn-red-out" style="font-size:.83rem;">🗑 Delete This Archive Entry</button>
+          </form>
+        </div>
+
+      </div>
+    </div>
+    {% endwith %}
+    {% endfor %}
+    {% else %}
+    <div class="card"><div class="empty"><div class="ei">🗄️</div>No completed projects yet. Projects moved to "completed" status will appear here.</div></div>
+    {% endif %}
+  </div>
+
+  <!-- ═══════════════════════════════════
+       PANEL: SYSTEM
+       ═══════════════════════════════════ -->
+  <div class="panel" id="panel-system">
+    <div class="ph">
+      <div>
+        <h1>System Configuration</h1>
+        <p>Control the project lifecycle phase for all users.</p>
+      </div>
+    </div>
+
+    <div style="max-width:560px;">
+      <!-- ── Phase 2 scheduled date ── -->
+      <div style="background:var(--white);border:1px solid var(--border);border-radius:var(--r);padding:20px 24px;margin-bottom:20px;">
+        <div style="font-size:.78rem;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.4px;margin-bottom:10px;">Auto-Activate Phase 2 on Date</div>
+        {% if not first_milestone %}
+          <span style="font-size:.85rem;color:var(--muted);">No milestones exist yet.</span>
+        {% elif first_milestone.start_date %}
+          <span style="font-size:.9rem;color:var(--text);">
+            Will auto-activate on <strong>{{ first_milestone.start_date|date:"N j, Y" }}</strong>
+            &mdash; linked to first milestone: &ldquo;{{ first_milestone.title }}&rdquo;
+          </span>
+        {% else %}
+          <span style="font-size:.85rem;color:var(--muted);">
+            No start date set on first milestone (&ldquo;{{ first_milestone.title }}&rdquo;).
+          </span>
+        {% endif %}
+      </div>
+
+      {% if system_config.phase == 1 %}
+      <!-- ── PHASE 1 STATE ── -->
+      <div style="background:var(--white);border:1px solid var(--blue-bd);border-radius:var(--r);padding:28px 28px 24px;margin-bottom:20px;">
+        <div style="display:flex;align-items:center;gap:14px;margin-bottom:20px;">
+          <div style="width:44px;height:44px;border-radius:10px;background:var(--blue-lt);display:grid;place-items:center;font-size:1.3rem;flex-shrink:0;">🔵</div>
+          <div>
+            <div style="font-size:1rem;font-weight:700;color:var(--text);">Phase 1 — Team Formation</div>
+            <div style="font-size:.82rem;color:var(--muted);margin-top:2px;">Students can form teams and send supervisor requests. Milestone submissions are locked.</div>
+          </div>
+        </div>
+        <div style="background:var(--blue-lt);border:1px solid var(--blue-bd);border-radius:8px;padding:14px 16px;margin-bottom:20px;font-size:.83rem;color:var(--blue);line-height:1.6;">
+          <strong>What happens when you switch to Phase 2:</strong><br>
+          • Teamless students are auto-grouped into teams of up to 5<br>
+          • Projects without supervisors get one assigned (round-robin)<br>
+          • All pending supervision requests are declined<br>
+          • Milestone submissions open immediately
+        </div>
+        <form method="post" action="{% url 'dashboard:admin_switch_phase2' %}" onsubmit="return confirm('Switch to Phase 2? This will auto-group teamless students and assign supervisors. This cannot be undone in production.');">
+          {% csrf_token %}
+          <button type="submit" class="btn btn-blue" style="width:100%;justify-content:center;padding:10px;">
+            Switch to Phase 2 →
+          </button>
+        </form>
+      </div>
+
+      {% else %}
+      <!-- ── PHASE 2 STATE ── -->
+      <div style="background:#f0fdf4;border:1px solid #bbf7d0;border-radius:var(--r);padding:28px 28px 24px;margin-bottom:20px;">
+        <div style="display:flex;align-items:center;gap:14px;margin-bottom:16px;">
+          <div style="width:44px;height:44px;border-radius:10px;background:#dcfce7;display:grid;place-items:center;font-size:1.3rem;flex-shrink:0;">🟢</div>
+          <div>
+            <div style="font-size:1rem;font-weight:700;color:#14532d;">Phase 2 — Active Projects</div>
+            <div style="font-size:.82rem;color:#166534;margin-top:2px;">Milestone submissions are open. Supervisor assignments are locked.</div>
+          </div>
+        </div>
+        {% if system_config.phase_switched_at %}
+        <div style="font-size:.78rem;color:#166534;margin-bottom:16px;">
+          Switched at: {{ system_config.phase_switched_at|date:"N j, Y H:i" }}
+        </div>
+        {% endif %}
+      </div>
+
+      <div style="background:#fef2f2;border:1px solid #fecaca;border-radius:var(--r);padding:20px 24px;">
+        <div style="font-size:.83rem;font-weight:700;color:var(--red);margin-bottom:6px;">Testing Only — Revert to Phase 1</div>
+        <div style="font-size:.8rem;color:#991b1b;line-height:1.6;margin-bottom:16px;">
+          This will undo only what the auto-flip did:<br>
+          • Remove auto-assigned supervisors<br>
+          • Dissolve auto-created teams and their projects<br>
+          • Re-open all declined supervision requests<br>
+          <em>Manually created teams and assignments are not touched.</em>
+        </div>
+        <form method="post" action="{% url 'dashboard:admin_revert_phase1' %}" onsubmit="return confirm('Revert to Phase 1? Auto-created teams and assignments will be removed.');">
+          {% csrf_token %}
+          <button type="submit" class="btn btn-red-out" style="width:100%;justify-content:center;padding:8px;">
+            ← Revert to Phase 1 (Testing)
+          </button>
+        </form>
+      </div>
+      {% endif %}
+    </div>
+  </div>
+
+</div><!-- /page -->
+
+<script>
+/* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+   PANEL SWITCHING
+   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */
+function showPanel(id, btn) {
+  document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.nav-tab').forEach(t => t.classList.remove('active'));
+  const panel = document.getElementById('panel-' + id);
+  if (panel) panel.classList.add('active');
+  if (btn && btn.classList) btn.classList.add('active');
+}
+function showPanelSection(panelId, sectionId) {
+  const tabs  = document.querySelectorAll('.nav-tab');
+  const order = ['overview','users','teams_projects','milestones','submissions','grades','system'];
+  const idx   = order.indexOf(panelId);
+  showPanel(panelId, idx >= 0 ? tabs[idx] : null);
+  setTimeout(function() {
+    const el = document.getElementById(sectionId);
+    if (el) el.scrollIntoView({ behavior:'smooth', block:'start' });
+  }, 50);
+}
+
+/* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+   ACCORDION
+   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */
+function toggleTeam(rawId, event) {
+  if (event && event.target.closest('form, button, a, input, select, textarea')) return;
+  const id        = String(rawId);
+  const detailRow = document.getElementById('detail-' + id);
+  const icon      = document.getElementById('icon-'   + id);
+  const summRow   = document.getElementById('row-'    + id);
+  if (!detailRow) return;
+  const isOpen    = detailRow.style.display !== 'none';
+
+  document.querySelectorAll('.team-detail-row').forEach(r => { r.style.display = 'none'; });
+  document.querySelectorAll('.expand-icon').forEach(i => i.classList.remove('open'));
+  document.querySelectorAll('.team-row').forEach(r => r.classList.remove('row-open'));
+
+  if (!isOpen) {
+    detailRow.style.display = 'table-row';
+    if (icon)    icon.classList.add('open');
+    if (summRow) summRow.classList.add('row-open');
+    setTimeout(() => detailRow.scrollIntoView({ behavior:'smooth', block:'nearest' }), 60);
+  }
+}
+
+/* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+   FILTER
+   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */
+let _curFilter = 'all';
+
+function filterTeams(filter, btn) {
+  _curFilter = filter;
+  document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+  if (btn) btn.classList.add('active');
+  _applyFilters();
+}
+var _curDept = '';
+function filterTeamsByDept(dept) { _curDept = dept; _applyFilters(); }
+function _applyFilters() {
+  document.querySelectorAll('.team-row').forEach(function(row) {
+    const id         = row.dataset.teamId;
+    const isActive   = row.dataset.isActive === 'true';
+    const hasProject = row.dataset.hasProject === 'true';
+    const dept       = row.dataset.dept || '';
+    const detailRow  = document.getElementById('detail-' + id);
+    let show = true;
+    if (_curFilter === 'dissolved'  && isActive)                show = false;
+    if (_curFilter === 'no-project' && (!isActive || hasProject)) show = false;
+    if (_curDept && dept !== _curDept)                          show = false;
+    row.style.display = show ? '' : 'none';
+    if (!show && detailRow) detailRow.style.display = 'none';
+  });
+}
+
+/* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+   30-SECOND DISSOLVE UNDO TOAST
+   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */
+let _dissolveTimer   = null;
+let _dissolveForm    = null;
+let _dissolveToastEl = null;
+
+function startDissolve(btn) {
+  const teamId   = btn.dataset.teamId;
+  const teamName = btn.dataset.teamName;
+  const form     = document.getElementById('dissolve-form-' + teamId);
+
+  // Cancel any pending dissolve first
+  if (_dissolveTimer !== null) { clearInterval(_dissolveTimer); _dissolveTimer = null; }
+  if (_dissolveToastEl) { _dissolveToastEl.remove(); _dissolveToastEl = null; }
+
+  _dissolveForm = form;
+
+  // Create toast
+  const toast = document.createElement('div');
+  toast.className = 'dissolve-toast';
+  toast.id = 'dissolve-toast-live';
+  let sec = 30;
+  toast.innerHTML =
+    '<div class="dt-msg">Dissolving "<strong>' + teamName + '</strong>" in <span class="dt-countdown" id="dt-sec">' + sec + '</span>s</div>' +
+    '<div class="dt-btns">' +
+    '<button class="dt-undo" onclick="cancelDissolve()">↩ Undo</button>' +
+    '<button class="dt-confirm" onclick="confirmDissolveNow()">✔ Confirm Now</button>' +
+    '</div>';
+  document.body.appendChild(toast);
+  _dissolveToastEl = toast;
+
+  _dissolveTimer = setInterval(function() {
+    sec--;
+    const el = document.getElementById('dt-sec');
+    if (el) el.textContent = sec;
+    if (sec <= 0) {
+      clearInterval(_dissolveTimer); _dissolveTimer = null;
+      if (_dissolveToastEl) { _dissolveToastEl.remove(); _dissolveToastEl = null; }
+      if (_dissolveForm) _dissolveForm.submit();
+    }
+  }, 1000);
+}
+
+function cancelDissolve() {
+  if (_dissolveTimer !== null) { clearInterval(_dissolveTimer); _dissolveTimer = null; }
+  if (_dissolveToastEl) { _dissolveToastEl.remove(); _dissolveToastEl = null; }
+  _dissolveForm = null;
+}
+
+function confirmDissolveNow() {
+  if (_dissolveTimer !== null) { clearInterval(_dissolveTimer); _dissolveTimer = null; }
+  if (_dissolveToastEl) { _dissolveToastEl.remove(); _dissolveToastEl = null; }
+  const form = _dissolveForm;
+  _dissolveForm = null;
+  if (form) form.submit();
+}
+
+/* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+   STUDENT SEARCH — shared fetch helper
+   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */
+let _searchTimer = null;
+
+function _fetchStudents(q, extra, callback) {
+  clearTimeout(_searchTimer);
+  _searchTimer = setTimeout(function() {
+    const params = new URLSearchParams({ q });
+    Object.keys(extra).forEach(function(k) { if (extra[k]) params.set(k, extra[k]); });
+    fetch('/dashboard/admin/search-students/?' + params.toString())
+      .then(r => r.json()).then(callback);
+  }, 220);
+}
+
+function _buildSearchResult(s, onClickFn) {
+  const name   = s.full_name || s.username;
+  const meta   = [s.username, s.student_id, s.department].filter(Boolean).join(' · ');
+  const safe   = (str) => str.replace(/'/g, "\\'").replace(/"/g, '&quot;');
+  if (s.current_team) {
+    return '<div class="search-opt-disabled">' +
+      '<div class="search-opt-name">' + name +
+      ' <span style="color:var(--red);font-size:.7rem;">Assigned — ' + s.current_team + ' 🚫</span></div>' +
+      '<div class="search-opt-meta">' + meta + '</div></div>';
+  }
+  return '<div class="search-opt" onclick="' + onClickFn(safe(s.username), safe(name)) + '">' +
+    '<div class="search-opt-name">' + name + '</div>' +
+    '<div class="search-opt-meta">' + meta + '</div></div>';
+}
+
+/* ── Add-member search (existing team accordion) ── */
+function adminSearch(event, teamId) {
+  const q  = event.target.value.trim();
+  const dd = document.getElementById('s-dd-' + teamId);
+  if (q.length < 2) { dd.style.display = 'none'; return; }
+  _fetchStudents(q, { team_id: teamId }, function(data) {
+    if (!data.length) {
+      dd.innerHTML = '<div class="search-opt" style="color:var(--muted);">No students found</div>';
+    } else {
+      dd.innerHTML = data.map(function(s) {
+        return _buildSearchResult(s, function(u, n) {
+          return 'adminSelectStudent(\'' + teamId + '\',\'' + u + '\',\'' + n + '\')';
+        });
+      }).join('');
+    }
+    dd.style.display = 'block';
+  });
+}
+function adminSelectStudent(teamId, username, name) {
+  document.getElementById('s-val-'   + teamId).value = username;
+  document.getElementById('s-input-' + teamId).value = name;
+  const sel = document.getElementById('s-sel-' + teamId);
+  sel.querySelector('span').textContent = name;
+  sel.style.display = 'block';
+  document.getElementById('s-dd-' + teamId).style.display = 'none';
+}
+
+/* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+   CREATE TEAM FORM
+   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */
+const _ctMembers = new Map(); // username → {name}
+
+/* ─── Milestone accordion ─── */
+function toggleMilestoneEdit(cardId) {
+  const el   = document.getElementById(cardId);
+  const icon = document.getElementById('mi-icon-' + cardId.replace('mcard-', ''));
+  const open = el.style.display === 'block';
+  el.style.display = open ? 'none' : 'block';
+  if (icon) icon.textContent = open ? '›' : '‹';
+}
+
+function toggleAddMilestone() {
+  const card = document.getElementById('add-milestone-card');
+  card.style.display = card.style.display === 'none' ? 'block' : 'none';
+}
+
+/* ─── Submissions accordion ─── */
+function toggleSubSection(id) {
+  const el   = document.getElementById(id);
+  const icon = document.getElementById('sub-icon-' + id.replace('sub-', ''));
+  const open = el.style.display === 'block';
+  el.style.display = open ? 'none' : 'block';
+  if (icon) icon.textContent = open ? '›' : '‹';
+}
+
+function toggleCreateTeamForm() {
+  const card = document.getElementById('create-team-card');
+  card.classList.toggle('visible');
+  if (card.classList.contains('visible')) {
+    card.scrollIntoView({ behavior:'smooth', block:'nearest' });
+  }
+}
+
+function createTeamSearch(event) {
+  const q  = event.target.value.trim();
+  const dd = document.getElementById('create-search-dd');
+  if (q.length < 2) { dd.style.display = 'none'; return; }
+  _fetchStudents(q, {}, function(data) {
+    if (!data.length) {
+      dd.innerHTML = '<div class="search-opt" style="color:var(--muted);">No students found</div>';
+    } else {
+      dd.innerHTML = data.map(function(s) {
+        if (s.current_team) return _buildSearchResult(s, function() { return ''; });
+        const name = s.full_name || s.username;
+        const meta = [s.username, s.student_id, s.department].filter(Boolean).join(' · ');
+        const safe = (str) => str.replace(/'/g, "\\'");
+        if (_ctMembers.has(s.username)) {
+          return '<div class="search-opt" style="opacity:.5;cursor:default;">' +
+            '<div class="search-opt-name">' + name + ' <span style="color:var(--green);font-size:.7rem;">✔ Added</span></div>' +
+            '<div class="search-opt-meta">' + meta + '</div></div>';
+        }
+        return '<div class="search-opt" onclick="ctSelectStudent(\'' + safe(s.username) + '\',\'' + safe(name) + '\')">' +
+          '<div class="search-opt-name">' + name + '</div>' +
+          '<div class="search-opt-meta">' + meta + '</div></div>';
+      }).join('');
+    }
+    dd.style.display = 'block';
+  });
+}
+
+function ctSelectStudent(username, name) {
+  if (_ctMembers.has(username)) return;
+  _ctMembers.set(username, { name });
+  document.getElementById('create-search-input').value = '';
+  document.getElementById('create-search-dd').style.display = 'none';
+  _renderCreateMembers();
+}
+
+function ctRemoveMember(username) {
+  _ctMembers.delete(username);
+  _renderCreateMembers();
+}
+
+function _renderCreateMembers() {
+  const chips       = document.getElementById('create-members-chips');
+  const hidden      = document.getElementById('create-hidden-members');
+  const leaderSel   = document.getElementById('create-leader-select');
+
+  if (_ctMembers.size === 0) {
+    chips.innerHTML = '<span style="color:var(--muted);font-size:.78rem;align-self:center;">No members added yet.</span>';
+  } else {
+    chips.innerHTML = [..._ctMembers.entries()].map(function([u, info]) {
+      const safe = u.replace(/'/g, "\\'");
+      return '<div class="member-chip">' + info.name +
+        '<button type="button" class="chip-remove" onclick="ctRemoveMember(\'' + safe + '\')">×</button></div>';
+    }).join('');
+  }
+
+  hidden.innerHTML = [..._ctMembers.keys()].map(function(u) {
+    return '<input type="hidden" name="members" value="' + u + '">';
+  }).join('');
+
+  const curLeader = leaderSel.value;
+  leaderSel.innerHTML = '<option value="">— Pick leader (optional) —</option>' +
+    [..._ctMembers.entries()].map(function([u, info]) {
+      const sel = u === curLeader ? ' selected' : '';
+      return '<option value="' + u + '"' + sel + '>' + info.name + '</option>';
+    }).join('');
+}
+
+/* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+   CLOSE DROPDOWNS ON OUTSIDE CLICK
+   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */
+document.addEventListener('click', function(e) {
+  if (!e.target.closest('.search-wrap') && !e.target.closest('#create-search-input')) {
+    document.querySelectorAll('.admin-search-dd').forEach(d => d.style.display = 'none');
+  }
+});
+
+/* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+   RESTORE PANEL + ACCORDION STATE FROM URL
+   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */
+window.addEventListener('DOMContentLoaded', function() {
+  const params  = new URLSearchParams(window.location.search);
+  const panelId = params.get('panel');
+  const openId  = params.get('open');
+
+  if (panelId) {
+    const tabs  = document.querySelectorAll('.nav-tab');
+    const order = ['overview','users','teams_projects','milestones','submissions','grades','system'];
+    const idx   = order.indexOf(panelId);
+    showPanel(panelId, idx >= 0 ? tabs[idx] : null);
+  }
+  if (openId) {
+    const id        = String(openId);
+    const detailRow = document.getElementById('detail-' + id);
+    const icon      = document.getElementById('icon-'   + id);
+    const summRow   = document.getElementById('row-'    + id);
+    if (detailRow) {
+      detailRow.style.display = 'table-row';
+      if (icon)    icon.classList.add('open');
+      if (summRow) summRow.classList.add('row-open');
+      setTimeout(() => detailRow.scrollIntoView({ behavior:'smooth', block:'nearest' }), 200);
+    }
+  }
+});
+
+/* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+   GRADES PANEL — weight editor + grade-sheet totals
+   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */
+
+/* Live-update the "Total: X%" badge as weight inputs change */
+function updateWeightTotal() {
+  var inputs = document.querySelectorAll('.wt-input');
+  var total  = 0;
+  inputs.forEach(function(inp) { total += parseInt(inp.value || 0, 10); });
+  var val   = document.getElementById('wt-total-val');
+  var badge = document.getElementById('wt-total-badge');
+  if (val)   val.textContent = total;
+  if (badge) {
+    var ok = (total === 100);
+    badge.textContent = 'Total: ' + total + '%' + (ok ? '' : ' ⚠');
+    badge.className   = 'wt-badge ' + (ok ? 'wt-badge--ok' : 'wt-badge--err');
+    /* inject the number back as bold */
+    badge.innerHTML   = 'Total: <strong id="wt-total-val">' + total + '</strong>%' + (ok ? '' : ' ⚠');
+  }
+}
+
+/* Show/hide split sub-inputs for a milestone */
+function toggleSplitInputs(pk, checked) {
+  var block = document.getElementById('split-block-' + pk);
+  if (block) {
+    block.style.display = checked ? 'block' : 'none';
+    block.dataset.split = checked ? 'true' : 'false';
+  }
+  if (checked) checkSplitTotal(pk);
+}
+
+/* Validate that report% + presentation% == 100 */
+function checkSplitTotal(pk) {
+  var rw = parseInt(document.querySelector('input[name="report_weight_' + pk + '"]')?.value || 0, 10);
+  var pw = parseInt(document.querySelector('input[name="presentation_weight_' + pk + '"]')?.value || 0, 10);
+  var el = document.getElementById('split-sum-' + pk);
+  if (!el) return;
+  var s = rw + pw;
+  el.textContent = 'Sum: ' + s + '%' + (s === 100 ? ' ✓' : ' ⚠ must be 100');
+  el.style.color = s === 100 ? 'var(--green, #16a34a)' : 'var(--red, #dc2626)';
+}
+
+/* Recalculate the total cell for a grade-sheet row */
+function recalcRow(rowId) {
+  var inputs = document.querySelectorAll('.grade-score-input[data-row="' + rowId + '"]');
+  var total  = 0;
+  var allFilled = true;
+  inputs.forEach(function(inp) {
+    var eff = parseFloat(inp.dataset.eff || 0);
+    var val = inp.value.trim();
+    if (val === '') { allFilled = false; }
+    else            { total += parseFloat(val) * eff / 100; }
+  });
+  total = Math.round(total * 10) / 10;
+  var cell = document.getElementById('gtotal-' + rowId);
+  if (!cell) return;
+  if (!allFilled && total === 0) {
+    cell.innerHTML = '<span style="color:var(--light);">—</span>';
+  } else if (!allFilled) {
+    cell.innerHTML = '<span style="color:var(--muted);font-size:.85rem;" title="Partial">' + total + '*</span>';
+  } else {
+    var cls = total >= 90 ? 'b-green' : total >= 75 ? 'b-blue' : total >= 60 ? 'b-orange' : 'b-red';
+    cell.innerHTML = '<span class="badge ' + cls + '">' + total + '</span>';
+  }
+}
+
+/* On page load: show split blocks that have data-split="true" and validate their totals */
+document.addEventListener('DOMContentLoaded', function() {
+  document.querySelectorAll('.split-block').forEach(function(block) {
+    if (block.dataset.split === 'true') {
+      block.style.display = 'block';
+      var pk = block.id.replace('split-block-', '');
+      checkSplitTotal(pk);
+    }
+  });
+});
+</script>
+
+</body>
+</html>

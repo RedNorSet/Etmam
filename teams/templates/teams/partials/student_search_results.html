@@ -1,0 +1,19 @@
+{% if results %}
+  <div class="search-dropdown">
+    {% for student in results %}
+    <div class="search-option" onclick="selectStudent('{{ student.username }}', '{{ student.full_name|default:student.username }}')">
+      <div class="search-option-avatar">{{ student.full_name|default:student.username|first|upper }}</div>
+      <div class="search-option-info">
+        <div class="search-option-name">{{ student.full_name|default:student.username }}</div>
+        <div class="search-option-meta">
+          {{ student.username }}{% if student.student_id %} · {{ student.student_id }}{% endif %}{% if student.department %} · {{ student.department }}{% endif %}
+        </div>
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+{% elif q %}
+  <div class="search-dropdown">
+    <div style="padding:.75rem 1rem;color:var(--text-muted);font-size:.83rem;">No students found for "{{ q }}"</div>
+  </div>
+{% endif %}
