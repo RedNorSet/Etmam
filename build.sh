@@ -6,8 +6,14 @@ python manage.py migrate
 python manage.py shell -c "
 from accounts.models import User
 if not User.objects.filter(username='admin').exists():
-    User.objects.create_superuser('admin', 'admin@etmam.com', 'Admin@11')
+    u = User.objects.create_superuser('admin', 'admin@etmam.com', 'Admin@11')
+    u.role = 'administrator'
+    u.full_name = 'Admin'
+    u.save()
     print('Superuser created.')
 else:
-    print('Superuser already exists.')
+    u = User.objects.get(username='admin')
+    u.role = 'administrator'
+    u.save()
+    print('Superuser role updated.')
 "
