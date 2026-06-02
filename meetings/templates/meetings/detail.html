@@ -1,0 +1,14 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}{{ meeting.title }} — Etmam{% endblock %}
+
+{% block content %}
+<div style="max-width:780px;margin:2rem auto;padding:0 1rem;">
+  <a href="{% if request.user.is_supervisor %}{% url 'dashboard:supervisor' %}{% else %}{% url 'dashboard:student' %}{% endif %}"
+     class="btn btn-outline btn-sm" style="margin-bottom:1rem;">← Back to dashboard</a>
+  <div class="dash-card" style="display:block;padding:1.5rem;">
+    {% include 'meetings/_detail_panel.html' %}
+  </div>
+</div>
+{% endblock %}

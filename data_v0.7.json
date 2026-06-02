@@ -1,0 +1,1637 @@
+[
+    {
+        "model":  "sessions.session",
+        "pk":  "8h8lrpflbpnn3036uiiatyuovpxertkn",
+        "fields":  {
+                       "session_data":  ".eJxVjEEOwiAQAP-yZ0OWggI9evcNZFkWqRqalPZk_Ltp0oNeZybzhkjbWuPWZYlThhE0nH5ZIn5K20V-ULvPiue2LlNSe6IO29VtzvK6Hu3foFKvMEK4iGUfLBaXSAcvgwuekg9k2ZWzRmQuWQTRlJTRoB4ssTFBO4NOED5f4183mg:1wTNcZ:T2o0zCeiWdqbC42WTiACqxmFlKCt5HDArkaz6IgdkdU",
+                       "expire_date":  "2026-06-13T17:37:15.910Z"
+                   }
+    },
+    {
+        "model":  "accounts.user",
+        "fields":  {
+                       "password":  "pbkdf2_sha256$1000000$qCbZlbLq5WZpaF7aB8k8qi$E5jvZq1Vw3p1QbmwcTzNp1Yj0okLNvWXeWkQ7r+Igzg=",
+                       "last_login":  "2026-05-30T17:37:15.909Z",
+                       "is_superuser":  true,
+                       "username":  "admin",
+                       "first_name":  "",
+                       "last_name":  "",
+                       "email":  "admin@gpms.com",
+                       "is_staff":  true,
+                       "is_active":  true,
+                       "date_joined":  "2026-05-25T18:52:43.334Z",
+                       "role":  "administrator",
+                       "gender":  "",
+                       "full_name":  "",
+                       "student_id":  null,
+                       "department":  "",
+                       "avatar":  "",
+                       "can_review":  false,
+                       "expertise":  "",
+                       "max_teams_supervise":  2,
+                       "max_teams_review":  2,
+                       "available":  true,
+                       "bio":  "",
+                       "office_hours":  "",
+                       "past_projects":  "",
+                       "groups":  [
+
+                                  ],
+                       "user_permissions":  [
+
+                                            ]
+                   }
+    },
+    {
+        "model":  "accounts.user",
+        "fields":  {
+                       "password":  "pbkdf2_sha256$1000000$ZpwPJkfZS48ivck04Ybmxp$gDvHzP6bgOVLImmtj71WTmuL07hjy8wY+FCPHE8U7dk=",
+                       "last_login":  null,
+                       "is_superuser":  false,
+                       "username":  "student1",
+                       "first_name":  "",
+                       "last_name":  "",
+                       "email":  "student1@test.com",
+                       "is_staff":  false,
+                       "is_active":  true,
+                       "date_joined":  "2026-05-30T17:46:10.551Z",
+                       "role":  "student",
+                       "gender":  "male",
+                       "full_name":  "Ahmed Ali",
+                       "student_id":  "S20001",
+                       "department":  "Computer Science",
+                       "avatar":  "",
+                       "can_review":  false,
+                       "expertise":  "",
+                       "max_teams_supervise":  2,
+                       "max_teams_review":  2,
+                       "available":  true,
+                       "bio":  "",
+                       "office_hours":  "",
+                       "past_projects":  "",
+                       "groups":  [
+
+                                  ],
+                       "user_permissions":  [
+
+                                            ]
+                   }
+    },
+    {
+        "model":  "accounts.user",
+        "fields":  {
+                       "password":  "pbkdf2_sha256$1000000$w9NTnrZBM5GMi0FTfEkdaA$mdlmywuyfbHb6Ingwl8ahRveuZzUlMgAeyvdk3rNSy8=",
+                       "last_login":  null,
+                       "is_superuser":  false,
+                       "username":  "student2",
+                       "first_name":  "",
+                       "last_name":  "",
+                       "email":  "student2@test.com",
+                       "is_staff":  false,
+                       "is_active":  true,
+                       "date_joined":  "2026-05-30T17:46:10.852Z",
+                       "role":  "student",
+                       "gender":  "male",
+                       "full_name":  "Omar Hassan",
+                       "student_id":  "S20002",
+                       "department":  "Computer Science",
+                       "avatar":  "",
+                       "can_review":  false,
+                       "expertise":  "",
+                       "max_teams_supervise":  2,
+                       "max_teams_review":  2,
+                       "available":  true,
+                       "bio":  "",
+                       "office_hours":  "",
+                       "past_projects":  "",
+                       "groups":  [
+
+                                  ],
+                       "user_permissions":  [
+
+                                            ]
+                   }
+    },
+    {
+        "model":  "accounts.user",
+        "fields":  {
+                       "password":  "pbkdf2_sha256$1000000$eZJhi4BwOGvcR2MumBahA5$gNQbil7509/EuueELgCM3xn8Ay5kMjJn9mwKhMDfU38=",
+                       "last_login":  null,
+                       "is_superuser":  false,
+                       "username":  "student3",
+                       "first_name":  "",
+                       "last_name":  "",
+                       "email":  "student3@test.com",
+                       "is_staff":  false,
+                       "is_active":  true,
+                       "date_joined":  "2026-05-30T17:46:11.125Z",
+                       "role":  "student",
+                       "gender":  "male",
+                       "full_name":  "Khalid Nasser",
+                       "student_id":  "S20003",
+                       "department":  "Computer Science",
+                       "avatar":  "",
+                       "can_review":  false,
+                       "expertise":  "",
+                       "max_teams_supervise":  2,
+                       "max_teams_review":  2,
+                       "available":  true,
+                       "bio":  "",
+                       "office_hours":  "",
+                       "past_projects":  "",
+                       "groups":  [
+
+                                  ],
+                       "user_permissions":  [
+
+                                            ]
+                   }
+    },
+    {
+        "model":  "accounts.user",
+        "fields":  {
+                       "password":  "pbkdf2_sha256$1000000$IvbJKq1Yrcw3IfWPgr3XcY$5Okmr4Q7K2XwDkP5gwEv/1L91Nq5UC4BCPNc+bXn6W4=",
+                       "last_login":  null,
+                       "is_superuser":  false,
+                       "username":  "student4",
+                       "first_name":  "",
+                       "last_name":  "",
+                       "email":  "student4@test.com",
+                       "is_staff":  false,
+                       "is_active":  true,
+                       "date_joined":  "2026-05-30T17:46:11.402Z",
+                       "role":  "student",
+                       "gender":  "male",
+                       "full_name":  "Yousef Ibrahim",
+                       "student_id":  "S20004",
+                       "department":  "Computer Science",
+                       "avatar":  "",
+                       "can_review":  false,
+                       "expertise":  "",
+                       "max_teams_supervise":  2,
+                       "max_teams_review":  2,
+                       "available":  true,
+                       "bio":  "",
+                       "office_hours":  "",
+                       "past_projects":  "",
+                       "groups":  [
+
+                                  ],
+                       "user_permissions":  [
+
+                                            ]
+                   }
+    },
+    {
+        "model":  "accounts.user",
+        "fields":  {
+                       "password":  "pbkdf2_sha256$1000000$kCJwCHpvmqakFBrnArEnZU$PZd9/zXI+TLDrrQ3KUzleBBMqmFPBYWKiIT4+o+9wMQ=",
+                       "last_login":  null,
+                       "is_superuser":  false,
+                       "username":  "student5",
+                       "first_name":  "",
+                       "last_name":  "",
+                       "email":  "student5@test.com",
+                       "is_staff":  false,
+                       "is_active":  true,
+                       "date_joined":  "2026-05-30T17:46:11.678Z",
+                       "role":  "student",
+                       "gender":  "male",
+                       "full_name":  "Faisal Mahmoud",
+                       "student_id":  "S20005",
+                       "department":  "Computer Science",
+                       "avatar":  "",
+                       "can_review":  false,
+                       "expertise":  "",
+                       "max_teams_supervise":  2,
+                       "max_teams_review":  2,
+                       "available":  true,
+                       "bio":  "",
+                       "office_hours":  "",
+                       "past_projects":  "",
+                       "groups":  [
+
+                                  ],
+                       "user_permissions":  [
+
+                                            ]
+                   }
+    },
+    {
+        "model":  "accounts.user",
+        "fields":  {
+                       "password":  "pbkdf2_sha256$1000000$Vh0PYgX9jlr4hhhHv8Fi99$JzVbdgABvFGf+ZWoKG8neaZee+zYr2zAQ8cQI6muqHM=",
+                       "last_login":  null,
+                       "is_superuser":  false,
+                       "username":  "student6",
+                       "first_name":  "",
+                       "last_name":  "",
+                       "email":  "student6@test.com",
+                       "is_staff":  false,
+                       "is_active":  true,
+                       "date_joined":  "2026-05-30T17:46:11.947Z",
+                       "role":  "student",
+                       "gender":  "male",
+                       "full_name":  "Majed Ali",
+                       "student_id":  "S20031",
+                       "department":  "Computer Science",
+                       "avatar":  "",
+                       "can_review":  false,
+                       "expertise":  "",
+                       "max_teams_supervise":  2,
+                       "max_teams_review":  2,
+                       "available":  true,
+                       "bio":  "",
+                       "office_hours":  "",
+                       "past_projects":  "",
+                       "groups":  [
+
+                                  ],
+                       "user_permissions":  [
+
+                                            ]
+                   }
+    },
+    {
+        "model":  "accounts.user",
+        "fields":  {
+                       "password":  "pbkdf2_sha256$1000000$fnvk8aPjjpNoW7iVC7R68v$tsVJcCrQ3e/3I1A5fFgDRNimNdeFff7iyLdjo4DFt88=",
+                       "last_login":  null,
+                       "is_superuser":  false,
+                       "username":  "student7",
+                       "first_name":  "",
+                       "last_name":  "",
+                       "email":  "student7@test.com",
+                       "is_staff":  false,
+                       "is_active":  true,
+                       "date_joined":  "2026-05-30T17:46:12.215Z",
+                       "role":  "student",
+                       "gender":  "male",
+                       "full_name":  "Abdulla Omar",
+                       "student_id":  "S20032",
+                       "department":  "Computer Science",
+                       "avatar":  "",
+                       "can_review":  false,
+                       "expertise":  "",
+                       "max_teams_supervise":  2,
+                       "max_teams_review":  2,
+                       "available":  true,
+                       "bio":  "",
+                       "office_hours":  "",
+                       "past_projects":  "",
+                       "groups":  [
+
+                                  ],
+                       "user_permissions":  [
+
+                                            ]
+                   }
+    },
+    {
+        "model":  "accounts.user",
+        "fields":  {
+                       "password":  "pbkdf2_sha256$1000000$JLB4QGTJGUM5zt7JbBKTfQ$2EL2GI9GI9GMCKmqWmJtQ0eH94g8UiBCbVxTwThVIOA=",
+                       "last_login":  null,
+                       "is_superuser":  false,
+                       "username":  "student8",
+                       "first_name":  "",
+                       "last_name":  "",
+                       "email":  "student8@test.com",
+                       "is_staff":  false,
+                       "is_active":  true,
+                       "date_joined":  "2026-05-30T17:46:12.497Z",
+                       "role":  "student",
+                       "gender":  "female",
+                       "full_name":  "Sara Ahmed",
+                       "student_id":  "S20006",
+                       "department":  "Computer Science",
+                       "avatar":  "",
+                       "can_review":  false,
+                       "expertise":  "",
+                       "max_teams_supervise":  2,
+                       "max_teams_review":  2,
+                       "available":  true,
+                       "bio":  "",
+                       "office_hours":  "",
+                       "past_projects":  "",
+                       "groups":  [
+
+                                  ],
+                       "user_permissions":  [
+
+                                            ]
+                   }
+    },
+    {
+        "model":  "accounts.user",
+        "fields":  {
+                       "password":  "pbkdf2_sha256$1000000$mzImoFMmDjpFwLOAqCoZkX$AkG6cmJhhFoR3gcke9pWxES3J8m7gfIA4wb1gbYhzEk=",
+                       "last_login":  null,
+                       "is_superuser":  false,
+                       "username":  "student9",
+                       "first_name":  "",
+                       "last_name":  "",
+                       "email":  "student9@test.com",
+                       "is_staff":  false,
+                       "is_active":  true,
+                       "date_joined":  "2026-05-30T17:46:12.775Z",
+                       "role":  "student",
+                       "gender":  "female",
+                       "full_name":  "Nora Ali",
+                       "student_id":  "S20007",
+                       "department":  "Computer Science",
+                       "avatar":  "",
+                       "can_review":  false,
+                       "expertise":  "",
+                       "max_teams_supervise":  2,
+                       "max_teams_review":  2,
+                       "available":  true,
+                       "bio":  "",
+                       "office_hours":  "",
+                       "past_projects":  "",
+                       "groups":  [
+
+                                  ],
+                       "user_permissions":  [
+
+                                            ]
+                   }
+    },
+    {
+        "model":  "accounts.user",
+        "fields":  {
+                       "password":  "pbkdf2_sha256$1000000$h57CAa1vSNNm3w9MOJmEo6$E9p3mPAorolOotQBJJ8mmkcAS4yBxgWPDmEhplTOjO4=",
+                       "last_login":  null,
+                       "is_superuser":  false,
+                       "username":  "student10",
+                       "first_name":  "",
+                       "last_name":  "",
+                       "email":  "student10@test.com",
+                       "is_staff":  false,
+                       "is_active":  true,
+                       "date_joined":  "2026-05-30T17:46:13.051Z",
+                       "role":  "student",
+                       "gender":  "female",
+                       "full_name":  "Hana Omar",
+                       "student_id":  "S20008",
+                       "department":  "Computer Science",
+                       "avatar":  "",
+                       "can_review":  false,
+                       "expertise":  "",
+                       "max_teams_supervise":  2,
+                       "max_teams_review":  2,
+                       "available":  true,
+                       "bio":  "",
+                       "office_hours":  "",
+                       "past_projects":  "",
+                       "groups":  [
+
+                                  ],
+                       "user_permissions":  [
+
+                                            ]
+                   }
+    },
+    {
+        "model":  "accounts.user",
+        "fields":  {
+                       "password":  "pbkdf2_sha256$1000000$6OZ0Edia6X47LoJkvDJSAm$9jgqlQEt2IrPD25n1zmzIm1KGrVvjpCHDRaWgA4lgPU=",
+                       "last_login":  null,
+                       "is_superuser":  false,
+                       "username":  "student11",
+                       "first_name":  "",
+                       "last_name":  "",
+                       "email":  "student11@test.com",
+                       "is_staff":  false,
+                       "is_active":  true,
+                       "date_joined":  "2026-05-30T17:46:13.321Z",
+                       "role":  "student",
+                       "gender":  "female",
+                       "full_name":  "Lina Khalid",
+                       "student_id":  "S20009",
+                       "department":  "Computer Science",
+                       "avatar":  "",
+                       "can_review":  false,
+                       "expertise":  "",
+                       "max_teams_supervise":  2,
+                       "max_teams_review":  2,
+                       "available":  true,
+                       "bio":  "",
+                       "office_hours":  "",
+                       "past_projects":  "",
+                       "groups":  [
+
+                                  ],
+                       "user_permissions":  [
+
+                                            ]
+                   }
+    },
+    {
+        "model":  "accounts.user",
+        "fields":  {
+                       "password":  "pbkdf2_sha256$1000000$SL9Z5CJAri7ZRpX5FgXbXv$zYv7Q96IyAfIgRLLCTCHAhooaLYr4sR6hRRDCTxdVl8=",
+                       "last_login":  null,
+                       "is_superuser":  false,
+                       "username":  "student12",
+                       "first_name":  "",
+                       "last_name":  "",
+                       "email":  "student12@test.com",
+                       "is_staff":  false,
+                       "is_active":  true,
+                       "date_joined":  "2026-05-30T17:46:13.592Z",
+                       "role":  "student",
+                       "gender":  "female",
+                       "full_name":  "Reem Yousuf",
+                       "student_id":  "S20010",
+                       "department":  "Computer Science",
+                       "avatar":  "",
+                       "can_review":  false,
+                       "expertise":  "",
+                       "max_teams_supervise":  2,
+                       "max_teams_review":  2,
+                       "available":  true,
+                       "bio":  "",
+                       "office_hours":  "",
+                       "past_projects":  "",
+                       "groups":  [
+
+                                  ],
+                       "user_permissions":  [
+
+                                            ]
+                   }
+    },
+    {
+        "model":  "accounts.user",
+        "fields":  {
+                       "password":  "pbkdf2_sha256$1000000$OOfK6l7kEFI3sGHe5WLdB1$R+I/xaT6z5Aiz4Wco0gbK7LgZpoCbESR4LC4orZKnzo=",
+                       "last_login":  null,
+                       "is_superuser":  false,
+                       "username":  "student13",
+                       "first_name":  "",
+                       "last_name":  "",
+                       "email":  "student13@test.com",
+                       "is_staff":  false,
+                       "is_active":  true,
+                       "date_joined":  "2026-05-30T17:46:13.863Z",
+                       "role":  "student",
+                       "gender":  "male",
+                       "full_name":  "Ziad Salim",
+                       "student_id":  "S20011",
+                       "department":  "Information Technology",
+                       "avatar":  "",
+                       "can_review":  false,
+                       "expertise":  "",
+                       "max_teams_supervise":  2,
+                       "max_teams_review":  2,
+                       "available":  true,
+                       "bio":  "",
+                       "office_hours":  "",
+                       "past_projects":  "",
+                       "groups":  [
+
+                                  ],
+                       "user_permissions":  [
+
+                                            ]
+                   }
+    },
+    {
+        "model":  "accounts.user",
+        "fields":  {
+                       "password":  "pbkdf2_sha256$1000000$078dSKpwOcDlmLOzJUbV1a$Z725qdot5c2EGjI4CGKzSXir8JIPT8Ismqt2K2yYNmA=",
+                       "last_login":  null,
+                       "is_superuser":  false,
+                       "username":  "student14",
+                       "first_name":  "",
+                       "last_name":  "",
+                       "email":  "student14@test.com",
+                       "is_staff":  false,
+                       "is_active":  true,
+                       "date_joined":  "2026-05-30T17:46:14.130Z",
+                       "role":  "student",
+                       "gender":  "male",
+                       "full_name":  "Tariq Hassan",
+                       "student_id":  "S20012",
+                       "department":  "Information Technology",
+                       "avatar":  "",
+                       "can_review":  false,
+                       "expertise":  "",
+                       "max_teams_supervise":  2,
+                       "max_teams_review":  2,
+                       "available":  true,
+                       "bio":  "",
+                       "office_hours":  "",
+                       "past_projects":  "",
+                       "groups":  [
+
+                                  ],
+                       "user_permissions":  [
+
+                                            ]
+                   }
+    },
+    {
+        "model":  "accounts.user",
+        "fields":  {
+                       "password":  "pbkdf2_sha256$1000000$7y0huytKmvCBaXqd6E4Tb8$txvpcmqP70y9CMpTGvK5TVkSu+s5IE0MwwfX1uSaw7I=",
+                       "last_login":  null,
+                       "is_superuser":  false,
+                       "username":  "student15",
+                       "first_name":  "",
+                       "last_name":  "",
+                       "email":  "student15@test.com",
+                       "is_staff":  false,
+                       "is_active":  true,
+                       "date_joined":  "2026-05-30T17:46:14.402Z",
+                       "role":  "student",
+                       "gender":  "male",
+                       "full_name":  "Nasser Ali",
+                       "student_id":  "S20013",
+                       "department":  "Information Technology",
+                       "avatar":  "",
+                       "can_review":  false,
+                       "expertise":  "",
+                       "max_teams_supervise":  2,
+                       "max_teams_review":  2,
+                       "available":  true,
+                       "bio":  "",
+                       "office_hours":  "",
+                       "past_projects":  "",
+                       "groups":  [
+
+                                  ],
+                       "user_permissions":  [
+
+                                            ]
+                   }
+    },
+    {
+        "model":  "accounts.user",
+        "fields":  {
+                       "password":  "pbkdf2_sha256$1000000$IshJjHLBqqhembzThmp18q$FAma2OiW61xhENY9CCja5awOkgD2ZEwdwXxWzhVOYe4=",
+                       "last_login":  null,
+                       "is_superuser":  false,
+                       "username":  "student16",
+                       "first_name":  "",
+                       "last_name":  "",
+                       "email":  "student16@test.com",
+                       "is_staff":  false,
+                       "is_active":  true,
+                       "date_joined":  "2026-05-30T17:46:14.674Z",
+                       "role":  "student",
+                       "gender":  "male",
+                       "full_name":  "Saad Ibrahim",
+                       "student_id":  "S20014",
+                       "department":  "Information Technology",
+                       "avatar":  "",
+                       "can_review":  false,
+                       "expertise":  "",
+                       "max_teams_supervise":  2,
+                       "max_teams_review":  2,
+                       "available":  true,
+                       "bio":  "",
+                       "office_hours":  "",
+                       "past_projects":  "",
+                       "groups":  [
+
+                                  ],
+                       "user_permissions":  [
+
+                                            ]
+                   }
+    },
+    {
+        "model":  "accounts.user",
+        "fields":  {
+                       "password":  "pbkdf2_sha256$1000000$kTrokmCFhtvRBOl0hLiz6y$6BLj2NMa2I/r5rFbdry5jujFsKHEcCJ51I7E6mUxiQA=",
+                       "last_login":  null,
+                       "is_superuser":  false,
+                       "username":  "student17",
+                       "first_name":  "",
+                       "last_name":  "",
+                       "email":  "student17@test.com",
+                       "is_staff":  false,
+                       "is_active":  true,
+                       "date_joined":  "2026-05-30T17:46:14.941Z",
+                       "role":  "student",
+                       "gender":  "male",
+                       "full_name":  "Walid Fahad",
+                       "student_id":  "S20015",
+                       "department":  "Information Technology",
+                       "avatar":  "",
+                       "can_review":  false,
+                       "expertise":  "",
+                       "max_teams_supervise":  2,
+                       "max_teams_review":  2,
+                       "available":  true,
+                       "bio":  "",
+                       "office_hours":  "",
+                       "past_projects":  "",
+                       "groups":  [
+
+                                  ],
+                       "user_permissions":  [
+
+                                            ]
+                   }
+    },
+    {
+        "model":  "accounts.user",
+        "fields":  {
+                       "password":  "pbkdf2_sha256$1000000$5dXU6ui8jQkzpEkUlUTay2$CU34Ogv+qqdbxG3BPpfOtDYyMW3EbrW7PbmZtsvFKbg=",
+                       "last_login":  null,
+                       "is_superuser":  false,
+                       "username":  "student18",
+                       "first_name":  "",
+                       "last_name":  "",
+                       "email":  "student18@test.com",
+                       "is_staff":  false,
+                       "is_active":  true,
+                       "date_joined":  "2026-05-30T17:46:15.211Z",
+                       "role":  "student",
+                       "gender":  "female",
+                       "full_name":  "Maha Salim",
+                       "student_id":  "S20016",
+                       "department":  "Information Technology",
+                       "avatar":  "",
+                       "can_review":  false,
+                       "expertise":  "",
+                       "max_teams_supervise":  2,
+                       "max_teams_review":  2,
+                       "available":  true,
+                       "bio":  "",
+                       "office_hours":  "",
+                       "past_projects":  "",
+                       "groups":  [
+
+                                  ],
+                       "user_permissions":  [
+
+                                            ]
+                   }
+    },
+    {
+        "model":  "accounts.user",
+        "fields":  {
+                       "password":  "pbkdf2_sha256$1000000$AnLxkXwpdawYK4lPcpdvwI$ZTy1NHeoi+d3/NzbjZq/b90hB6j25qcehSMM4eEDf8g=",
+                       "last_login":  null,
+                       "is_superuser":  false,
+                       "username":  "student19",
+                       "first_name":  "",
+                       "last_name":  "",
+                       "email":  "student19@test.com",
+                       "is_staff":  false,
+                       "is_active":  true,
+                       "date_joined":  "2026-05-30T17:46:15.491Z",
+                       "role":  "student",
+                       "gender":  "female",
+                       "full_name":  "Dina Hassan",
+                       "student_id":  "S20017",
+                       "department":  "Information Technology",
+                       "avatar":  "",
+                       "can_review":  false,
+                       "expertise":  "",
+                       "max_teams_supervise":  2,
+                       "max_teams_review":  2,
+                       "available":  true,
+                       "bio":  "",
+                       "office_hours":  "",
+                       "past_projects":  "",
+                       "groups":  [
+
+                                  ],
+                       "user_permissions":  [
+
+                                            ]
+                   }
+    },
+    {
+        "model":  "accounts.user",
+        "fields":  {
+                       "password":  "pbkdf2_sha256$1000000$SeaAcpyLA4dotPB8iEcod5$F+DBtOMTS0SNkRz3uOtdOHq5aQXYEoa59/TEKR+rLQM=",
+                       "last_login":  null,
+                       "is_superuser":  false,
+                       "username":  "student20",
+                       "first_name":  "",
+                       "last_name":  "",
+                       "email":  "student20@test.com",
+                       "is_staff":  false,
+                       "is_active":  true,
+                       "date_joined":  "2026-05-30T17:46:15.768Z",
+                       "role":  "student",
+                       "gender":  "female",
+                       "full_name":  "Rania Nasser",
+                       "student_id":  "S20018",
+                       "department":  "Information Technology",
+                       "avatar":  "",
+                       "can_review":  false,
+                       "expertise":  "",
+                       "max_teams_supervise":  2,
+                       "max_teams_review":  2,
+                       "available":  true,
+                       "bio":  "",
+                       "office_hours":  "",
+                       "past_projects":  "",
+                       "groups":  [
+
+                                  ],
+                       "user_permissions":  [
+
+                                            ]
+                   }
+    },
+    {
+        "model":  "accounts.user",
+        "fields":  {
+                       "password":  "pbkdf2_sha256$1000000$JQBDCw2QNwfO3kIAKGRf0f$IoOP/1hZql3sxYf1pvllTpq3+N9vbevZo2qqLG15QzA=",
+                       "last_login":  null,
+                       "is_superuser":  false,
+                       "username":  "student21",
+                       "first_name":  "",
+                       "last_name":  "",
+                       "email":  "student21@test.com",
+                       "is_staff":  false,
+                       "is_active":  true,
+                       "date_joined":  "2026-05-30T17:46:16.052Z",
+                       "role":  "student",
+                       "gender":  "female",
+                       "full_name":  "Hessa Saad",
+                       "student_id":  "S20019",
+                       "department":  "Information Technology",
+                       "avatar":  "",
+                       "can_review":  false,
+                       "expertise":  "",
+                       "max_teams_supervise":  2,
+                       "max_teams_review":  2,
+                       "available":  true,
+                       "bio":  "",
+                       "office_hours":  "",
+                       "past_projects":  "",
+                       "groups":  [
+
+                                  ],
+                       "user_permissions":  [
+
+                                            ]
+                   }
+    },
+    {
+        "model":  "accounts.user",
+        "fields":  {
+                       "password":  "pbkdf2_sha256$1000000$UP2oFa1VVA8tCI3U0WkExX$+MpAomRKuqSQl5ElOAHN2AM1zXBhXzjICmyu4KbXPqY=",
+                       "last_login":  null,
+                       "is_superuser":  false,
+                       "username":  "student22",
+                       "first_name":  "",
+                       "last_name":  "",
+                       "email":  "student22@test.com",
+                       "is_staff":  false,
+                       "is_active":  true,
+                       "date_joined":  "2026-05-30T17:46:16.325Z",
+                       "role":  "student",
+                       "gender":  "female",
+                       "full_name":  "Amira Walid",
+                       "student_id":  "S20020",
+                       "department":  "Information Technology",
+                       "avatar":  "",
+                       "can_review":  false,
+                       "expertise":  "",
+                       "max_teams_supervise":  2,
+                       "max_teams_review":  2,
+                       "available":  true,
+                       "bio":  "",
+                       "office_hours":  "",
+                       "past_projects":  "",
+                       "groups":  [
+
+                                  ],
+                       "user_permissions":  [
+
+                                            ]
+                   }
+    },
+    {
+        "model":  "accounts.user",
+        "fields":  {
+                       "password":  "pbkdf2_sha256$1000000$gwHmm5khAaMgn3MtxvZKd3$HUxVTAMSTPPDni6Bj0IjQNqmDiZQz3JwtmWVDW+C3OU=",
+                       "last_login":  null,
+                       "is_superuser":  false,
+                       "username":  "student23",
+                       "first_name":  "",
+                       "last_name":  "",
+                       "email":  "student23@test.com",
+                       "is_staff":  false,
+                       "is_active":  true,
+                       "date_joined":  "2026-05-30T17:46:16.598Z",
+                       "role":  "student",
+                       "gender":  "female",
+                       "full_name":  "Wafa Salim",
+                       "student_id":  "S20033",
+                       "department":  "Information Technology",
+                       "avatar":  "",
+                       "can_review":  false,
+                       "expertise":  "",
+                       "max_teams_supervise":  2,
+                       "max_teams_review":  2,
+                       "available":  true,
+                       "bio":  "",
+                       "office_hours":  "",
+                       "past_projects":  "",
+                       "groups":  [
+
+                                  ],
+                       "user_permissions":  [
+
+                                            ]
+                   }
+    },
+    {
+        "model":  "accounts.user",
+        "fields":  {
+                       "password":  "pbkdf2_sha256$1000000$NG9YHkWtE9FOawAIxAd36D$VyIn965wwNxaqnu/6rPOXrI4RdWLYpfwVaE3d00S+3M=",
+                       "last_login":  null,
+                       "is_superuser":  false,
+                       "username":  "student24",
+                       "first_name":  "",
+                       "last_name":  "",
+                       "email":  "student24@test.com",
+                       "is_staff":  false,
+                       "is_active":  true,
+                       "date_joined":  "2026-05-30T17:46:16.872Z",
+                       "role":  "student",
+                       "gender":  "male",
+                       "full_name":  "Bader Ali",
+                       "student_id":  "S20021",
+                       "department":  "Software Engineering",
+                       "avatar":  "",
+                       "can_review":  false,
+                       "expertise":  "",
+                       "max_teams_supervise":  2,
+                       "max_teams_review":  2,
+                       "available":  true,
+                       "bio":  "",
+                       "office_hours":  "",
+                       "past_projects":  "",
+                       "groups":  [
+
+                                  ],
+                       "user_permissions":  [
+
+                                            ]
+                   }
+    },
+    {
+        "model":  "accounts.user",
+        "fields":  {
+                       "password":  "pbkdf2_sha256$1000000$lL49CqUGoIC6bNTPIme9wi$ROsuV7BIYHLZ4gBb6AlTYKndfmzcjW0VN07PFa/Ay2o=",
+                       "last_login":  null,
+                       "is_superuser":  false,
+                       "username":  "student25",
+                       "first_name":  "",
+                       "last_name":  "",
+                       "email":  "student25@test.com",
+                       "is_staff":  false,
+                       "is_active":  true,
+                       "date_joined":  "2026-05-30T17:46:17.140Z",
+                       "role":  "student",
+                       "gender":  "male",
+                       "full_name":  "Hamad Omar",
+                       "student_id":  "S20022",
+                       "department":  "Software Engineering",
+                       "avatar":  "",
+                       "can_review":  false,
+                       "expertise":  "",
+                       "max_teams_supervise":  2,
+                       "max_teams_review":  2,
+                       "available":  true,
+                       "bio":  "",
+                       "office_hours":  "",
+                       "past_projects":  "",
+                       "groups":  [
+
+                                  ],
+                       "user_permissions":  [
+
+                                            ]
+                   }
+    },
+    {
+        "model":  "accounts.user",
+        "fields":  {
+                       "password":  "pbkdf2_sha256$1000000$JCKlRdJc7R4NEKz0x4tfZm$KGjF3ujZEmu6fcaJ2uwt4FR/gfgcxfk6HEqIGOgVjtE=",
+                       "last_login":  null,
+                       "is_superuser":  false,
+                       "username":  "student26",
+                       "first_name":  "",
+                       "last_name":  "",
+                       "email":  "student26@test.com",
+                       "is_staff":  false,
+                       "is_active":  true,
+                       "date_joined":  "2026-05-30T17:46:17.412Z",
+                       "role":  "student",
+                       "gender":  "male",
+                       "full_name":  "Sultan Nasser",
+                       "student_id":  "S20023",
+                       "department":  "Software Engineering",
+                       "avatar":  "",
+                       "can_review":  false,
+                       "expertise":  "",
+                       "max_teams_supervise":  2,
+                       "max_teams_review":  2,
+                       "available":  true,
+                       "bio":  "",
+                       "office_hours":  "",
+                       "past_projects":  "",
+                       "groups":  [
+
+                                  ],
+                       "user_permissions":  [
+
+                                            ]
+                   }
+    },
+    {
+        "model":  "accounts.user",
+        "fields":  {
+                       "password":  "pbkdf2_sha256$1000000$LyF3PZ9pahle9oncyAdTvj$lwt6pviGc4NmX9MNlVLGU3lMbHpMqVYkmMKaut3Mdgk=",
+                       "last_login":  null,
+                       "is_superuser":  false,
+                       "username":  "student27",
+                       "first_name":  "",
+                       "last_name":  "",
+                       "email":  "student27@test.com",
+                       "is_staff":  false,
+                       "is_active":  true,
+                       "date_joined":  "2026-05-30T17:46:17.690Z",
+                       "role":  "student",
+                       "gender":  "male",
+                       "full_name":  "Rashid Salim",
+                       "student_id":  "S20024",
+                       "department":  "Software Engineering",
+                       "avatar":  "",
+                       "can_review":  false,
+                       "expertise":  "",
+                       "max_teams_supervise":  2,
+                       "max_teams_review":  2,
+                       "available":  true,
+                       "bio":  "",
+                       "office_hours":  "",
+                       "past_projects":  "",
+                       "groups":  [
+
+                                  ],
+                       "user_permissions":  [
+
+                                            ]
+                   }
+    },
+    {
+        "model":  "accounts.user",
+        "fields":  {
+                       "password":  "pbkdf2_sha256$1000000$TuO0KPqZrlYd3MLlY7BUIc$eIKloqxoXsrqdwVpBVYWeh50UhvMAEM14l6HxYfpShQ=",
+                       "last_login":  null,
+                       "is_superuser":  false,
+                       "username":  "student28",
+                       "first_name":  "",
+                       "last_name":  "",
+                       "email":  "student28@test.com",
+                       "is_staff":  false,
+                       "is_active":  true,
+                       "date_joined":  "2026-05-30T17:46:17.966Z",
+                       "role":  "student",
+                       "gender":  "male",
+                       "full_name":  "Jaber Hassan",
+                       "student_id":  "S20025",
+                       "department":  "Software Engineering",
+                       "avatar":  "",
+                       "can_review":  false,
+                       "expertise":  "",
+                       "max_teams_supervise":  2,
+                       "max_teams_review":  2,
+                       "available":  true,
+                       "bio":  "",
+                       "office_hours":  "",
+                       "past_projects":  "",
+                       "groups":  [
+
+                                  ],
+                       "user_permissions":  [
+
+                                            ]
+                   }
+    },
+    {
+        "model":  "accounts.user",
+        "fields":  {
+                       "password":  "pbkdf2_sha256$1000000$Kmv5afLOxMofPXPFpJ5TSE$duK6JvF9hpJTkXh6WnLF2vgKqjc1zH2jmNjR+f2YcCQ=",
+                       "last_login":  null,
+                       "is_superuser":  false,
+                       "username":  "student29",
+                       "first_name":  "",
+                       "last_name":  "",
+                       "email":  "student29@test.com",
+                       "is_staff":  false,
+                       "is_active":  true,
+                       "date_joined":  "2026-05-30T17:46:18.237Z",
+                       "role":  "student",
+                       "gender":  "female",
+                       "full_name":  "Fatma Ali",
+                       "student_id":  "S20026",
+                       "department":  "Software Engineering",
+                       "avatar":  "",
+                       "can_review":  false,
+                       "expertise":  "",
+                       "max_teams_supervise":  2,
+                       "max_teams_review":  2,
+                       "available":  true,
+                       "bio":  "",
+                       "office_hours":  "",
+                       "past_projects":  "",
+                       "groups":  [
+
+                                  ],
+                       "user_permissions":  [
+
+                                            ]
+                   }
+    },
+    {
+        "model":  "accounts.user",
+        "fields":  {
+                       "password":  "pbkdf2_sha256$1000000$sGChcCTemljwdBSS9wuqaJ$2rrTJSPm4ZDED3AfmVNFfSnLgMvGeGhcNsCEOqHlaDM=",
+                       "last_login":  null,
+                       "is_superuser":  false,
+                       "username":  "student30",
+                       "first_name":  "",
+                       "last_name":  "",
+                       "email":  "student30@test.com",
+                       "is_staff":  false,
+                       "is_active":  true,
+                       "date_joined":  "2026-05-30T17:46:18.512Z",
+                       "role":  "student",
+                       "gender":  "female",
+                       "full_name":  "Aisha Omar",
+                       "student_id":  "S20027",
+                       "department":  "Software Engineering",
+                       "avatar":  "",
+                       "can_review":  false,
+                       "expertise":  "",
+                       "max_teams_supervise":  2,
+                       "max_teams_review":  2,
+                       "available":  true,
+                       "bio":  "",
+                       "office_hours":  "",
+                       "past_projects":  "",
+                       "groups":  [
+
+                                  ],
+                       "user_permissions":  [
+
+                                            ]
+                   }
+    },
+    {
+        "model":  "accounts.user",
+        "fields":  {
+                       "password":  "pbkdf2_sha256$1000000$W3PNNQ1Sz4dpGbLle7862u$P94Zz4DWsxt6sC9FilQH1eMozVy3aGtGCZLGQPwwDtc=",
+                       "last_login":  null,
+                       "is_superuser":  false,
+                       "username":  "student31",
+                       "first_name":  "",
+                       "last_name":  "",
+                       "email":  "student31@test.com",
+                       "is_staff":  false,
+                       "is_active":  true,
+                       "date_joined":  "2026-05-30T17:46:18.786Z",
+                       "role":  "student",
+                       "gender":  "female",
+                       "full_name":  "Mariam Nasser",
+                       "student_id":  "S20028",
+                       "department":  "Software Engineering",
+                       "avatar":  "",
+                       "can_review":  false,
+                       "expertise":  "",
+                       "max_teams_supervise":  2,
+                       "max_teams_review":  2,
+                       "available":  true,
+                       "bio":  "",
+                       "office_hours":  "",
+                       "past_projects":  "",
+                       "groups":  [
+
+                                  ],
+                       "user_permissions":  [
+
+                                            ]
+                   }
+    },
+    {
+        "model":  "accounts.user",
+        "fields":  {
+                       "password":  "pbkdf2_sha256$1000000$f9cdhXCQXctcfaLuEmntZK$bHWvmMjJ7YDvAR+l65c01dNDvWjdEUe6UdmGNOMmxMs=",
+                       "last_login":  null,
+                       "is_superuser":  false,
+                       "username":  "student32",
+                       "first_name":  "",
+                       "last_name":  "",
+                       "email":  "student32@test.com",
+                       "is_staff":  false,
+                       "is_active":  true,
+                       "date_joined":  "2026-05-30T17:46:19.053Z",
+                       "role":  "student",
+                       "gender":  "female",
+                       "full_name":  "Shaikha Salim",
+                       "student_id":  "S20029",
+                       "department":  "Software Engineering",
+                       "avatar":  "",
+                       "can_review":  false,
+                       "expertise":  "",
+                       "max_teams_supervise":  2,
+                       "max_teams_review":  2,
+                       "available":  true,
+                       "bio":  "",
+                       "office_hours":  "",
+                       "past_projects":  "",
+                       "groups":  [
+
+                                  ],
+                       "user_permissions":  [
+
+                                            ]
+                   }
+    },
+    {
+        "model":  "accounts.user",
+        "fields":  {
+                       "password":  "pbkdf2_sha256$1000000$XPnWd66RFVZQgzD1LZC4yd$9Lh+F3pI0o4rC/iV5AAJ1veLiThTHGmL68n8aMKt7fY=",
+                       "last_login":  null,
+                       "is_superuser":  false,
+                       "username":  "student33",
+                       "first_name":  "",
+                       "last_name":  "",
+                       "email":  "student33@test.com",
+                       "is_staff":  false,
+                       "is_active":  true,
+                       "date_joined":  "2026-05-30T17:46:19.320Z",
+                       "role":  "student",
+                       "gender":  "female",
+                       "full_name":  "Latifa Hassan",
+                       "student_id":  "S20030",
+                       "department":  "Software Engineering",
+                       "avatar":  "",
+                       "can_review":  false,
+                       "expertise":  "",
+                       "max_teams_supervise":  2,
+                       "max_teams_review":  2,
+                       "available":  true,
+                       "bio":  "",
+                       "office_hours":  "",
+                       "past_projects":  "",
+                       "groups":  [
+
+                                  ],
+                       "user_permissions":  [
+
+                                            ]
+                   }
+    },
+    {
+        "model":  "accounts.user",
+        "fields":  {
+                       "password":  "pbkdf2_sha256$1000000$Pr4SmjLZaH7JvN5V5ewpk8$7H7DVnN32VUwQ44N67IUxMDv2MwXroYNqUIpcvFzRik=",
+                       "last_login":  null,
+                       "is_superuser":  false,
+                       "username":  "student34",
+                       "first_name":  "",
+                       "last_name":  "",
+                       "email":  "student34@test.com",
+                       "is_staff":  false,
+                       "is_active":  true,
+                       "date_joined":  "2026-05-30T17:46:19.586Z",
+                       "role":  "student",
+                       "gender":  "female",
+                       "full_name":  "Noura Hamad",
+                       "student_id":  "S20034",
+                       "department":  "Software Engineering",
+                       "avatar":  "",
+                       "can_review":  false,
+                       "expertise":  "",
+                       "max_teams_supervise":  2,
+                       "max_teams_review":  2,
+                       "available":  true,
+                       "bio":  "",
+                       "office_hours":  "",
+                       "past_projects":  "",
+                       "groups":  [
+
+                                  ],
+                       "user_permissions":  [
+
+                                            ]
+                   }
+    },
+    {
+        "model":  "accounts.user",
+        "fields":  {
+                       "password":  "pbkdf2_sha256$1000000$0CPm6rGQrlAKX5rb8lh6ZW$rbsexXjO7qRem/scPiwk0O9xHWYwf+zdNyVntB7bXrA=",
+                       "last_login":  null,
+                       "is_superuser":  false,
+                       "username":  "supervisor1",
+                       "first_name":  "",
+                       "last_name":  "",
+                       "email":  "supervisor1@test.com",
+                       "is_staff":  false,
+                       "is_active":  true,
+                       "date_joined":  "2026-05-30T17:46:19.859Z",
+                       "role":  "supervisor",
+                       "gender":  "male",
+                       "full_name":  "Dr. Hassan Al-Rashidi",
+                       "student_id":  "T10001",
+                       "department":  "Computer Science",
+                       "avatar":  "",
+                       "can_review":  true,
+                       "expertise":  "Machine Learning, Artificial Intelligence, Data Mining, Neural Networks",
+                       "max_teams_supervise":  3,
+                       "max_teams_review":  3,
+                       "available":  true,
+                       "bio":  "Dr. Hassan Al-Rashidi is an Associate Professor in the Department of Computer Science with over 12 years of experience in machine learning and artificial intelligence research. He has published numerous papers in top-tier conferences and journals and actively mentors students on AI-driven projects.",
+                       "office_hours":  "Sunday \u0026 Tuesday: 10:00 AM – 12:00 PM, Thursday: 2:00 PM – 4:00 PM",
+                       "past_projects":  "AI-Powered Student Performance Prediction System, Automated Exam Grading using Deep Learning, Smart Campus Energy Management System",
+                       "groups":  [
+
+                                  ],
+                       "user_permissions":  [
+
+                                            ]
+                   }
+    },
+    {
+        "model":  "accounts.user",
+        "fields":  {
+                       "password":  "pbkdf2_sha256$1000000$yZleIduGF8ttPLbQ66u04v$HQbT/PHumETw37zINUZfpdhQ3kVOO0XKmOqDDKe8dDw=",
+                       "last_login":  null,
+                       "is_superuser":  false,
+                       "username":  "supervisor2",
+                       "first_name":  "",
+                       "last_name":  "",
+                       "email":  "supervisor2@test.com",
+                       "is_staff":  false,
+                       "is_active":  true,
+                       "date_joined":  "2026-05-30T17:46:20.129Z",
+                       "role":  "supervisor",
+                       "gender":  "male",
+                       "full_name":  "Dr. Omar Al-Zahrani",
+                       "student_id":  "T10002",
+                       "department":  "Information Technology",
+                       "avatar":  "",
+                       "can_review":  true,
+                       "expertise":  "Cybersecurity, Network Security, Cloud Computing, Information Systems",
+                       "max_teams_supervise":  3,
+                       "max_teams_review":  3,
+                       "available":  true,
+                       "bio":  "Dr. Omar Al-Zahrani is an Associate Professor in the Department of Information Technology specializing in cybersecurity and cloud infrastructure. With over 10 years of experience in both academia and industry, he has led multiple national-level security research initiatives and consults for government entities.",
+                       "office_hours":  "Monday \u0026 Wednesday: 9:00 AM – 11:00 AM, Sunday: 1:00 PM – 3:00 PM",
+                       "past_projects":  "Secure Cloud Storage Framework for Healthcare Data, Network Intrusion Detection System using Machine Learning, Multi-Factor Authentication System for Government Portals",
+                       "groups":  [
+
+                                  ],
+                       "user_permissions":  [
+
+                                            ]
+                   }
+    },
+    {
+        "model":  "accounts.user",
+        "fields":  {
+                       "password":  "pbkdf2_sha256$1000000$rGEW1SZc7aDSfNfhrN24AI$N1/R+hT695pQLqzSDFK9DDlkeMDRMNzW7/LNFx+Ohco=",
+                       "last_login":  null,
+                       "is_superuser":  false,
+                       "username":  "supervisor3",
+                       "first_name":  "",
+                       "last_name":  "",
+                       "email":  "supervisor3@test.com",
+                       "is_staff":  false,
+                       "is_active":  true,
+                       "date_joined":  "2026-05-30T17:46:20.402Z",
+                       "role":  "supervisor",
+                       "gender":  "male",
+                       "full_name":  "Dr. Khalid Al-Mutairi",
+                       "student_id":  "T10003",
+                       "department":  "Software Engineering",
+                       "avatar":  "",
+                       "can_review":  true,
+                       "expertise":  "Software Architecture, Agile Development, DevOps, Microservices, Software Testing",
+                       "max_teams_supervise":  3,
+                       "max_teams_review":  3,
+                       "available":  true,
+                       "bio":  "Dr. Khalid Al-Mutairi is an Associate Professor in the Department of Software Engineering with expertise in modern software architecture and development methodologies. Over 11 years, he has collaborated with leading tech companies on large-scale distributed systems and champions agile best practices in student projects.",
+                       "office_hours":  "Sunday \u0026 Tuesday: 1:00 PM – 3:00 PM, Wednesday: 10:00 AM – 12:00 PM",
+                       "past_projects":  "Microservices-based E-Commerce Platform, Automated CI/CD Pipeline for Enterprise Systems, Real-Time Collaborative Code Editor",
+                       "groups":  [
+
+                                  ],
+                       "user_permissions":  [
+
+                                            ]
+                   }
+    },
+    {
+        "model":  "accounts.user",
+        "fields":  {
+                       "password":  "pbkdf2_sha256$1000000$H5Gg3bl7oIUDQIgrarp4D2$B8Z37+p418Z+ZOZONrH+DP8yzm+NGb5Q5ilt2c6nkYM=",
+                       "last_login":  null,
+                       "is_superuser":  false,
+                       "username":  "supervisor4",
+                       "first_name":  "",
+                       "last_name":  "",
+                       "email":  "supervisor4@test.com",
+                       "is_staff":  false,
+                       "is_active":  true,
+                       "date_joined":  "2026-05-30T17:46:20.675Z",
+                       "role":  "supervisor",
+                       "gender":  "female",
+                       "full_name":  "Dr. Sara Al-Qahtani",
+                       "student_id":  "T10004",
+                       "department":  "Computer Science",
+                       "avatar":  "",
+                       "can_review":  true,
+                       "expertise":  "Computer Vision, Image Processing, Natural Language Processing, Deep Learning",
+                       "max_teams_supervise":  3,
+                       "max_teams_review":  3,
+                       "available":  true,
+                       "bio":  "Dr. Sara Al-Qahtani is an Assistant Professor in the Department of Computer Science focusing on computer vision and natural language processing. She holds a PhD from a leading international university and has published extensively in AI-related journals, with a particular interest in Arabic language technologies.",
+                       "office_hours":  "Monday \u0026 Wednesday: 11:00 AM – 1:00 PM, Tuesday: 3:00 PM – 5:00 PM",
+                       "past_projects":  "Arabic Text Recognition System using Deep Learning, Medical Image Classification for Disease Detection, Sentiment Analysis of Social Media for Public Health Monitoring",
+                       "groups":  [
+
+                                  ],
+                       "user_permissions":  [
+
+                                            ]
+                   }
+    },
+    {
+        "model":  "accounts.user",
+        "fields":  {
+                       "password":  "pbkdf2_sha256$1000000$nhoYvxLP5MvlLC0Xib0hj2$Q2Ul0zNG0YjqqsSW/ICWJmNOXbqGNC5ztGzKy7sBMXI=",
+                       "last_login":  null,
+                       "is_superuser":  false,
+                       "username":  "supervisor5",
+                       "first_name":  "",
+                       "last_name":  "",
+                       "email":  "supervisor5@test.com",
+                       "is_staff":  false,
+                       "is_active":  true,
+                       "date_joined":  "2026-05-30T17:46:20.952Z",
+                       "role":  "supervisor",
+                       "gender":  "female",
+                       "full_name":  "Dr. Nora Al-Shehri",
+                       "student_id":  "T10005",
+                       "department":  "Information Technology",
+                       "avatar":  "",
+                       "can_review":  true,
+                       "expertise":  "Database Management, Big Data Analytics, Business Intelligence, Data Warehousing",
+                       "max_teams_supervise":  3,
+                       "max_teams_review":  3,
+                       "available":  true,
+                       "bio":  "Dr. Nora Al-Shehri is an Associate Professor in the Department of Information Technology specializing in database systems and big data analytics. With over 9 years of academic and research experience, she actively collaborates with industry partners on data-driven solutions and has supervised numerous award-winning capstone projects.",
+                       "office_hours":  "Sunday \u0026 Thursday: 10:00 AM – 12:00 PM, Monday: 2:00 PM – 4:00 PM",
+                       "past_projects":  "Real-Time Analytics Dashboard for Retail Operations, Student Data Warehouse and Reporting System, Big Data Pipeline for Social Media Analysis",
+                       "groups":  [
+
+                                  ],
+                       "user_permissions":  [
+
+                                            ]
+                   }
+    },
+    {
+        "model":  "accounts.user",
+        "fields":  {
+                       "password":  "pbkdf2_sha256$1000000$VTePuWOxJp66slM0xJ6QF1$Io7cGyg5B//KmQoixusrHF1tTob6cqtLsC6eo9jHoYk=",
+                       "last_login":  null,
+                       "is_superuser":  false,
+                       "username":  "supervisor6",
+                       "first_name":  "",
+                       "last_name":  "",
+                       "email":  "supervisor6@test.com",
+                       "is_staff":  false,
+                       "is_active":  true,
+                       "date_joined":  "2026-05-30T17:46:21.228Z",
+                       "role":  "supervisor",
+                       "gender":  "female",
+                       "full_name":  "Dr. Lina Al-Harbi",
+                       "student_id":  "T10006",
+                       "department":  "Software Engineering",
+                       "avatar":  "",
+                       "can_review":  true,
+                       "expertise":  "Human-Computer Interaction, UX/UI Design, Mobile Application Development, Accessibility",
+                       "max_teams_supervise":  3,
+                       "max_teams_review":  3,
+                       "available":  true,
+                       "bio":  "Dr. Lina Al-Harbi is an Assistant Professor in the Department of Software Engineering with a passion for human-centered design and mobile computing. She completed her PhD in Human-Computer Interaction and has been involved in several award-winning student projects focused on accessibility and inclusive design.",
+                       "office_hours":  "Monday \u0026 Wednesday: 1:00 PM – 3:00 PM, Thursday: 10:00 AM – 12:00 PM",
+                       "past_projects":  "Accessible Mobile App for Visually Impaired Users, Smart Home Control Interface Design, University Student Portal Redesign and Usability Study",
+                       "groups":  [
+
+                                  ],
+                       "user_permissions":  [
+
+                                            ]
+                   }
+    },
+    {
+        "model":  "teams.team",
+        "pk":  3,
+        "fields":  {
+                       "name":  "alpha",
+                       "created_by":  null,
+                       "created_at":  "2026-05-26T00:31:30.718Z",
+                       "is_active":  true,
+                       "auto_created":  false
+                   }
+    },
+    {
+        "model":  "teams.team",
+        "pk":  33,
+        "fields":  {
+                       "name":  "whats up",
+                       "created_by":  null,
+                       "created_at":  "2026-05-29T17:10:17.559Z",
+                       "is_active":  true,
+                       "auto_created":  false
+                   }
+    },
+    {
+        "model":  "teams.team",
+        "pk":  34,
+        "fields":  {
+                       "name":  "wohho",
+                       "created_by":  null,
+                       "created_at":  "2026-05-29T17:16:53.374Z",
+                       "is_active":  true,
+                       "auto_created":  false
+                   }
+    },
+    {
+        "model":  "teams.team",
+        "pk":  35,
+        "fields":  {
+                       "name":  "gggg",
+                       "created_by":  null,
+                       "created_at":  "2026-05-29T21:21:29.356Z",
+                       "is_active":  true,
+                       "auto_created":  false
+                   }
+    },
+    {
+        "model":  "projects.systemconfig",
+        "pk":  1,
+        "fields":  {
+                       "phase":  1,
+                       "phase_switched_at":  null,
+                       "phase2_start_date":  null
+                   }
+    },
+    {
+        "model":  "projects.project",
+        "pk":  3,
+        "fields":  {
+                       "team":  3,
+                       "supervisor":  null,
+                       "title":  "olap",
+                       "description":  "yo",
+                       "objectives":  "",
+                       "status":  "in_progress",
+                       "submitted_at":  null,
+                       "approved_at":  null,
+                       "approved_by":  null,
+                       "rejection_reason":  "",
+                       "hide_from_archive":  false,
+                       "auto_assigned_supervisor":  false,
+                       "created_at":  "2026-05-26T00:44:26.407Z",
+                       "reviewers":  [
+
+                                     ]
+                   }
+    },
+    {
+        "model":  "projects.project",
+        "pk":  32,
+        "fields":  {
+                       "team":  35,
+                       "supervisor":  null,
+                       "title":  "erer",
+                       "description":  "ererer",
+                       "objectives":  "",
+                       "status":  "in_progress",
+                       "submitted_at":  null,
+                       "approved_at":  null,
+                       "approved_by":  null,
+                       "rejection_reason":  "",
+                       "hide_from_archive":  false,
+                       "auto_assigned_supervisor":  false,
+                       "created_at":  "2026-05-29T21:27:04.062Z",
+                       "reviewers":  [
+
+                                     ]
+                   }
+    },
+    {
+        "model":  "milestones.milestone",
+        "pk":  1,
+        "fields":  {
+                       "title":  "Project Proposal",
+                       "description":  "Submit the initial project proposal document, including problem statement, objectives, methodology, and expected outcomes.",
+                       "start_date":  "2026-05-25",
+                       "due_date":  "2026-05-27",
+                       "weight":  30,
+                       "order":  1,
+                       "is_active":  true,
+                       "has_split":  false,
+                       "report_weight":  50,
+                       "presentation_weight":  50,
+                       "guide_file":  "",
+                       "created_by":  null,
+                       "created_at":  "2026-05-25T18:50:21.343Z"
+                   }
+    },
+    {
+        "model":  "milestones.milestone",
+        "pk":  2,
+        "fields":  {
+                       "title":  "Literature Review",
+                       "description":  "Deliver a comprehensive literature review covering relevant research, technologies, and prior work related to the project.",
+                       "start_date":  null,
+                       "due_date":  "2026-05-31",
+                       "weight":  10,
+                       "order":  2,
+                       "is_active":  true,
+                       "has_split":  false,
+                       "report_weight":  50,
+                       "presentation_weight":  50,
+                       "guide_file":  "",
+                       "created_by":  null,
+                       "created_at":  "2026-05-25T18:50:21.344Z"
+                   }
+    },
+    {
+        "model":  "milestones.milestone",
+        "pk":  3,
+        "fields":  {
+                       "title":  "Design \u0026 Architecture",
+                       "description":  "Submit the system design document including architecture diagrams, data models, and technology stack decisions.",
+                       "start_date":  null,
+                       "due_date":  null,
+                       "weight":  20,
+                       "order":  3,
+                       "is_active":  true,
+                       "has_split":  true,
+                       "report_weight":  50,
+                       "presentation_weight":  50,
+                       "guide_file":  "",
+                       "created_by":  null,
+                       "created_at":  "2026-05-25T18:50:21.344Z"
+                   }
+    },
+    {
+        "model":  "milestones.milestone",
+        "pk":  4,
+        "fields":  {
+                       "title":  "Prototype / Mid-Review Deliverable",
+                       "description":  "Present a working prototype or mid-review deliverable demonstrating core functionality. Includes a progress report.",
+                       "start_date":  null,
+                       "due_date":  null,
+                       "weight":  20,
+                       "order":  4,
+                       "is_active":  true,
+                       "has_split":  false,
+                       "report_weight":  50,
+                       "presentation_weight":  50,
+                       "guide_file":  "",
+                       "created_by":  null,
+                       "created_at":  "2026-05-25T18:50:21.345Z"
+                   }
+    },
+    {
+        "model":  "milestones.milestone",
+        "pk":  5,
+        "fields":  {
+                       "title":  "Final Submission",
+                       "description":  "Submit the completed project including source code, final report, documentation, and any required presentation materials.",
+                       "start_date":  null,
+                       "due_date":  null,
+                       "weight":  20,
+                       "order":  5,
+                       "is_active":  true,
+                       "has_split":  true,
+                       "report_weight":  50,
+                       "presentation_weight":  50,
+                       "guide_file":  "",
+                       "created_by":  null,
+                       "created_at":  "2026-05-25T18:50:21.345Z"
+                   }
+    }
+]

@@ -1,0 +1,144 @@
+{% load static %}
+
+<div class="meeting-panel">
+
+  <div class="meeting-panel-head">
+    <div>
+      <h3 class="meeting-panel-title">{{ meeting.title }}</h3>
+      <div class="meeting-panel-meta">
+        <span class="status-pill status-{{ meeting.status }}">{{ meeting.get_status_display }}</span>
+        <span class="importance-pill importance-{{ meeting.importance }}">{{ meeting.get_importance_display }} importance</span>
+      </div>
+    </div>
+  </div>
+
+  <dl class="meeting-panel-grid">
+    <div>
+      <dt>When</dt>
+      <dd>
+        {{ meeting.datetime|date:"l, M j, Y" }}<br>
+        {{ meeting.datetime|date:"g:i A" }} — {{ meeting.end_datetime|date:"g:i A" }}
+        <span class="muted">({{ meeting.duration_minutes }} min)</span>
+      </dd>
+    </div>
+    <div>
+      <dt>Organizer</dt>
+      <dd>{{ meeting.scheduled_by.full_name|default:meeting.scheduled_by.username }}</dd>
+    </div>
+    {% if meeting.location %}
+    <div>
+      <dt>Location</dt>
+      <dd>{{ meeting.location }}</dd>
+    </div>
+    {% endif %}
+    {% if meeting.project %}
+    <div>
+      <dt>Project</dt>
+      <dd>{{ meeting.project.title }}</dd>
+    </div>
+    {% endif %}
+  </dl>
+
+  {% if meeting.notes %}
+  <div class="meeting-panel-notes">
+    <dt>Notes</dt>
+    <dd>{{ meeting.notes|linebreaksbr }}</dd>
+  </div>
+  {% endif %}
+
+  <div class="meeting-panel-section">
+    <h4>Participants</h4>
+    <ul class="participant-list">
+      {% for p in participants %}
+      <li>
+        <span class="participant-name">{{ p.user.full_name|default:p.user.username }}</span>
+        <span class="response-pill response-{{ p.response }}">{{ p.get_response_display }}</span>
+      </li>
+      {% empty %}
+      <li class="muted">No participants.</li>
+      {% endfor %}
+    </ul>
+  </div>
+
+  
+  {% for proposal in proposals %}
+    {% if proposal.status == 'open' %}
+      <div class="meeting-panel-section reschedule-block">
+        <h4>
+          🔁 Reschedule proposed by
+          {{ proposal.proposed_by.full_name|default:proposal.proposed_by.username }}
+        </h4>
+        {% if is_scheduler %}
+          <p class="muted small">Pick one of the proposed times, or reject to keep the original.</p>
+          <div class="slot-grid">
+            {% for slot in proposal.slots.all %}
+              <form method="post" action="{% url 'meetings:choose_slot' slot.id %}">
+                {% csrf_token %}
+                <button type="submit" class="btn btn-outline slot-btn">
+                  <div class="slot-day">{{ slot.datetime|date:"D, M j" }}</div>
+                  <div class="slot-time">{{ slot.datetime|date:"g:i A" }}</div>
+                </button>
+              </form>
+            {% endfor %}
+          </div>
+          <form method="post" action="{% url 'meetings:reject_proposal' proposal.id %}" style="margin-top:.5rem;">
+            {% csrf_token %}
+            <button type="submit" class="btn btn-outline btn-sm" style="border-color:#ef4444;color:#ef4444;">
+              ✕ Reject all & keep original time
+            </button>
+          </form>
+        {% else %}
+          <p class="muted small">Waiting for the organizer to choose a time.</p>
+          <ul class="slot-list">
+            {% for slot in proposal.slots.all %}
+              <li>{{ slot.datetime|date:"D, M j · g:i A" }}</li>
+            {% endfor %}
+          </ul>
+        {% endif %}
+      </div>
+    {% endif %}
+  {% endfor %}
+
+  
+  <div class="meeting-panel-actions">
+    {% if meeting.status != 'cancelled' and meeting.status != 'completed' %}
+      {% if participant %}
+        {% if participant.response == 'pending' or participant.response == 'declined' %}
+        <form method="post" action="{% url 'meetings:respond' meeting.id %}">
+          {% csrf_token %}
+          <input type="hidden" name="action" value="accept">
+          <button type="submit" class="btn btn-primary">✓ Accept</button>
+        </form>
+        {% endif %}
+
+        {% if participant.response != 'declined' %}
+        <form method="post" action="{% url 'meetings:respond' meeting.id %}">
+          {% csrf_token %}
+          <input type="hidden" name="action" value="decline">
+          <button type="submit" class="btn btn-outline" style="border-color:#ef4444;color:#ef4444;">
+            ✕ Decline
+          </button>
+        </form>
+        {% endif %}
+
+        {% if participant.response != 'declined' %}
+        <button type="button" class="btn btn-outline"
+          onclick="openRescheduleModal('{{ meeting.id }}')">
+          🔁 Reschedule
+        </button>
+        {% endif %}
+      {% endif %}
+
+      {% if is_scheduler %}
+      <form method="post" action="{% url 'meetings:cancel' meeting.id %}"
+            onsubmit="return confirm('Cancel this meeting?');">
+        {% csrf_token %}
+        <button type="submit" class="btn btn-outline" style="border-color:#ef4444;color:#ef4444;">
+          🗑 Cancel meeting
+        </button>
+      </form>
+      {% endif %}
+    {% endif %}
+  </div>
+
+</div>
