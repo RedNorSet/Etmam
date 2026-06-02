@@ -383,7 +383,7 @@
               </td>
             </tr>
             {% empty %}
-            <tr><td colspan="8"><div class="empty"><div class="ei">👤</div>No students yet.</div></td></tr>
+            <tr><td colspan="8"><div class="empty">No students yet.</div></td></tr>
             {% endfor %}
           </tbody>
         </table>
@@ -445,7 +445,7 @@
               </td>
             </tr>
             {% empty %}
-            <tr><td colspan="10"><div class="empty"><div class="ei">👤</div>No supervisors or reviewers yet.</div></td></tr>
+            <tr><td colspan="10"><div class="empty">No supervisors or reviewers yet.</div></td></tr>
             {% endfor %}
           </tbody>
         </table>
@@ -496,7 +496,7 @@
               </td>
             </tr>
             {% empty %}
-            <tr><td colspan="6"><div class="empty"><div class="ei">👤</div>No administrators yet.</div></td></tr>
+            <tr><td colspan="6"><div class="empty">No administrators yet.</div></td></tr>
             {% endfor %}
           </tbody>
         </table>
@@ -587,7 +587,7 @@
           {% csrf_token %}
           <button type="submit" class="btn-del-dissolved"
                   onclick="return confirm('Permanently delete all {{ dissolved_count }} dissolved team{{ dissolved_count|pluralize }}? This cannot be undone.')">
-            🗑 Delete Dissolved ({{ dissolved_count }})
+            Delete Dissolved ({{ dissolved_count }})
           </button>
         </form>
         {% endif %}
@@ -843,7 +843,7 @@
                               data-team-id="{{ team.pk }}"
                               data-team-name="{{ team.name }}"
                               onclick="startDissolve(this)">
-                        🗑 Dissolve Team
+                        Dissolve Team
                       </button>
                       
                       <form id="dissolve-form-{{ team.pk }}" method="post"
@@ -1010,7 +1010,7 @@
           {% endfor %}
 
           {% if not teams_data %}
-          <tr><td colspan="7"><div class="empty"><div class="ei">👥</div>No teams yet.</div></td></tr>
+          <tr><td colspan="7"><div class="empty">No teams yet.</div></td></tr>
           {% endif %}
         </tbody>
       </table>
@@ -1801,7 +1801,7 @@
     {% endwith %}
     {% endfor %}
     {% else %}
-    <div class="card"><div class="empty"><div class="ei">🗄️</div>No completed projects yet. Projects moved to "completed" status will appear here.</div></div>
+    <div class="card"><div class="empty">No completed projects yet. Projects moved to "completed" status will appear here.</div></div>
     {% endif %}
   </div>
 

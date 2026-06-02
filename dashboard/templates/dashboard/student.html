@@ -105,14 +105,12 @@
 
         <div class="stats-row">
           <div class="stat-card">
-            <div class="stat-card-icon" style="background:rgba(27,45,82,.15)">👥</div>
             <div class="stat-card-info">
               <div class="value">{{ team_members|length|default:"—" }}</div>
               <div class="label">Team Members</div>
             </div>
           </div>
           <div class="stat-card">
-            <div class="stat-card-icon" style="background:rgba(16,185,129,.15)">✅</div>
             <div class="stat-card-info">
               <div class="value">
                 {% with done=global_milestones|length %}{{ done }}{% endwith %} total
@@ -121,14 +119,12 @@
             </div>
           </div>
           <div class="stat-card">
-            <div class="stat-card-icon" style="background:rgba(245,158,11,.15)">📋</div>
             <div class="stat-card-info">
               <div class="value">{{ project.get_status_display|default:"—" }}</div>
               <div class="label">Project Status</div>
             </div>
           </div>
           <div class="stat-card">
-            <div class="stat-card-icon" style="background:rgba(107,140,174,.15)">🧑‍🏫</div>
             <div class="stat-card-info">
               <div class="value">{% if project.supervisor %}Assigned{% else %}—{% endif %}</div>
               <div class="label">Supervisor</div>
@@ -370,13 +366,11 @@
         {% else %}
         
         <div class="team-card-big" style="text-align:center;padding:3rem 2rem;margin-bottom:1.5rem;">
-          <div style="font-size:3rem;margin-bottom:1rem;">👥</div>
           <h3 style="margin-bottom:.5rem;">No Team Yet</h3>
           <p style="color:var(--text-muted);margin-bottom:1.5rem;">Create a team and invite your classmates.</p>
           <form method="post" action="{% url 'teams:create' %}" style="display:flex;gap:.75rem;justify-content:center;flex-wrap:wrap;">
             {% csrf_token %}
             <div class="input-wrap" style="width:260px;">
-              <span class="input-icon">🏷️</span>
               <input type="text" name="name" placeholder="Team name" required />
             </div>
             <button type="submit" class="btn btn-primary">Create Team</button>
@@ -845,7 +839,6 @@
 
         {% else %}
         <div class="team-card-big" style="text-align:center;padding:3rem 2rem;">
-          <div style="font-size:3rem;margin-bottom:1rem;">📁</div>
           <h3 style="margin-bottom:.5rem;">No Project Yet</h3>
           <p style="color:var(--text-muted);">Your team needs a supervisor and an approved project to get started.</p>
         </div>
@@ -1108,7 +1101,6 @@
         </div>
         {% else %}
         <div style="text-align:center;padding:4rem;color:var(--text-muted);">
-          <div style="font-size:2.5rem;margin-bottom:1rem;">🗄️</div>
           <p>No archived projects yet. Completed projects will appear here.</p>
         </div>
         {% endif %}
