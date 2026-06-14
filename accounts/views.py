@@ -4,6 +4,7 @@ from django.contrib.auth import authenticate, login, logout
 from django.contrib.auth.decorators import login_required
 from django.views.decorators.http import require_POST
 from django.shortcuts import render, redirect, get_object_or_404
+from django.urls import reverse
 from django.contrib import messages
 
 from .models import User
@@ -71,8 +72,8 @@ def supervisor_profile(request):
             user.save(update_fields=['bio', 'expertise', 'office_hours', 'past_projects'])
             messages.success(request, 'Profile updated.')
 
-        return redirect('accounts:supervisor_profile')
-    return render(request, 'accounts/supervisor_profile.html', {'user': user})
+        return redirect(reverse('dashboard:supervisor') + '#sec-profile')
+    return redirect(reverse('dashboard:supervisor') + '#sec-profile')
 
 @login_required
 def add_user(request):

@@ -20,6 +20,7 @@ class Submission(models.Model):
     submitted_at = models.DateTimeField(auto_now_add=True)
     status       = models.CharField(max_length=20, choices=STATUS, default='pending')
     is_latest    = models.BooleanField(default=True)
+    is_late      = models.BooleanField(default=False)
 
     supervisor_grade      = models.DecimalField(max_digits=5, decimal_places=2, null=True, blank=True)
     supervisor_feedback   = models.TextField(blank=True, default='')

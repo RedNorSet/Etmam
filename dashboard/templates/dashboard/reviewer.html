@@ -47,6 +47,10 @@
 
       <span class="nav-section-label">Other</span>
 
+      <button class="nav-item" onclick="showSection('archive', this)">
+        <span class="nav-label">Archive</span>
+      </button>
+
       <button class="nav-item" onclick="showSection('notifications', this)">
         <span class="nav-icon">🔔</span>
         <span class="nav-label">Notifications</span>
@@ -307,6 +311,57 @@
 
       </section>
 
+      <section class="dash-section" id="sec-archive">
+        <div class="section-hdr">
+          <h2>Project Archive</h2>
+          <span style="font-size:.82rem;color:var(--text-muted);">{{ archive_data|length }} completed project{{ archive_data|length|pluralize }}</span>
+        </div>
+        <div style="margin-bottom:1rem;">
+          <input type="text" id="arc-search-rev" class="form-input" placeholder="Search by project title, team, or supervisor..." oninput="filterRevArchive(this.value)" style="max-width:400px;">
+        </div>
+        {% if archive_data %}
+        <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(290px,1fr));gap:16px;" id="arc-rev-grid">
+          {% for item in archive_data %}
+          <div style="background:var(--bg-card);border:1px solid var(--border);border-radius:14px;overflow:hidden;transition:border-color .2s;" id="arc-rev-{{ forloop.counter }}" data-arc-text="{{ item.project.title|lower }}{% if item.project.team %} {{ item.project.team.name|lower }}{% endif %}{% if item.project.supervisor %} {{ item.project.supervisor.full_name|default:item.project.supervisor.username|lower }}{% endif %}{% for m in item.members %} {{ m.user.full_name|default:m.user.username|lower }}{% endfor %}">
+            <div style="background:linear-gradient(135deg,#1B2D52,#243D6B);padding:18px;display:flex;align-items:center;gap:12px;cursor:pointer;" onclick="toggleRevArc('{{ forloop.counter }}')">
+              <div style="width:44px;height:44px;border-radius:10px;background:rgba(255,255,255,.15);display:grid;place-items:center;font-size:1.2rem;font-weight:700;color:white;flex-shrink:0;">{{ item.project.title|first|upper }}</div>
+              <div style="flex:1;min-width:0;">
+                <div style="font-size:.9rem;font-weight:700;color:white;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">{{ item.project.title }}</div>
+                <div style="font-size:.72rem;color:rgba(255,255,255,.55);margin-top:2px;">
+                  {% if item.project.approved_at %}{{ item.project.approved_at|date:"Y" }}{% else %}{{ item.project.created_at|date:"Y" }}{% endif %}
+                  {% if item.project.supervisor %} · {{ item.project.supervisor.full_name|default:item.project.supervisor.username }}{% endif %}
+                </div>
+              </div>
+              <span style="color:rgba(255,255,255,.4);font-size:.7rem;transition:transform .2s;" id="arc-rev-arrow-{{ forloop.counter }}">▾</span>
+            </div>
+            <div style="padding:14px;display:flex;align-items:center;justify-content:space-between;">
+              <div style="display:flex;gap:6px;flex-wrap:wrap;">
+                {% if item.project.supervisor %}<span style="background:rgba(99,102,241,.15);color:#4f46e5;border-radius:20px;padding:2px 9px;font-size:.7rem;font-weight:600;">{{ item.project.supervisor.full_name|default:item.project.supervisor.username }}</span>{% endif %}
+                <span style="background:rgba(27,45,82,.1);color:var(--primary);border-radius:20px;padding:2px 9px;font-size:.7rem;font-weight:600;">{{ item.project.team.name }}</span>
+              </div>
+              <span style="font-size:.72rem;color:var(--text-muted);">{{ item.members|length }} member{{ item.members|length|pluralize }}</span>
+            </div>
+            <div style="display:none;border-top:1px solid var(--border);padding:16px;background:var(--bg-card2);" id="arc-rev-body-{{ forloop.counter }}">
+              {% if item.project.description %}
+              <div style="font-size:.8rem;color:var(--text-muted);margin-bottom:12px;">{{ item.project.description }}</div>
+              {% endif %}
+              {% if item.members %}
+              <div style="font-size:.7rem;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--text-muted);margin-bottom:6px;">Team Members</div>
+              <div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:10px;">
+                {% for m in item.members %}<span style="background:var(--bg-card);border:1px solid var(--border);border-radius:20px;padding:3px 10px;font-size:.78rem;font-weight:600;color:var(--primary);">{{ m.user.full_name|default:m.user.username }}</span>{% endfor %}
+              </div>
+              {% endif %}
+            </div>
+          </div>
+          {% endfor %}
+        </div>
+        {% else %}
+        <div style="text-align:center;padding:4rem;color:var(--text-muted);">
+          <p>No archived projects yet. Completed projects will appear here.</p>
+        </div>
+        {% endif %}
+      </section>
+
     </div>
   </div>
 </div>
@@ -318,6 +373,7 @@
     dashboard:     'Dashboard',
     projects:      'Assigned Projects',
     grades:        'Grades',
+    archive:       'Archive',
     notifications: 'Notifications',
   };
 
@@ -327,6 +383,20 @@
     document.getElementById('sec-' + id).classList.add('active');
     if (btn) btn.classList.add('active');
     document.getElementById('topbar-title').textContent = sections[id] || id;
+  }
+
+  function filterRevArchive(q) {
+    q = q.toLowerCase().trim();
+    document.querySelectorAll('#arc-rev-grid [data-arc-text]').forEach(function(c) {
+      c.style.display = (!q || c.dataset.arcText.indexOf(q) !== -1) ? '' : 'none';
+    });
+  }
+  function toggleRevArc(id) {
+    var body = document.getElementById('arc-rev-body-' + id);
+    var arrow = document.getElementById('arc-rev-arrow-' + id);
+    var open = body.style.display === 'block';
+    body.style.display = open ? 'none' : 'block';
+    arrow.style.transform = open ? '' : 'rotate(180deg)';
   }
 </script>
 {% endblock %}

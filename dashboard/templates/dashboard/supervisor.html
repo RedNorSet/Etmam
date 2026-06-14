@@ -13,7 +13,7 @@
       <span class="brand-text">Etmam</span>
     </div>
 
-    <a href="{% url 'accounts:supervisor_profile' %}" class="sidebar-user" style="text-decoration:none;color:inherit;transition:background .15s;" onmouseover="this.style.background='rgba(27,45,82,.1)'" onmouseout="this.style.background=''">
+    <button onclick="showSection('profile', null)" class="sidebar-user" style="text-decoration:none;color:inherit;transition:background .15s;background:transparent;border:none;cursor:pointer;width:100%;text-align:left;outline:none;" onmouseover="this.style.background='rgba(255,255,255,.1)'" onmouseout="this.style.background='transparent'" onblur="this.style.background='transparent'">
       <div class="user-avatar">
         {% if user.avatar %}
           <img src="{{ user.avatar.url }}" alt="" style="width:100%;height:100%;object-fit:cover;border-radius:50%;">
@@ -25,7 +25,7 @@
         <div class="user-name">{{ user.full_name|default:user.username }}</div>
         <div class="user-role">Supervisor{% if user.department %} · {{ user.department }}{% endif %}</div>
       </div>
-    </a>
+    </button>
 
     <nav class="sidebar-nav">
       <span class="nav-section-label">Main</span>
@@ -92,48 +92,24 @@
               {% if pending_req|length %} and have <strong>{{ pending_req|length }}</strong> pending supervision request{{ pending_req|length|pluralize }}{% endif %}.
             </p>
           </div>
-          <div class="welcome-emoji">🧑‍🏫</div>
         </div>
 
-        <div class="stats-row">
-          <div class="stat-card">
-            <div class="stat-card-icon" style="background:rgba(27,45,82,.15)">🎓</div>
-            <div class="stat-card-info">
-              <div class="value">{{ supervised|length }}</div>
-              <div class="label">Teams Supervised</div>
-            </div>
+        {% if supervised %}
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem;margin-bottom:1rem;">
+          <div style="background:var(--bg-card);border:1px solid var(--border);border-radius:var(--radius);padding:1.5rem;box-shadow:var(--shadow);">
+            <div style="font-size:.8rem;font-weight:700;color:var(--primary);margin-bottom:1rem;">Submission Rate per Milestone</div>
+            <div style="position:relative;height:220px;"><canvas id="chart-sup-submissions"></canvas></div>
           </div>
-          {% if user.can_review %}
-          <div class="stat-card">
-            <div class="stat-card-icon" style="background:rgba(107,140,174,.15)">📋</div>
-            <div class="stat-card-info">
-              <div class="value">{{ reviewed|length }}</div>
-              <div class="label">Teams Reviewing</div>
-            </div>
-          </div>
-          {% endif %}
-          <div class="stat-card">
-            <div class="stat-card-icon" style="background:rgba(245,158,11,.15)">📬</div>
-            <div class="stat-card-info">
-              <div class="value">{{ pending_req|length }}</div>
-              <div class="label">Pending Requests</div>
-            </div>
-          </div>
-          <div class="stat-card">
-            <div class="stat-card-icon" style="background:rgba(16,185,129,.15)">✅</div>
-            <div class="stat-card-info">
-              <div class="value">{{ user.current_load }} / {{ user.max_teams_supervise }}</div>
-              <div class="label">Slots Used</div>
-            </div>
-          </div>
-          <div class="stat-card" onclick="showSection('teams', document.querySelector('[onclick*=teams]'))" style="cursor:pointer;">
-            <div class="stat-card-icon" style="background:rgba(249,115,22,.15)">📊</div>
-            <div class="stat-card-info">
-              <div class="value">{{ pending_subs_count }}</div>
-              <div class="label">Pending Grades</div>
-            </div>
+          <div style="background:var(--bg-card);border:1px solid var(--border);border-radius:var(--radius);padding:1.5rem;box-shadow:var(--shadow);">
+            <div style="font-size:.8rem;font-weight:700;color:var(--primary);margin-bottom:1rem;">Grading Status</div>
+            <div style="position:relative;height:200px;"><canvas id="chart-sup-grading"></canvas></div>
           </div>
         </div>
+        <div style="background:var(--bg-card);border:1px solid var(--border);border-radius:var(--radius);padding:1.5rem;box-shadow:var(--shadow);margin-bottom:1.75rem;">
+          <div style="font-size:.8rem;font-weight:700;color:var(--primary);margin-bottom:1rem;">Average Supervisor Grade per Team</div>
+          <div style="position:relative;height:200px;"><canvas id="chart-sup-teams"></canvas></div>
+        </div>
+        {% endif %}
 
         <div class="section-hdr">
           <h2>Quick Overview</h2>
@@ -142,12 +118,11 @@
         <div class="cards-grid">
 
           <div class="dash-card" onclick="showSection('teams', document.querySelector('[onclick*=teams]'))">
-            <div class="card-thumb" style="background:linear-gradient(135deg,#1e3a8a,#243D6B)">
-              👥
-              <span class="card-status-tag tag-active">{{ supervised|length }} Team{{ supervised|length|pluralize }}</span>
-            </div>
             <div class="card-body">
-              <div class="card-title">My Teams</div>
+              <div class="card-title" style="display:flex;align-items:center;justify-content:space-between;gap:.5rem;flex-wrap:wrap;">
+                My Teams
+                <span class="card-status-tag tag-active" style="position:static;">{{ supervised|length }} Team{{ supervised|length|pluralize }}</span>
+              </div>
               <div class="card-sub">{{ supervised|length }} supervised{% if user.can_review %} · {{ reviewed|length }} reviewing{% endif %}</div>
               <div class="card-meta"><span>{{ user.department|default:"Faculty" }}</span></div>
             </div>
@@ -155,12 +130,11 @@
 
           {% if pending_req %}
           <div class="dash-card" onclick="showSection('teams', document.querySelector('[onclick*=teams]'))">
-            <div class="card-thumb" style="background:linear-gradient(135deg,#78350f,#92400e)">
-              📬
-              <span class="card-status-tag tag-pending">{{ pending_req|length }} Pending</span>
-            </div>
             <div class="card-body">
-              <div class="card-title">Supervision Requests</div>
+              <div class="card-title" style="display:flex;align-items:center;justify-content:space-between;gap:.5rem;flex-wrap:wrap;">
+                Supervision Requests
+                <span class="card-status-tag tag-pending" style="position:static;">{{ pending_req|length }} Pending</span>
+              </div>
               <div class="card-sub">Teams awaiting your response</div>
               <div class="card-meta"><span>Review in Teams section</span></div>
             </div>
@@ -169,12 +143,11 @@
 
           {% if upcoming %}
           <div class="dash-card" onclick="showSection('meetings', document.querySelector('[onclick*=meetings]'))">
-            <div class="card-thumb" style="background:linear-gradient(135deg,#4c1d95,#1B2D52)">
-              📅
-              <span class="card-status-tag tag-active">{{ upcoming|length }} Upcoming</span>
-            </div>
             <div class="card-body">
-              <div class="card-title">Meetings</div>
+              <div class="card-title" style="display:flex;align-items:center;justify-content:space-between;gap:.5rem;flex-wrap:wrap;">
+                Meetings
+                <span class="card-status-tag tag-active" style="position:static;">{{ upcoming|length }} Upcoming</span>
+              </div>
               <div class="card-sub">Next: {{ upcoming.0.title }}</div>
               <div class="card-meta"><span>{{ upcoming.0.datetime|date:"M d, Y" }}</span></div>
             </div>
@@ -182,12 +155,11 @@
           {% endif %}
 
           <div class="dash-card" onclick="showSection('notifications', document.querySelector('[onclick*=notifications]'))">
-            <div class="card-thumb" style="background:linear-gradient(135deg,#7c2d12,#78350f)">
-              🔔
-              <span class="card-status-tag tag-pending">{{ unread_count }} New</span>
-            </div>
             <div class="card-body">
-              <div class="card-title">Notifications</div>
+              <div class="card-title" style="display:flex;align-items:center;justify-content:space-between;gap:.5rem;flex-wrap:wrap;">
+                Notifications
+                <span class="card-status-tag tag-pending" style="position:static;">{{ unread_count }} New</span>
+              </div>
               <div class="card-sub">{% if unread_count %}{{ unread_count }} unread{% else %}All caught up{% endif %}</div>
               <div class="card-meta">
                 {% if notifications %}<span>{{ notifications.0.created_at|timesince }} ago</span>{% endif %}
@@ -196,9 +168,10 @@
           </div>
 
         </div>
+
       </section>
 
-      
+
       <section class="dash-section" id="sec-teams">
 
         <div class="section-hdr">
@@ -210,10 +183,10 @@
           🔒 Phase 2 is active — supervisor assignments are locked. New supervision requests are not accepted.
         </div>
         {% elif pending_req %}
-        <div class="teams-group-label">📬 Pending Supervision Requests</div>
+        <div class="teams-group-label">Pending Supervision Requests</div>
         {% for req in pending_req %}
         <div class="team-row-card" style="border-color:rgba(245,158,11,.4)">
-          <div class="team-row-icon" style="background:linear-gradient(135deg,#d97706,#b45309)">📬</div>
+          <div class="team-row-icon" style="background:linear-gradient(135deg,#d97706,#b45309);font-size:.9rem;font-weight:800;color:#fff;">{{ req.team.name|first|upper }}</div>
           <div class="team-row-info">
             <div class="team-row-name">{{ req.team.name }}</div>
             <div class="team-row-sub" style="font-weight:600;">{{ req.title }}</div>
@@ -236,7 +209,7 @@
         {% endfor %}
         {% endif %}
 
-        <div class="teams-group-label">🎓 Teams I Supervise</div>
+        <div class="teams-group-label">Teams I Supervise</div>
 
         <style>
           .sup-team-row {
@@ -348,7 +321,7 @@
         {% with proj=item.project members=item.members milestones=item.milestones %}
 
         <div class="sup-team-row" id="sup-row-{{ proj.pk }}" onclick="toggleSupPanel({{ proj.pk }})">
-          <div class="team-row-icon" style="background:linear-gradient(135deg,#0F1E3A,#6B8CAE);flex-shrink:0;">🏷️</div>
+          <div class="team-row-icon" style="background:linear-gradient(135deg,#0F1E3A,#6B8CAE);flex-shrink:0;font-size:.9rem;font-weight:800;color:#fff;">{{ proj.team.name|first|upper }}</div>
           <div class="team-row-info" style="flex:1;">
             <div class="team-row-name">
               {{ proj.team.name }}
@@ -444,7 +417,7 @@
                 </div>
                 {% if m.due_date %}<span style="font-size:.7rem;color:#94a3b8;white-space:nowrap;flex-shrink:0;">📅 {{ m.due_date|date:"M d, Y" }}</span>{% endif %}
                 {% if sub %}
-                  <span style="font-size:.7rem;padding:2px 8px;border-radius:20px;background:rgba(59,130,246,.2);color:#60a5fa;font-weight:700;">📤 Submitted</span>
+                  <span style="font-size:.7rem;padding:2px 8px;border-radius:20px;background:rgba(59,130,246,.2);color:#60a5fa;font-weight:700;">📤 Submitted</span>{% if sub.is_late %}<span style="background:rgba(239,68,68,.12);color:#dc2626;border-radius:20px;padding:1px 7px;font-size:.65rem;font-weight:700;margin-left:2px;">LATE</span>{% endif %}
                   {% if sub.supervisor_grade is not None %}
                     <span style="font-size:.78rem;font-weight:700;color:#6B8CAE;white-space:nowrap;">My Grade: {{ sub.supervisor_grade|floatformat:1 }}</span>
                   {% endif %}
@@ -588,12 +561,12 @@
           }
         </script>
 
-        <div class="teams-group-label" style="margin-top:1.5rem;">📋 Teams I Review</div>
+        <div class="teams-group-label" style="margin-top:1.5rem;">Teams I Review</div>
 
         {% for item in reviewed_data %}
         {% with proj=item.project members=item.members milestones=item.milestones %}
         <div class="sup-team-row" id="rev-row-{{ proj.pk }}" onclick="toggleRevPanel({{ proj.pk }})">
-          <div class="team-row-icon" style="background:linear-gradient(135deg,#059669,#0284c7);flex-shrink:0;">📋</div>
+          <div class="team-row-icon" style="background:linear-gradient(135deg,#059669,#0284c7);flex-shrink:0;font-size:.9rem;font-weight:800;color:#fff;">{{ proj.team.name|first|upper }}</div>
           <div class="team-row-info" style="flex:1;">
             <div class="team-row-name">
               {{ proj.team.name }}
@@ -836,10 +809,14 @@
           <span style="font-size:.82rem;color:var(--text-muted);">{{ archive_data|length }} completed project{{ archive_data|length|pluralize }}</span>
         </div>
 
+        <div style="margin-bottom:1rem;">
+          <input type="text" id="arc-search-sup" class="form-input" placeholder="Search by project title, team, or supervisor..." oninput="filterSupArchive(this.value)" style="max-width:400px;">
+        </div>
+
         {% if archive_data %}
-        <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(290px,1fr));gap:16px;">
+        <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(290px,1fr));gap:16px;" id="arc-sup-grid">
           {% for item in archive_data %}
-          <div style="background:var(--bg-card);border:1px solid var(--border);border-radius:14px;overflow:hidden;transition:border-color .2s;" id="arc-{{ forloop.counter }}">
+          <div style="background:var(--bg-card);border:1px solid var(--border);border-radius:14px;overflow:hidden;transition:border-color .2s;" id="arc-{{ forloop.counter }}" data-arc-text="{{ item.project.title|lower }}{% if item.project.team %} {{ item.project.team.name|lower }}{% endif %}{% if item.project.supervisor %} {{ item.project.supervisor.full_name|default:item.project.supervisor.username|lower }}{% endif %}{% for m in item.members %} {{ m.user.full_name|default:m.user.username|lower }}{% endfor %}">
             <div style="background:linear-gradient(135deg,#1B2D52,#243D6B);padding:18px;display:flex;align-items:center;gap:12px;cursor:pointer;" onclick="toggleArc('{{ forloop.counter }}')">
               <div style="width:44px;height:44px;border-radius:10px;background:rgba(255,255,255,.15);display:grid;place-items:center;font-size:1.2rem;font-weight:700;color:white;flex-shrink:0;">{{ item.project.title|first|upper }}</div>
               <div style="flex:1;min-width:0;">
@@ -898,15 +875,254 @@
         {% endif %}
       </section>
 
+
+      <section class="dash-section" id="sec-profile">
+        <div class="section-hdr"><h2>My Profile</h2></div>
+        <div style="max-width:700px;">
+
+          <div class="settings-card" style="margin-bottom:1.25rem;">
+            <h3>Account Information</h3>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:.75rem 1.5rem;">
+              <div>
+                <div style="font-size:.68rem;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--text-muted);margin-bottom:.3rem;">Full Name</div>
+                <div style="font-size:.9rem;font-weight:600;">{{ user.full_name|default:"—" }}</div>
+              </div>
+              <div>
+                <div style="font-size:.68rem;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--text-muted);margin-bottom:.3rem;">Username</div>
+                <div style="font-size:.9rem;font-weight:600;">{{ user.username }}</div>
+              </div>
+              <div>
+                <div style="font-size:.68rem;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--text-muted);margin-bottom:.3rem;">Email</div>
+                <div style="font-size:.9rem;font-weight:600;">{{ user.email|default:"—" }}</div>
+              </div>
+              <div>
+                <div style="font-size:.68rem;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--text-muted);margin-bottom:.3rem;">Staff ID</div>
+                <div style="font-size:.9rem;font-weight:600;">{{ user.student_id|default:"—" }}</div>
+              </div>
+              <div>
+                <div style="font-size:.68rem;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--text-muted);margin-bottom:.3rem;">Department</div>
+                <div style="font-size:.9rem;font-weight:600;">{{ user.department|default:"—" }}</div>
+              </div>
+              <div>
+                <div style="font-size:.68rem;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--text-muted);margin-bottom:.3rem;">Gender</div>
+                <div style="font-size:.9rem;font-weight:600;">{{ user.get_gender_display|default:"—" }}</div>
+              </div>
+            </div>
+            <p style="font-size:.75rem;color:var(--text-muted);margin-top:.85rem;">To change your name, email, or other account details contact the administrator.</p>
+          </div>
+
+          <form method="post" action="{% url 'accounts:supervisor_profile' %}">
+            {% csrf_token %}
+            <input type="hidden" name="action" value="profile">
+            <div class="settings-card" style="margin-bottom:1rem;">
+              <h3>About Me</h3>
+              <div class="form-group">
+                <label>Bio</label>
+                <textarea name="bio" class="form-input" style="min-height:120px;" placeholder="Introduce yourself — your background, research interests, teaching style...">{{ user.bio }}</textarea>
+                <span style="font-size:.72rem;color:var(--text-muted);margin-top:.35rem;display:block;">This is what students will see when browsing supervisors.</span>
+              </div>
+              <div class="form-group">
+                <label>Areas of Expertise</label>
+                <textarea name="expertise" class="form-input" style="min-height:72px;" placeholder="e.g. Machine Learning, Computer Vision, Cybersecurity...">{{ user.expertise }}</textarea>
+              </div>
+              <div class="form-group" style="margin-bottom:0;">
+                <label>Office Hours / Contact Preference</label>
+                <input type="text" name="office_hours" class="form-input" value="{{ user.office_hours }}" placeholder="e.g. Sun–Tue 10am–12pm, or by appointment via email">
+              </div>
+            </div>
+            <div class="settings-card" style="margin-bottom:1rem;">
+              <h3>Previous Projects Supervised</h3>
+              <div class="form-group" style="margin-bottom:0;">
+                <label>Past Projects</label>
+                <textarea name="past_projects" class="form-input" style="min-height:140px;" placeholder="List previous projects — title, year, brief description. One per line.">{{ user.past_projects }}</textarea>
+                <span style="font-size:.72rem;color:var(--text-muted);margin-top:.35rem;display:block;">Students use this to understand your experience.</span>
+              </div>
+            </div>
+            <div style="display:flex;gap:.75rem;margin-bottom:1.5rem;">
+              <button type="submit" class="btn btn-primary btn-sm">Save Profile</button>
+            </div>
+          </form>
+
+          <form method="post" action="{% url 'accounts:supervisor_profile' %}">
+            {% csrf_token %}
+            <input type="hidden" name="action" value="password">
+            <div class="settings-card" style="margin-bottom:1rem;">
+              <h3>Change Password</h3>
+              <div class="form-group">
+                <label>Current Password</label>
+                <input type="password" name="current_password" class="form-input" required autocomplete="current-password">
+              </div>
+              <div class="form-group">
+                <label>New Password</label>
+                <div style="position:relative;">
+                  <input type="password" name="new_password" id="sup-new-pw" class="form-input" required autocomplete="new-password"
+                         oninput="supCheckPwStrength(this.value)" style="padding-right:40px;">
+                  <button type="button" onclick="supTogglePw('sup-new-pw','sup-eye1','sup-eye1off')"
+                          style="position:absolute;right:10px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;color:var(--text-muted);padding:0;line-height:1;">
+                    <svg id="sup-eye1" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+                    <svg id="sup-eye1off" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:none;"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/></svg>
+                  </button>
+                </div>
+                <div style="display:flex;gap:4px;margin-top:8px;">
+                  <div id="sup-pw-bar1" style="flex:1;height:4px;border-radius:2px;background:var(--border);transition:background .2s;"></div>
+                  <div id="sup-pw-bar2" style="flex:1;height:4px;border-radius:2px;background:var(--border);transition:background .2s;"></div>
+                  <div id="sup-pw-bar3" style="flex:1;height:4px;border-radius:2px;background:var(--border);transition:background .2s;"></div>
+                  <div id="sup-pw-bar4" style="flex:1;height:4px;border-radius:2px;background:var(--border);transition:background .2s;"></div>
+                </div>
+                <div style="margin-top:6px;display:flex;flex-direction:column;gap:3px;">
+                  <span id="sup-rule-len"     style="font-size:.72rem;color:var(--text-muted);">○ At least 8 characters</span>
+                  <span id="sup-rule-letter"  style="font-size:.72rem;color:var(--text-muted);">○ At least one letter</span>
+                  <span id="sup-rule-digit"   style="font-size:.72rem;color:var(--text-muted);">○ At least one number</span>
+                  <span id="sup-rule-special" style="font-size:.72rem;color:var(--text-muted);">○ At least one special character</span>
+                </div>
+              </div>
+              <div class="form-group" style="margin-bottom:0;">
+                <label>Confirm New Password</label>
+                <div style="position:relative;">
+                  <input type="password" name="confirm_password" id="sup-confirm-pw" class="form-input" required autocomplete="new-password"
+                         oninput="supCheckMatch()" style="padding-right:40px;">
+                  <button type="button" onclick="supTogglePw('sup-confirm-pw','sup-eye2','sup-eye2off')"
+                          style="position:absolute;right:10px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;color:var(--text-muted);padding:0;line-height:1;">
+                    <svg id="sup-eye2" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+                    <svg id="sup-eye2off" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:none;"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/></svg>
+                  </button>
+                </div>
+                <span id="sup-match-msg" style="font-size:.72rem;display:none;margin-top:4px;"></span>
+              </div>
+            </div>
+            <div style="margin-bottom:1rem;">
+              <button type="submit" class="btn btn-primary btn-sm">Change Password</button>
+            </div>
+          </form>
+
+        </div>
+      </section>
+
+
     </div>
   </div>
 </div>
 {% endblock %}
 
 {% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<script>
+(function() {
+  var _raw = {{ analytics_json|safe }};
+  var P = '#1B2D52', A = '#6B8CAE', G = '#10b981', O = '#f97316', R = '#ef4444', PU = '#6366f1';
+  var _sr = _raw.submission_rates, _gs = _raw.grading_status, _ta = _raw.team_averages;
+
+  var pendEl = document.getElementById('an-sup-pending');
+  if (pendEl) pendEl.textContent = _gs.needs_grade;
+
+  // Submission rate stacked bar
+  var srEl = document.getElementById('chart-sup-submissions');
+  if (srEl) {
+    new Chart(srEl, {
+      type: 'bar',
+      data: {
+        labels: _sr.labels,
+        datasets: [
+          { label: 'Submitted', data: _sr.submitted,     backgroundColor: 'rgba(99,102,241,.25)', borderColor: PU, borderWidth: 1.5, borderRadius: 4 },
+          { label: 'Pending',   data: _sr.not_submitted, backgroundColor: 'rgba(100,116,139,.12)', borderColor: 'rgba(100,116,139,.3)', borderWidth: 1.5, borderRadius: 4 },
+        ]
+      },
+      options: {
+        responsive: true, maintainAspectRatio: false,
+        scales: {
+          x: { stacked: true, grid: { display: false }, ticks: { color: '#6B7A99', font: { size: 11 } } },
+          y: { stacked: true, grid: { color: 'rgba(27,45,82,.06)' }, ticks: { color: '#6B7A99', font: { size: 11 }, stepSize: 1 } }
+        },
+        plugins: { legend: { position: 'bottom', labels: { color: '#6B7A99', font: { size: 11 }, padding: 12 } } }
+      }
+    });
+  }
+
+  // Grading status doughnut
+  var grEl = document.getElementById('chart-sup-grading');
+  if (grEl) {
+    var _total = _gs.needs_grade + _gs.up_to_date;
+    if (_total > 0) {
+      new Chart(grEl, {
+        type: 'doughnut',
+        data: {
+          labels: ['Needs Grading', 'Up to Date'],
+          datasets: [{ data: [_gs.needs_grade, _gs.up_to_date],
+                       backgroundColor: [O, G], borderWidth: 0, hoverOffset: 6 }]
+        },
+        options: {
+          responsive: true, maintainAspectRatio: false, cutout: '70%',
+          plugins: { legend: { position: 'bottom', labels: { color: '#6B7A99', font: { size: 11 }, padding: 12 } } }
+        }
+      });
+    }
+  }
+
+  // Team averages bar
+  var taEl = document.getElementById('chart-sup-teams');
+  if (taEl && _ta.labels.length > 0) {
+    new Chart(taEl, {
+      type: 'bar',
+      data: {
+        labels: _ta.labels,
+        datasets: [{
+          label: 'Avg Grade',
+          data: _ta.values,
+          backgroundColor: _ta.values.map(function(v) {
+            if (v === null) return 'rgba(100,116,139,.15)';
+            return v >= 80 ? 'rgba(16,185,129,.25)' : v >= 60 ? 'rgba(99,102,241,.25)' : 'rgba(239,68,68,.2)';
+          }),
+          borderColor: _ta.values.map(function(v) {
+            if (v === null) return 'rgba(100,116,139,.3)';
+            return v >= 80 ? G : v >= 60 ? PU : R;
+          }),
+          borderWidth: 1.5, borderRadius: 5,
+        }]
+      },
+      options: {
+        responsive: true, maintainAspectRatio: false,
+        scales: {
+          y: { min: 0, max: 100, grid: { color: 'rgba(27,45,82,.06)' }, ticks: { color: '#6B7A99', font: { size: 11 } } },
+          x: { grid: { display: false }, ticks: { color: '#6B7A99', font: { size: 11 } } }
+        },
+        plugins: {
+          legend: { display: false },
+          tooltip: { callbacks: { label: function(c) { return c.raw !== null ? 'Avg: ' + c.raw + ' / 100' : 'No grades yet'; } } }
+        }
+      }
+    });
+  }
+})();
+</script>
 <script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.15/index.global.min.js"></script>
 <script src="{% static 'js/meetings_calendar.js' %}"></script>
 <script>
+  var PW_COLORS_SUP = { 1:'#ef4444', 2:'#f97316', 3:'#eab308', 4:'#22c55e' };
+  function supCheckPwStrength(v) {
+    var len=v.length>=8, letter=/[A-Za-z]/.test(v), digit=/[0-9]/.test(v), special=/[^A-Za-z0-9]/.test(v);
+    document.getElementById('sup-rule-len').style.color     = len     ? '#4ade80' : 'var(--text-muted)';
+    document.getElementById('sup-rule-letter').style.color  = letter  ? '#4ade80' : 'var(--text-muted)';
+    document.getElementById('sup-rule-digit').style.color   = digit   ? '#4ade80' : 'var(--text-muted)';
+    document.getElementById('sup-rule-special').style.color = special ? '#4ade80' : 'var(--text-muted)';
+    var score=[len,letter,digit,special].filter(Boolean).length;
+    var color=PW_COLORS_SUP[score]||'var(--border)';
+    for(var i=1;i<=4;i++) document.getElementById('sup-pw-bar'+i).style.background=(i<=score)?color:'var(--border)';
+    supCheckMatch();
+  }
+  function supCheckMatch() {
+    var pw=document.getElementById('sup-new-pw').value, cpw=document.getElementById('sup-confirm-pw').value;
+    var msg=document.getElementById('sup-match-msg');
+    if(!cpw){msg.style.display='none';return;}
+    msg.style.display='block';
+    if(pw===cpw){msg.style.color='#4ade80';msg.textContent='✓ Passwords match';}
+    else{msg.style.color='#f87171';msg.textContent='✕ Passwords do not match';}
+  }
+  function supTogglePw(inputId, eyeOnId, eyeOffId) {
+    var input=document.getElementById(inputId), on=document.getElementById(eyeOnId), off=document.getElementById(eyeOffId);
+    if(input.type==='password'){input.type='text';on.style.display='none';off.style.display='inline';}
+    else{input.type='password';on.style.display='inline';off.style.display='none';}
+  }
+
   const sections = {
     dashboard:     'Dashboard',
     teams:         'My Teams',
@@ -914,6 +1130,7 @@
     meetings:      'Meetings',
     notifications: 'Notifications',
     archive:       'Archive',
+    profile:       'My Profile',
   };
 
   var _notifSectionMap = {
@@ -944,11 +1161,18 @@
     document.querySelectorAll('.notif-item.unread').forEach(function(el) {
       el.classList.remove('unread');
     });
-    // Best-effort backend sync
-    var csrf = (document.cookie.match(/csrftoken=([^;]+)/) || [])[1] || '';
+    // Sync to backend
+    var csrf = (document.querySelector('[name=csrfmiddlewaretoken]') || {}).value || '';
+    if (!csrf) {
+      var m = document.cookie.split(';');
+      for (var i = 0; i < m.length; i++) {
+        var c = m[i].trim();
+        if (c.indexOf('csrftoken=') === 0) { csrf = decodeURIComponent(c.slice(10)); break; }
+      }
+    }
     fetch('{% url "notifications:mark_all_read" %}', {
       method: 'POST',
-      headers: { 'X-CSRFToken': csrf },
+      headers: { 'X-CSRFToken': csrf, 'X-Requested-With': 'XMLHttpRequest' },
     }).catch(function() {});
   }
 
@@ -1024,6 +1248,13 @@
   function clampGrade(input) {
     var val = parseFloat(input.value);
     if (!isNaN(val)) input.value = Math.min(100, Math.max(0, val));
+  }
+
+  function filterSupArchive(q) {
+    q = q.toLowerCase().trim();
+    document.querySelectorAll('#arc-sup-grid [data-arc-text]').forEach(function(c) {
+      c.style.display = (!q || c.dataset.arcText.indexOf(q) !== -1) ? '' : 'none';
+    });
   }
 </script>
 {% endblock %}

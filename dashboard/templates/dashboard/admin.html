@@ -321,6 +321,27 @@
         <div class="val {% if pending_grades %}orange{% endif %}">{{ pending_grades }}</div><div class="lbl">Pending Grades</div><div class="arrow">→</div>
       </div>
     </div>
+
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem;margin-top:1.5rem;margin-bottom:1rem;">
+      <div style="background:#fff;border:1px solid var(--border);border-radius:var(--r);padding:1.5rem;box-shadow:0 2px 8px rgba(27,45,82,.06);">
+        <div style="font-size:.82rem;font-weight:700;color:var(--blue);margin-bottom:1rem;">Submission Rate per Milestone</div>
+        <div style="position:relative;height:220px;"><canvas id="chart-adm-submissions"></canvas></div>
+      </div>
+      <div style="background:#fff;border:1px solid var(--border);border-radius:var(--r);padding:1.5rem;box-shadow:0 2px 8px rgba(27,45,82,.06);">
+        <div style="font-size:.82rem;font-weight:700;color:var(--blue);margin-bottom:1rem;">Students by Department</div>
+        <div style="position:relative;height:220px;"><canvas id="chart-adm-dept"></canvas></div>
+      </div>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem;">
+      <div style="background:#fff;border:1px solid var(--border);border-radius:var(--r);padding:1.5rem;box-shadow:0 2px 8px rgba(27,45,82,.06);">
+        <div style="font-size:.82rem;font-weight:700;color:var(--blue);margin-bottom:1rem;">Grade Distribution (All Projects)</div>
+        <div style="position:relative;height:220px;"><canvas id="chart-adm-grades"></canvas></div>
+      </div>
+      <div style="background:#fff;border:1px solid var(--border);border-radius:var(--r);padding:1.5rem;box-shadow:0 2px 8px rgba(27,45,82,.06);">
+        <div style="font-size:.82rem;font-weight:700;color:var(--blue);margin-bottom:1rem;">Team Status Breakdown</div>
+        <div style="position:relative;height:200px;"><canvas id="chart-adm-teams"></canvas></div>
+      </div>
+    </div>
   </div>
 
   
@@ -1124,6 +1145,13 @@
               <input type="number" name="order" class="det-input" value="{{ m.order }}" min="1">
             </div>
           </div>
+          <div class="det-field" style="margin-top:14px;">
+            <label class="det-label">Late Submissions</label>
+            <label style="display:flex;align-items:center;gap:8px;cursor:pointer;margin-top:4px;">
+              <input type="checkbox" name="allow_late_submissions" {% if m.allow_late_submissions %}checked{% endif %} style="accent-color:var(--blue);width:16px;height:16px;">
+              <span style="font-size:.82rem;color:var(--muted);">Allow late submissions (marked as Late)</span>
+            </label>
+          </div>
           <div style="display:flex;gap:10px;margin-top:14px;">
             <button type="submit" class="btn btn-blue">Save Changes</button>
           </div>
@@ -1206,7 +1234,7 @@
                 <button type="submit" class="btn btn-ghost btn-sm" title="Save">💾</button>
               </form>
             </td>
-            <td><span class="badge b-green">Submitted</span></td>
+            <td><span class="badge b-green">Submitted</span>{% if s.is_late %}<span style="background:rgba(239,68,68,.12);color:#dc2626;border-radius:20px;padding:1px 7px;font-size:.65rem;font-weight:700;margin-left:4px;">LATE</span>{% endif %}</td>
             <td>
               <form method="post" action="{% url 'dashboard:admin_delete_submission' s.pk %}"
                     onsubmit="return confirm('Delete this submission? This cannot be undone.');">
@@ -1471,7 +1499,11 @@
       <button class="btn btn-blue" onclick="toggleArchiveAddForm()">＋ Add Old Project</button>
     </div>
 
-    
+    <div style="margin-bottom:1rem;">
+      <input type="text" id="arc-search-admin" class="det-input" placeholder="Search by project title, team, or supervisor..." oninput="filterAdminArchive(this.value)" style="max-width:420px;">
+    </div>
+
+
     <div id="archive-add-card" class="create-team-card" style="display:none;margin-bottom:20px;">
       <div class="create-team-title">
         <span>＋ Add Historical Project</span>
@@ -1524,6 +1556,13 @@
       </form>
     </div>
     <script>
+      function filterAdminArchive(q) {
+        q = q.toLowerCase().trim();
+        document.querySelectorAll('#panel-archive .card[data-arc-text]').forEach(function(c) {
+          c.style.display = (!q || c.dataset.arcText.indexOf(q) !== -1) ? '' : 'none';
+        });
+      }
+
       function toggleArchiveAddForm() {
         var card = document.getElementById('archive-add-card');
         card.style.display = card.style.display === 'none' ? 'block' : 'none';
@@ -1565,7 +1604,7 @@
     {% if archive_data %}
     {% for item in archive_data %}
     {% with proj=item.project members=item.members final_files=item.final_files links=item.links %}
-    <div class="card" style="margin-bottom:14px;overflow:visible;">
+    <div class="card" style="margin-bottom:14px;overflow:visible;" data-arc-text="{{ proj.title|lower }}{% if proj.team %} {{ proj.team.name|lower }}{% endif %}{% if proj.supervisor %} {{ proj.supervisor.full_name|default:proj.supervisor.username|lower }}{% endif %}{% for m in members %} {{ m.user.full_name|default:m.user.username|lower }}{% endfor %}">
 
       
       <div style="display:flex;align-items:center;gap:16px;padding:16px 20px;cursor:pointer;"
@@ -1849,12 +1888,39 @@
           • All pending supervision requests are declined<br>
           • Milestone submissions open immediately
         </div>
+        {% if pending_phase2 and phase2_warning %}
+        <div style="background:rgba(245,158,11,.08);border:1px solid rgba(245,158,11,.4);border-radius:12px;padding:20px 24px;margin-bottom:20px;">
+          <div style="font-size:.95rem;font-weight:700;color:#b45309;margin-bottom:10px;">Phase 2 Capacity Warning</div>
+          <div style="font-size:.85rem;color:#92400e;margin-bottom:14px;">
+            Activating Phase 2 would exceed configured limits:
+            <ul style="margin:8px 0 0 16px;line-height:1.8;">
+              {% if phase2_warning.sup_shortage > 0 %}
+              <li><strong>{{ phase2_warning.sup_shortage }} supervisor slot{{ phase2_warning.sup_shortage|pluralize }}</strong> short — {{ phase2_warning.unsupervised }} unsupervised project{{ phase2_warning.unsupervised|pluralize }}, only {{ phase2_warning.sup_capacity }} slot{{ phase2_warning.sup_capacity|pluralize }} available across {{ phase2_warning.num_supervisors }} supervisor{{ phase2_warning.num_supervisors|pluralize }}</li>
+              {% endif %}
+              {% if phase2_warning.rev_shortage > 0 %}
+              <li><strong>{{ phase2_warning.rev_shortage }} reviewer slot{{ phase2_warning.rev_shortage|pluralize }}</strong> short — {{ phase2_warning.rev_slots_needed }} reviewer slot{{ phase2_warning.rev_slots_needed|pluralize }} needed, only {{ phase2_warning.rev_capacity }} available across {{ phase2_warning.num_reviewers }} reviewer{{ phase2_warning.num_reviewers|pluralize }}</li>
+              {% endif %}
+            </ul>
+          </div>
+          <div style="display:flex;gap:10px;flex-wrap:wrap;">
+            <form method="post" action="{% url 'dashboard:admin_confirm_phase2' %}">
+              {% csrf_token %}
+              <button type="submit" class="btn btn-primary" style="background:#d97706;border-color:#d97706;">Proceed — Adjust Limits Automatically</button>
+            </form>
+            <form method="post" action="{% url 'dashboard:admin_cancel_phase2' %}">
+              {% csrf_token %}
+              <button type="submit" class="btn btn-outline" style="border-color:#ef4444;color:#ef4444;">Cancel — Add More Staff First</button>
+            </form>
+          </div>
+        </div>
+        {% else %}
         <form method="post" action="{% url 'dashboard:admin_switch_phase2' %}" onsubmit="return confirm('Switch to Phase 2? This will auto-group teamless students and assign supervisors. This cannot be undone in production.');">
           {% csrf_token %}
           <button type="submit" class="btn btn-blue" style="width:100%;justify-content:center;padding:10px;">
             Switch to Phase 2 →
           </button>
         </form>
+        {% endif %}
       </div>
 
       {% else %}
@@ -1894,7 +1960,109 @@
     </div>
   </div>
 
+
+
+
 </div>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<script>
+(function() {
+  var _raw = {{ analytics_json|safe }};
+  var P = '#1B2D52', A = '#6B8CAE', G = '#10b981', O = '#f97316', R = '#ef4444', PU = '#6366f1';
+  var _sr = _raw.submission_rates, _dd = _raw.dept_breakdown, _gd = _raw.grade_distribution, _ts = _raw.team_status;
+
+  // Submission stacked bar
+  var srEl = document.getElementById('chart-adm-submissions');
+  if (srEl) {
+    new Chart(srEl, {
+      type: 'bar',
+      data: {
+        labels: _sr.labels,
+        datasets: [
+          { label: 'Submitted', data: _sr.submitted, backgroundColor: 'rgba(99,102,241,.25)', borderColor: PU, borderWidth: 1.5, borderRadius: 4 },
+          { label: 'Not Submitted', data: _sr.missed, backgroundColor: 'rgba(239,68,68,.12)', borderColor: 'rgba(239,68,68,.35)', borderWidth: 1.5, borderRadius: 4 },
+        ]
+      },
+      options: {
+        responsive: true, maintainAspectRatio: false,
+        scales: {
+          x: { stacked: true, grid: { display: false }, ticks: { color: '#6B7A99', font: { size: 11 } } },
+          y: { stacked: true, grid: { color: 'rgba(27,45,82,.06)' }, ticks: { color: '#6B7A99', font: { size: 11 }, stepSize: 1 } }
+        },
+        plugins: { legend: { position: 'bottom', labels: { color: '#6B7A99', font: { size: 11 }, padding: 12 } } }
+      }
+    });
+  }
+
+  // Department doughnut
+  var ddEl = document.getElementById('chart-adm-dept');
+  var _deptColors = [P, A, G, O, R, PU, '#0ea5e9', '#8b5cf6', '#ec4899', '#14b8a6'];
+  if (ddEl && _dd.labels.length > 0) {
+    new Chart(ddEl, {
+      type: 'doughnut',
+      data: {
+        labels: _dd.labels,
+        datasets: [{ data: _dd.counts, backgroundColor: _deptColors.slice(0, _dd.labels.length), borderWidth: 0, hoverOffset: 6 }]
+      },
+      options: {
+        responsive: true, maintainAspectRatio: false, cutout: '60%',
+        plugins: { legend: { position: 'bottom', labels: { color: '#6B7A99', font: { size: 10 }, padding: 8 } } }
+      }
+    });
+  }
+
+  // Grade distribution bar
+  var gdEl = document.getElementById('chart-adm-grades');
+  if (gdEl) {
+    new Chart(gdEl, {
+      type: 'bar',
+      data: {
+        labels: _gd.labels,
+        datasets: [{
+          label: 'Projects',
+          data: _gd.counts,
+          backgroundColor: _gd.labels.map(function(l, i) {
+            return i >= 8 ? 'rgba(16,185,129,.3)' : i >= 6 ? 'rgba(99,102,241,.25)' : i >= 4 ? 'rgba(249,115,22,.2)' : 'rgba(239,68,68,.18)';
+          }),
+          borderColor: _gd.labels.map(function(l, i) {
+            return i >= 8 ? G : i >= 6 ? PU : i >= 4 ? O : R;
+          }),
+          borderWidth: 1.5, borderRadius: 4,
+        }]
+      },
+      options: {
+        responsive: true, maintainAspectRatio: false,
+        scales: {
+          y: { grid: { color: 'rgba(27,45,82,.06)' }, ticks: { color: '#6B7A99', font: { size: 11 }, stepSize: 1 }, beginAtZero: true },
+          x: { grid: { display: false }, ticks: { color: '#6B7A99', font: { size: 10 } } }
+        },
+        plugins: { legend: { display: false } }
+      }
+    });
+  }
+
+  // Team status doughnut
+  var tsEl = document.getElementById('chart-adm-teams');
+  if (tsEl) {
+    var _tsTotal = _ts.active + _ts.completed + _ts.dissolved;
+    if (_tsTotal > 0) {
+      new Chart(tsEl, {
+        type: 'doughnut',
+        data: {
+          labels: ['Active', 'Completed', 'Dissolved'],
+          datasets: [{ data: [_ts.active, _ts.completed, _ts.dissolved],
+                       backgroundColor: [PU, G, 'rgba(100,116,139,.35)'], borderWidth: 0, hoverOffset: 6 }]
+        },
+        options: {
+          responsive: true, maintainAspectRatio: false, cutout: '65%',
+          plugins: { legend: { position: 'bottom', labels: { color: '#6B7A99', font: { size: 11 }, padding: 12 } } }
+        }
+      });
+    }
+  }
+})();
+</script>
 
 <script>
 /* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
@@ -1909,7 +2077,7 @@ function showPanel(id, btn) {
 }
 function showPanelSection(panelId, sectionId) {
   const tabs  = document.querySelectorAll('.nav-tab');
-  const order = ['overview','users','teams_projects','milestones','submissions','grades','system'];
+  const order = ['overview','users','teams_projects','milestones','submissions','grades','archive','system','analytics'];
   const idx   = order.indexOf(panelId);
   showPanel(panelId, idx >= 0 ? tabs[idx] : null);
   setTimeout(function() {
@@ -2208,7 +2376,7 @@ window.addEventListener('DOMContentLoaded', function() {
 
   if (panelId) {
     const tabs  = document.querySelectorAll('.nav-tab');
-    const order = ['overview','users','teams_projects','milestones','submissions','grades','system'];
+    const order = ['overview','users','teams_projects','milestones','submissions','grades','archive','system','analytics'];
     const idx   = order.indexOf(panelId);
     showPanel(panelId, idx >= 0 ? tabs[idx] : null);
   }

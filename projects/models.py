@@ -3,9 +3,10 @@ from django.conf import settings
 from django.utils import timezone
 
 class SystemConfig(models.Model):
-    phase              = models.PositiveSmallIntegerField(default=1)
-    phase_switched_at  = models.DateTimeField(null=True, blank=True)
-    phase2_start_date  = models.DateField(null=True, blank=True)
+    phase                  = models.PositiveSmallIntegerField(default=1)
+    phase_switched_at      = models.DateTimeField(null=True, blank=True)
+    phase2_start_date      = models.DateField(null=True, blank=True)
+    pending_phase2_switch  = models.BooleanField(default=False)
 
     class Meta:
         verbose_name = 'System Configuration'

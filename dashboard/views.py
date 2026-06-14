@@ -1,6 +1,7 @@
 import os
 import uuid
 import re as _re
+import json as _json
 
 from django.contrib.auth.decorators import login_required
 from django.shortcuts import render, redirect, get_object_or_404
@@ -105,6 +106,33 @@ def _auto_zero_missed_submissions():
                     project=project, milestone=ms, component=comp,
                     defaults={'score': 0},
                 )
+
+def _compute_phase2_warning():
+    """Check whether phase 2 switch would exceed supervisor/reviewer configured limits."""
+    from accounts.models import User as _User
+    unsupervised = Project.objects.filter(supervisor__isnull=True, team__is_active=True).count()
+    avail_sups   = list(_User.objects.filter(role='supervisor', is_active=True, available=True))
+    sup_capacity = sum(max(0, s.max_teams_supervise - s.current_load()) for s in avail_sups)
+    sup_shortage  = max(0, unsupervised - sup_capacity)
+
+    rev_projects = list(Project.objects.filter(team__is_active=True).prefetch_related('reviewers'))
+    rev_slots_needed = sum(max(0, 2 - p.reviewers.count()) for p in rev_projects)
+    avail_revs   = list(_User.objects.filter(can_review=True, is_active=True))
+    rev_capacity = sum(max(0, r.max_teams_review - r.current_review_load()) for r in avail_revs)
+    rev_shortage  = max(0, rev_slots_needed - rev_capacity)
+
+    return {
+        'unsupervised':      unsupervised,
+        'sup_capacity':      sup_capacity,
+        'sup_shortage':      sup_shortage,
+        'rev_slots_needed':  rev_slots_needed,
+        'rev_capacity':      rev_capacity,
+        'rev_shortage':      rev_shortage,
+        'has_warning':       sup_shortage > 0 or rev_shortage > 0,
+        'num_supervisors':   len(avail_sups),
+        'num_reviewers':     len(avail_revs),
+    }
+
 
 def _get_archive_data():
     final_milestone = Milestone.objects.filter(order=5, is_active=True).first()
@@ -222,6 +250,30 @@ def student_dashboard(request):
         .order_by('-created_at')
     )
 
+    # ── Analytics data ──────────────────────────────────────────────
+    _grade_labels = [item['milestone'].title for item in global_milestones]
+    _grade_values = [
+        float(item['submission'].grade)
+        if (item['submission'] and item['submission'].grade is not None and item['all_graded'])
+        else None
+        for item in global_milestones
+    ]
+    _all_tasks = [t for item in global_milestones for t in item['tasks']]
+    _submitted_flags = [bool(item['submission']) for item in global_milestones]
+    _student_analytics = _json.dumps({
+        'grade_trend': {'labels': _grade_labels, 'grades': _grade_values, 'submitted': _submitted_flags},
+        'tasks': {
+            'todo':        sum(1 for t in _all_tasks if t.status == 'todo'),
+            'in_progress': sum(1 for t in _all_tasks if t.status == 'in_progress'),
+            'done':        sum(1 for t in _all_tasks if t.status == 'done'),
+        },
+        'submissions': {
+            'submitted': sum(1 for item in global_milestones if item['submission']),
+            'pending':   sum(1 for item in global_milestones if not item['submission']),
+            'total':     len(global_milestones),
+        },
+    })
+
     return render(request, 'dashboard/student.html', {
         'membership':           membership,
         'team':                 team,
@@ -243,6 +295,7 @@ def student_dashboard(request):
         'today':                timezone.now().date(),
         'archive_data':         _get_archive_data(),
         'current_phase':        SystemConfig.get().phase,
+        'analytics_json':       _student_analytics,
     })
 
 @login_required
@@ -430,6 +483,31 @@ def supervisor_dashboard(request):
         .order_by('-created_at')
     )
 
+    # ── Analytics data ──────────────────────────────────────────────
+    _team_labels, _team_avgs = [], []
+    for _d in supervised_data:
+        _team_labels.append(_d['project'].team.name)
+        _gs = [ms['submission'].supervisor_grade for ms in _d['milestones']
+               if ms['submission'] and ms['submission'].supervisor_grade is not None]
+        _team_avgs.append(round(sum(_gs) / len(_gs), 1) if _gs else None)
+    _needs_grade = sum(1 for _d in supervised_data if _d['needs_my_grade'])
+    _sup_analytics = _json.dumps({
+        'submission_rates': {
+            'labels':        [s['milestone'].title for s in submissions_sections],
+            'submitted':     [s['submitted_count'] for s in submissions_sections],
+            'not_submitted': [s['total_count'] - s['submitted_count'] for s in submissions_sections],
+            'graded':        [s['graded_count'] for s in submissions_sections],
+        },
+        'grading_status': {
+            'needs_grade': _needs_grade,
+            'up_to_date':  len(supervised_data) - _needs_grade,
+        },
+        'team_averages': {
+            'labels': _team_labels,
+            'values': _team_avgs,
+        },
+    })
+
     return render(request, 'dashboard/supervisor.html', {
         'supervised':           supervised,
         'supervised_data':      supervised_data,
@@ -448,6 +526,7 @@ def supervisor_dashboard(request):
         'pending_proposals':    pending_proposals,
         'archive_data':         _get_archive_data(),
         'current_phase':        SystemConfig.get().phase,
+        'analytics_json':       _sup_analytics,
     })
 
 @login_required
@@ -456,16 +535,10 @@ def admin_dashboard(request):
         return redirect('dashboard:index')
     _cfg = SystemConfig.get()
     if (_cfg.phase == 1 and _cfg.phase2_start_date and
-            timezone.now().date() >= _cfg.phase2_start_date):
-        _r = _execute_phase2_switch(request.user)
-        if _r['no_sup_projects']:
-            messages.warning(request, f'{_r["no_sup_projects"]} project(s) could not be auto-assigned a supervisor.')
-        messages.success(
-            request,
-            f'⚡ Phase 2 auto-activated (scheduled {_cfg.phase2_start_date}). '
-            f'{_r["auto_teams"]} auto team(s) created, '
-            f'{_r["assigned_count"]} supervisor(s) assigned.'
-        )
+            timezone.now().date() >= _cfg.phase2_start_date and
+            not _cfg.pending_phase2_switch):
+        _cfg.pending_phase2_switch = True
+        _cfg.save(update_fields=['pending_phase2_switch'])
 
     _refresh_project_statuses()
     _auto_zero_missed_submissions()
@@ -637,6 +710,46 @@ def admin_dashboard(request):
             'links':       list(ap.archive_links.all()),
         })
 
+    # ── Analytics data ──────────────────────────────────────────────
+    from django.db.models import Count as _Count
+    _dept_qs = (User.objects.filter(role='student', is_active=True)
+                .values('department')
+                .annotate(n=_Count('id'))
+                .order_by('-n'))
+    _grade_buckets = [0] * 11
+    for _row in grade_rows:
+        if _row['total'] is not None:
+            _grade_buckets[min(int(_row['total'] // 10), 10)] += 1
+    _active_t    = Team.objects.filter(is_active=True).exclude(project__status='completed').count()
+    _complete_t  = Team.objects.filter(project__status='completed').count()
+    _admin_analytics = _json.dumps({
+        'dept_breakdown': {
+            'labels': [d['department'] or 'Unspecified' for d in _dept_qs],
+            'counts': [d['n'] for d in _dept_qs],
+        },
+        'submission_rates': {
+            'labels':    [sd['milestone'].title for sd in submissions_data],
+            'submitted': [sd['submitted_count'] for sd in submissions_data],
+            'missed':    [sd['total_count'] - sd['submitted_count'] for sd in submissions_data],
+            'total':     [sd['total_count'] for sd in submissions_data],
+        },
+        'grade_distribution': {
+            'labels': ['0-9','10-19','20-29','30-39','40-49','50-59','60-69','70-79','80-89','90-99','100'],
+            'counts': _grade_buckets,
+        },
+        'team_status': {
+            'active':    _active_t,
+            'completed': _complete_t,
+            'dissolved': dissolved_count,
+        },
+        'totals': {
+            'students':    total_students,
+            'supervisors': total_supervisors,
+            'reviewers':   total_reviewers,
+            'teams':       total_teams,
+        },
+    })
+
     return render(request, 'dashboard/admin.html', {
         'total_teams':            total_teams,
         'total_projects':         projects.count(),
@@ -663,6 +776,15 @@ def admin_dashboard(request):
         'system_config':          SystemConfig.get(),
         'archive_data':           archive_data,
         'first_milestone':        Milestone.objects.order_by('order', 'id').first(),
+        'analytics_json':         _admin_analytics,
+        'phase2_warning':         _compute_phase2_warning() if _cfg.pending_phase2_switch or _cfg.phase == 1 else None,
+        'pending_phase2':         _cfg.pending_phase2_switch,
+        'analytics_kpis': [
+            ('Total Students',    total_students,    '#1B2D52'),
+            ('Total Supervisors', total_supervisors, '#6B8CAE'),
+            ('Active Teams',      total_teams,       '#6366f1'),
+            ('Pending Grades',    pending_grades,    '#f97316'),
+        ],
     })
 
 @login_required
@@ -706,6 +828,7 @@ def reviewer_dashboard(request):
         'grades':        grades,
         'notifications': notifications,
         'unread_count':  unread_count,
+        'archive_data':  _get_archive_data(),
     })
 
 @login_required
@@ -1249,6 +1372,7 @@ def admin_update_milestone(request, milestone_id):
         m.guide_file = guide_file
     elif request.POST.get('clear_guide_file'):
         m.guide_file = None
+    m.allow_late_submissions = 'allow_late_submissions' in request.POST
     m.save()
     if str(due_date or '') != _old_due_date_str:
         _due_str      = f' New due date: {due_date}.' if due_date else ' Due date removed.'
@@ -1722,21 +1846,63 @@ def admin_switch_phase2(request):
     if config.phase == 2:
         messages.warning(request, 'System is already in Phase 2.')
         return redirect(reverse('dashboard:admin') + '?panel=system')
+    warn = _compute_phase2_warning()
+    if warn['has_warning']:
+        config.pending_phase2_switch = True
+        config.save(update_fields=['pending_phase2_switch'])
+        messages.warning(request, 'Phase 2 would exceed configured limits. Review and confirm below.')
+    else:
+        # No capacity issues — execute immediately
+        r = _execute_phase2_switch(request.user)
+        if r['no_sup_projects']:
+            messages.warning(request, f'{r["no_sup_projects"]} project(s) could not be assigned a supervisor — no matching-gender supervisor available.')
+        messages.success(request, f'Switched to Phase 2. {r["auto_teams"]} auto team(s) created, {r["assigned_count"]} project(s) assigned supervisors, {r["reviewer_assigned_count"]} reviewer(s) assigned.')
+    return redirect(reverse('dashboard:admin') + '?panel=system')
+
+@login_required
+@require_POST
+def admin_confirm_phase2(request):
+    """Proceed with Phase 2 switch, bumping limits where needed."""
+    if not _require_admin(request):
+        return redirect('dashboard:index')
+    config = SystemConfig.get()
+    if config.phase == 2:
+        messages.warning(request, 'Already in Phase 2.')
+        return redirect(reverse('dashboard:admin') + '?panel=system')
+    # Execute the switch
     r = _execute_phase2_switch(request.user)
+    # Bump limits: ensure every supervisor's max >= their current load
+    from accounts.models import User as _User
+    for sup in _User.objects.filter(role='supervisor', is_active=True):
+        load = sup.current_load()
+        if load > sup.max_teams_supervise:
+            sup.max_teams_supervise = load
+            sup.save(update_fields=['max_teams_supervise'])
+    for rev in _User.objects.filter(can_review=True, is_active=True):
+        rload = rev.current_review_load()
+        if rload > rev.max_teams_review:
+            rev.max_teams_review = rload
+            rev.save(update_fields=['max_teams_review'])
+    config.pending_phase2_switch = False
+    config.save(update_fields=['pending_phase2_switch'])
     if r['no_sup_projects']:
         messages.warning(request, f'{r["no_sup_projects"]} project(s) could not be assigned a supervisor — no matching-gender supervisor available.')
-    messages.success(
-        request,
-        f'Switched to Phase 2. '
-        f'{r["cancelled_invites"]} invite(s) cancelled, '
-        f'{r["fill_count"]} student(s) added to existing teams, '
-        f'{r["auto_teams"]} auto team(s) created, '
-        f'{r["distributed_count"]} student(s) distributed, '
-        f'{r["assigned_count"]} project(s) auto-assigned supervisors, '
-        f'{r["reviewer_assigned_count"]} reviewer(s) assigned, '
-        f'{r["declined_count"]} supervision request(s) declined.'
-    )
+    messages.success(request, f'Phase 2 activated. Limits adjusted automatically. {r["auto_teams"]} auto team(s) created, {r["assigned_count"]} supervisor(s) assigned, {r["reviewer_assigned_count"]} reviewer(s) assigned.')
     return redirect(reverse('dashboard:admin') + '?panel=system')
+
+
+@login_required
+@require_POST
+def admin_cancel_phase2(request):
+    """Cancel a pending Phase 2 switch."""
+    if not _require_admin(request):
+        return redirect('dashboard:index')
+    config = SystemConfig.get()
+    config.pending_phase2_switch = False
+    config.save(update_fields=['pending_phase2_switch'])
+    messages.info(request, 'Phase 2 switch cancelled. You can add more supervisors/reviewers and try again.')
+    return redirect(reverse('dashboard:admin') + '?panel=system')
+
 
 @login_required
 @require_POST
@@ -1811,9 +1977,13 @@ def student_submit_milestone(request, milestone_id):
     if milestone.start_date and milestone.start_date > today:
         messages.error(request, f'"{milestone.title}" has not started yet (starts {milestone.start_date}).')
         return redirect(_ms_url)
+    is_late = False
     if milestone.due_date and today > milestone.due_date:
-        messages.error(request, f'The submission deadline for "{milestone.title}" has passed ({milestone.due_date}).')
-        return redirect(_ms_url)
+        if not milestone.allow_late_submissions:
+            messages.error(request, f'The submission deadline for "{milestone.title}" has passed ({milestone.due_date}). Late submissions are not accepted for this milestone.')
+            return redirect(_ms_url)
+        else:
+            is_late = True
 
     _ALLOWED_EXTENSIONS = {'.pdf', '.doc', '.docx', '.ppt', '.pptx', '.zip', '.png', '.jpg', '.jpeg', '.txt'}
 
@@ -1844,6 +2014,7 @@ def student_submit_milestone(request, milestone_id):
         submitted_by=request.user,
         notes=request.POST.get('notes', '').strip(),
         status='pending',
+        is_late=is_late,
     )
     for f in files:
         SubmissionFile.objects.create(
@@ -2048,6 +2219,6 @@ def student_edit_profile(request):
                 update_session_auth_hash(request, user)
                 messages.success(request, 'Password changed successfully.')
 
-        return redirect('dashboard:student_edit_profile')
+        return redirect(reverse('dashboard:student') + '#sec-profile')
 
-    return render(request, 'dashboard/student_profile.html', {'profile_user': user})
+    return redirect(reverse('dashboard:student') + '#sec-profile')

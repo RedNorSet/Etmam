@@ -14,7 +14,8 @@ class Milestone(models.Model):
     has_split           = models.BooleanField(default=False, help_text='Divide this milestone into Report + Presentation grades')
     report_weight       = models.PositiveIntegerField(default=50, help_text='% of this milestone allocated to Report')
     presentation_weight = models.PositiveIntegerField(default=50, help_text='% of this milestone allocated to Presentation')
-    guide_file          = models.FileField(upload_to='milestone_guides/', blank=True, null=True)
+    guide_file              = models.FileField(upload_to='milestone_guides/', blank=True, null=True)
+    allow_late_submissions  = models.BooleanField(default=False)
     created_by          = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL,
                                             null=True, blank=True, related_name='created_milestones')
     created_at          = models.DateTimeField(auto_now_add=True)
