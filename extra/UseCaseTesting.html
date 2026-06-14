@@ -1,0 +1,1073 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>GPMS — Use Case Testing Sheet</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'Segoe UI', Arial, sans-serif; background: #f0f2f5; color: #1a1a2e; }
+
+  .cover {
+    background: linear-gradient(135deg, #1B2D52 0%, #2d4a8a 100%);
+    color: #fff;
+    padding: 60px 40px;
+    text-align: center;
+  }
+  .cover h1 { font-size: 2.4rem; font-weight: 800; letter-spacing: 1px; }
+  .cover p  { font-size: 1rem; margin-top: 10px; opacity: .8; }
+  .cover .meta { margin-top: 30px; display: flex; justify-content: center; gap: 40px; flex-wrap: wrap; }
+  .cover .meta-item { background: rgba(255,255,255,.12); border-radius: 10px; padding: 12px 24px; font-size: .9rem; }
+  .cover .meta-item span { display: block; font-size: 1.4rem; font-weight: 700; margin-top: 4px; }
+
+  .legend {
+    display: flex; gap: 20px; flex-wrap: wrap;
+    background: #fff; padding: 16px 32px; border-bottom: 1px solid #e2e8f0;
+    align-items: center; font-size: .82rem; color: #475569;
+  }
+  .legend strong { color: #1B2D52; margin-right: 6px; }
+  .badge { display: inline-block; border-radius: 4px; padding: 2px 8px; font-size: .75rem; font-weight: 700; }
+  .badge-p1  { background:#dbeafe; color:#1e40af; }
+  .badge-p2  { background:#dcfce7; color:#166534; }
+  .badge-cri { background:#fee2e2; color:#991b1b; }
+
+  .tester-section { margin: 28px auto; max-width: 1200px; padding: 0 16px; }
+
+  .tester-header {
+    display: flex; align-items: center; gap: 16px;
+    padding: 18px 24px; border-radius: 12px 12px 0 0;
+    color: #fff; font-weight: 700; font-size: 1.1rem;
+  }
+  .tester-avatar {
+    width: 44px; height: 44px; border-radius: 50%;
+    background: rgba(255,255,255,.25);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 1.3rem; font-weight: 900; flex-shrink: 0;
+  }
+  .tester-info { flex: 1; }
+  .tester-info small { font-weight: 400; opacity: .85; font-size: .82rem; display: block; margin-top: 2px; }
+  .tester-count { background: rgba(255,255,255,.2); border-radius: 20px; padding: 4px 14px; font-size: .85rem; }
+
+  .t1 .tester-header { background: #1B2D52; }
+  .t2 .tester-header { background: #0369a1; }
+  .t3 .tester-header { background: #7c3aed; }
+  .t4 .tester-header { background: #065f46; }
+  .t5 .tester-header { background: #9a3412; }
+
+  .cases-table {
+    width: 100%; border-collapse: collapse;
+    background: #fff;
+    border-radius: 0 0 12px 12px;
+    overflow: hidden;
+    box-shadow: 0 2px 12px rgba(27,45,82,.08);
+  }
+  .cases-table th {
+    background: #f8fafc; font-size: .72rem; font-weight: 700;
+    text-transform: uppercase; letter-spacing: .5px;
+    color: #64748b; padding: 10px 14px; text-align: left;
+    border-bottom: 2px solid #e2e8f0;
+  }
+  .cases-table td { padding: 12px 14px; vertical-align: top; font-size: .84rem; border-bottom: 1px solid #f1f5f9; }
+  .cases-table tr:last-child td { border-bottom: none; }
+  .cases-table tr:hover td { background: #fafbff; }
+
+  .col-id    { width: 52px; text-align: center; color: #94a3b8; font-size: .75rem; font-weight: 700; }
+  .col-title { width: 190px; font-weight: 600; color: #1e293b; }
+  .col-steps { width: 36%; color: #374151; line-height: 1.6; }
+  .col-steps ol { padding-left: 18px; }
+  .col-steps ol li { margin-bottom: 3px; }
+  .col-expect { width: 22%; color: #374151; font-size: .8rem; line-height: 1.5; }
+  .col-check  { width: 60px; text-align: center; }
+  .col-notes  { width: 18%; }
+
+  input[type="checkbox"] { width: 18px; height: 18px; cursor: pointer; accent-color: #1B2D52; }
+  textarea {
+    width: 100%; min-height: 56px; border: 1px solid #e2e8f0;
+    border-radius: 6px; padding: 6px 8px; font-size: .78rem;
+    font-family: inherit; resize: vertical; color: #374151;
+    background: #f8fafc;
+  }
+  textarea:focus { outline: none; border-color: #6366f1; background: #fff; }
+
+  .phase-tag { font-size: .65rem; font-weight: 700; border-radius: 4px; padding: 2px 6px; display: inline-block; margin-left: 4px; vertical-align: middle; }
+  .tag-p1  { background:#dbeafe; color:#1e40af; }
+  .tag-p2  { background:#dcfce7; color:#166534; }
+  .tag-cri { background:#fee2e2; color:#991b1b; }
+  .tag-sec { background:#fef3c7; color:#92400e; }
+
+  .group-row td { background: #f1f5f9; font-weight: 700; font-size: .75rem; text-transform: uppercase;
+    letter-spacing: .4px; color: #64748b; padding: 8px 14px; }
+
+  @media print {
+    body { background: #fff; }
+    .tester-section { max-width: 100%; page-break-inside: avoid; }
+    .tester-section { page-break-before: always; }
+    .tester-section:first-child { page-break-before: auto; }
+    textarea { background: #fff; border: 1px solid #ccc; }
+  }
+</style>
+</head>
+<body>
+
+<!-- ═══════════════════════════════ COVER ═══════════════════════════════ -->
+<div class="cover">
+  <h1>GPMS — Use Case Testing Sheet</h1>
+  <p>Graduation Project Management System · Full Functional Test</p>
+  <div class="meta">
+    <div class="meta-item">Testing Team<span>5 Testers</span></div>
+    <div class="meta-item">Total Cases<span>60</span></div>
+    <div class="meta-item">Cases per Tester<span>12</span></div>
+    <div class="meta-item">Version<span>v1.2</span></div>
+  </div>
+</div>
+
+<div class="legend">
+  <div><strong>Tags:</strong></div>
+  <div><span class="badge badge-p1">Phase 1</span> Team formation phase</div>
+  <div><span class="badge badge-p2">Phase 2</span> Active project/submission phase</div>
+  <div><span class="badge badge-cri">Critical</span> Core feature — must pass</div>
+</div>
+
+
+<!-- ═══════════════════════════════════════════════════════════════════════
+     TESTER 1 — Authentication & Student Basic Flow
+═══════════════════════════════════════════════════════════════════════════ -->
+<div class="tester-section t1">
+  <div class="tester-header">
+    <div class="tester-avatar">1</div>
+    <div class="tester-info">
+      Tester 1 — Authentication &amp; Student Dashboard
+      <small>Login system · session management · student overview · notifications</small>
+    </div>
+    <div class="tester-count">12 Cases</div>
+  </div>
+  <table class="cases-table">
+    <thead>
+      <tr>
+        <th class="col-id">#</th>
+        <th class="col-title">Use Case</th>
+        <th class="col-steps">Steps to Perform</th>
+        <th class="col-expect">Expected Result</th>
+        <th class="col-check">✓ Done</th>
+        <th class="col-notes">Notes / What Happened</th>
+      </tr>
+    </thead>
+    <tbody>
+
+      <tr><td colspan="6" class="group-row">Authentication</td></tr>
+
+      <tr>
+        <td class="col-id">1.1</td>
+        <td class="col-title">Successful Login <span class="phase-tag tag-cri">Critical</span></td>
+        <td class="col-steps"><ol>
+          <li>Go to <code>/accounts/login/</code></li>
+          <li>Enter a valid username and password</li>
+          <li>Click "Sign In"</li>
+        </ol></td>
+        <td class="col-expect">User is redirected to their role's dashboard. No error shown.</td>
+        <td class="col-check"><input type="checkbox"></td>
+        <td class="col-notes"><textarea placeholder="Write what happened..."></textarea></td>
+      </tr>
+
+      <tr>
+        <td class="col-id">1.2</td>
+        <td class="col-title">Wrong Password</td>
+        <td class="col-steps"><ol>
+          <li>Go to login page</li>
+          <li>Enter a valid username but wrong password</li>
+          <li>Click "Sign In"</li>
+        </ol></td>
+        <td class="col-expect">Error message shown. User stays on login page. Failure is counted.</td>
+        <td class="col-check"><input type="checkbox"></td>
+        <td class="col-notes"><textarea placeholder="Write what happened..."></textarea></td>
+      </tr>
+
+      <tr>
+        <td class="col-id">1.3</td>
+        <td class="col-title">Account Lockout <span class="phase-tag tag-sec">Security</span></td>
+        <td class="col-steps"><ol>
+          <li>Enter wrong password 5 times in a row for the same user</li>
+          <li>Try to login with the correct password</li>
+        </ol></td>
+        <td class="col-expect">Account is locked after 5 failures. Even correct password is rejected with a lockout message.</td>
+        <td class="col-check"><input type="checkbox"></td>
+        <td class="col-notes"><textarea placeholder="Write what happened..."></textarea></td>
+      </tr>
+
+      <tr>
+        <td class="col-id">1.4</td>
+        <td class="col-title">Session Timeout <span class="phase-tag tag-sec">Security</span></td>
+        <td class="col-steps"><ol>
+          <li>Log in as any user</li>
+          <li>Leave the browser idle for 15 minutes without any action</li>
+          <li>Try to navigate to any page</li>
+        </ol></td>
+        <td class="col-expect">User is redirected to the login page (session expired after 15 min of inactivity).</td>
+        <td class="col-check"><input type="checkbox"></td>
+        <td class="col-notes"><textarea placeholder="Write what happened..."></textarea></td>
+      </tr>
+
+      <tr>
+        <td class="col-id">1.5</td>
+        <td class="col-title">Role-Based Redirect</td>
+        <td class="col-steps"><ol>
+          <li>Log in as a student → note URL</li>
+          <li>Log out and log in as a supervisor → note URL</li>
+          <li>Log out and log in as an administrator → note URL</li>
+        </ol></td>
+        <td class="col-expect">Student → <code>/dashboard/student/</code>, Supervisor → <code>/dashboard/supervisor/</code>, Admin → <code>/dashboard/admin/</code></td>
+        <td class="col-check"><input type="checkbox"></td>
+        <td class="col-notes"><textarea placeholder="Write what happened..."></textarea></td>
+      </tr>
+
+      <tr>
+        <td class="col-id">1.6</td>
+        <td class="col-title">Access Restriction <span class="phase-tag tag-sec">Security</span></td>
+        <td class="col-steps"><ol>
+          <li>While logged in as a student, manually navigate to <code>/dashboard/admin/</code></li>
+          <li>Also try <code>/dashboard/supervisor/</code></li>
+        </ol></td>
+        <td class="col-expect">Student is redirected away — cannot access admin or supervisor pages.</td>
+        <td class="col-check"><input type="checkbox"></td>
+        <td class="col-notes"><textarea placeholder="Write what happened..."></textarea></td>
+      </tr>
+
+      <tr>
+        <td class="col-id">1.7</td>
+        <td class="col-title">Logout</td>
+        <td class="col-steps"><ol>
+          <li>Log in as any user</li>
+          <li>Click the logout button</li>
+          <li>Try pressing browser Back button</li>
+        </ol></td>
+        <td class="col-expect">User is logged out and redirected to login. Back button does not restore the session.</td>
+        <td class="col-check"><input type="checkbox"></td>
+        <td class="col-notes"><textarea placeholder="Write what happened..."></textarea></td>
+      </tr>
+
+      <tr><td colspan="6" class="group-row">Student Dashboard</td></tr>
+
+      <tr>
+        <td class="col-id">1.8</td>
+        <td class="col-title">Dashboard Overview (No Team) <span class="phase-tag tag-p1">Phase 1</span></td>
+        <td class="col-steps"><ol>
+          <li>Log in as a student who is NOT in any team</li>
+          <li>View the student dashboard</li>
+        </ol></td>
+        <td class="col-expect">Dashboard shows a "no team" state. Analytics charts are hidden. Supervisor list is visible.</td>
+        <td class="col-check"><input type="checkbox"></td>
+        <td class="col-notes"><textarea placeholder="Write what happened..."></textarea></td>
+      </tr>
+
+      <tr>
+        <td class="col-id">1.9</td>
+        <td class="col-title">Dashboard Overview (With Team) <span class="phase-tag tag-p2">Phase 2</span></td>
+        <td class="col-steps"><ol>
+          <li>Log in as a student who IS in a team with a project</li>
+          <li>View the student dashboard</li>
+        </ol></td>
+        <td class="col-expect">Milestone Completion chart, Task Completion chart, and Milestone Timeline are all visible and correct.</td>
+        <td class="col-check"><input type="checkbox"></td>
+        <td class="col-notes"><textarea placeholder="Write what happened..."></textarea></td>
+      </tr>
+
+      <tr>
+        <td class="col-id">1.10</td>
+        <td class="col-title">Milestone Completion Chart</td>
+        <td class="col-steps"><ol>
+          <li>Log in as a student with a project that has at least 1 submission</li>
+          <li>Check the "Milestone Completion" doughnut chart</li>
+          <li>Count submitted milestones manually and verify</li>
+        </ol></td>
+        <td class="col-expect">Chart center shows "X / Y submitted" matching the actual submission count. Percentage is accurate.</td>
+        <td class="col-check"><input type="checkbox"></td>
+        <td class="col-notes"><textarea placeholder="Write what happened..."></textarea></td>
+      </tr>
+
+      <tr>
+        <td class="col-id">1.11</td>
+        <td class="col-title">Milestone Timeline — Full Names</td>
+        <td class="col-steps"><ol>
+          <li>Log in as a student with a project</li>
+          <li>Scroll to the "Milestone Timeline" section</li>
+          <li>Check if all milestone names are fully visible</li>
+        </ol></td>
+        <td class="col-expect">All milestone names shown in full — no "Project Prop..." truncation. Text wraps cleanly.</td>
+        <td class="col-check"><input type="checkbox"></td>
+        <td class="col-notes"><textarea placeholder="Write what happened..."></textarea></td>
+      </tr>
+
+      <tr>
+        <td class="col-id">1.12</td>
+        <td class="col-title">Notification Bell</td>
+        <td class="col-steps"><ol>
+          <li>Log in as a student with unread notifications</li>
+          <li>Check the notification count badge</li>
+          <li>Click a notification to mark it read</li>
+          <li>Refresh and check the count again</li>
+        </ol></td>
+        <td class="col-expect">Badge shows correct unread count. After clicking, the notification is marked read and count decreases.</td>
+        <td class="col-check"><input type="checkbox"></td>
+        <td class="col-notes"><textarea placeholder="Write what happened..."></textarea></td>
+      </tr>
+
+    </tbody>
+  </table>
+</div>
+
+
+<!-- ═══════════════════════════════════════════════════════════════════════
+     TESTER 2 — Team Formation & Management
+═══════════════════════════════════════════════════════════════════════════ -->
+<div class="tester-section t2">
+  <div class="tester-header">
+    <div class="tester-avatar">2</div>
+    <div class="tester-info">
+      Tester 2 — Team Formation &amp; Management
+      <small>Creating teams · invitations · leader management · supervision requests</small>
+    </div>
+    <div class="tester-count">12 Cases</div>
+  </div>
+  <table class="cases-table">
+    <thead>
+      <tr>
+        <th class="col-id">#</th>
+        <th class="col-title">Use Case</th>
+        <th class="col-steps">Steps to Perform</th>
+        <th class="col-expect">Expected Result</th>
+        <th class="col-check">✓ Done</th>
+        <th class="col-notes">Notes / What Happened</th>
+      </tr>
+    </thead>
+    <tbody>
+
+      <tr><td colspan="6" class="group-row">Team Creation</td></tr>
+
+      <tr>
+        <td class="col-id">2.1</td>
+        <td class="col-title">Create Team (Student) <span class="phase-tag tag-p1">Phase 1</span> <span class="phase-tag tag-cri">Critical</span></td>
+        <td class="col-steps"><ol>
+          <li>Log in as a student not in any team</li>
+          <li>Go to the "Team" section on the student dashboard</li>
+          <li>Create a new team with a name</li>
+        </ol></td>
+        <td class="col-expect">Team is created. Student becomes the team leader. Team appears in their dashboard.</td>
+        <td class="col-check"><input type="checkbox"></td>
+        <td class="col-notes"><textarea placeholder="Write what happened..."></textarea></td>
+      </tr>
+
+      <tr>
+        <td class="col-id">2.2</td>
+        <td class="col-title">Invite Team Member <span class="phase-tag tag-p1">Phase 1</span></td>
+        <td class="col-steps"><ol>
+          <li>As team leader, go to the team section</li>
+          <li>Search for another student (same department)</li>
+          <li>Send an invitation</li>
+        </ol></td>
+        <td class="col-expect">Invitation is sent. The invited student receives a notification. Invite shows as "pending".</td>
+        <td class="col-check"><input type="checkbox"></td>
+        <td class="col-notes"><textarea placeholder="Write what happened..."></textarea></td>
+      </tr>
+
+      <tr>
+        <td class="col-id">2.3</td>
+        <td class="col-title">Accept Team Invitation <span class="phase-tag tag-p1">Phase 1</span></td>
+        <td class="col-steps"><ol>
+          <li>Log in as the invited student</li>
+          <li>Go to the pending invitation on the dashboard</li>
+          <li>Accept the invite</li>
+        </ol></td>
+        <td class="col-expect">Student joins the team as a member. Both students can see each other in the team section.</td>
+        <td class="col-check"><input type="checkbox"></td>
+        <td class="col-notes"><textarea placeholder="Write what happened..."></textarea></td>
+      </tr>
+
+      <tr>
+        <td class="col-id">2.4</td>
+        <td class="col-title">Decline Team Invitation</td>
+        <td class="col-steps"><ol>
+          <li>As a student with a pending invite, decline it</li>
+        </ol></td>
+        <td class="col-expect">Student does not join the team. Team leader can still invite others.</td>
+        <td class="col-check"><input type="checkbox"></td>
+        <td class="col-notes"><textarea placeholder="Write what happened..."></textarea></td>
+      </tr>
+
+      <tr>
+        <td class="col-id">2.5</td>
+        <td class="col-title">Cross-Department Invite Block <span class="phase-tag tag-sec">Security</span></td>
+        <td class="col-steps"><ol>
+          <li>As team leader, try to invite a student from a different department</li>
+        </ol></td>
+        <td class="col-expect">Invitation is blocked with an error about department mismatch. Student is not invited.</td>
+        <td class="col-check"><input type="checkbox"></td>
+        <td class="col-notes"><textarea placeholder="Write what happened..."></textarea></td>
+      </tr>
+
+      <tr><td colspan="6" class="group-row">Admin Team Management</td></tr>
+
+      <tr>
+        <td class="col-id">2.6</td>
+        <td class="col-title">Admin Creates a Team</td>
+        <td class="col-steps"><ol>
+          <li>Log in as administrator</li>
+          <li>Go to Teams &amp; Projects panel</li>
+          <li>Click "Create New Team" and fill in name and members</li>
+        </ol></td>
+        <td class="col-expect">Team is created with assigned members. A leader is set. Team appears in the table.</td>
+        <td class="col-check"><input type="checkbox"></td>
+        <td class="col-notes"><textarea placeholder="Write what happened..."></textarea></td>
+      </tr>
+
+      <tr>
+        <td class="col-id">2.7</td>
+        <td class="col-title">Admin Adds Member to Existing Team</td>
+        <td class="col-steps"><ol>
+          <li>As admin, expand a team in the Teams panel</li>
+          <li>Search for a student and add them</li>
+        </ol></td>
+        <td class="col-expect">Student is added to the team. Appears in the team's member list immediately.</td>
+        <td class="col-check"><input type="checkbox"></td>
+        <td class="col-notes"><textarea placeholder="Write what happened..."></textarea></td>
+      </tr>
+
+      <tr>
+        <td class="col-id">2.8</td>
+        <td class="col-title">Admin Changes Team Leader</td>
+        <td class="col-steps"><ol>
+          <li>As admin, expand a team with multiple members</li>
+          <li>Use "Change Leader" to assign a different member as leader</li>
+        </ol></td>
+        <td class="col-expect">The selected member becomes the new leader. Previous leader becomes a regular member.</td>
+        <td class="col-check"><input type="checkbox"></td>
+        <td class="col-notes"><textarea placeholder="Write what happened..."></textarea></td>
+      </tr>
+
+      <tr><td colspan="6" class="group-row">Supervision Requests</td></tr>
+
+      <tr>
+        <td class="col-id">2.9</td>
+        <td class="col-title">Student Sends Supervision Request <span class="phase-tag tag-p1">Phase 1</span></td>
+        <td class="col-steps"><ol>
+          <li>Log in as a student (team leader)</li>
+          <li>Browse the available supervisors on the dashboard</li>
+          <li>Send a supervision request to one of them</li>
+        </ol></td>
+        <td class="col-expect">Request is sent. Supervisor receives a notification. Status shows "pending" for the student.</td>
+        <td class="col-check"><input type="checkbox"></td>
+        <td class="col-notes"><textarea placeholder="Write what happened..."></textarea></td>
+      </tr>
+
+      <tr>
+        <td class="col-id">2.10</td>
+        <td class="col-title">Supervisor Accepts Request <span class="phase-tag tag-p1">Phase 1</span> <span class="phase-tag tag-cri">Critical</span></td>
+        <td class="col-steps"><ol>
+          <li>Log in as the supervisor who received the request</li>
+          <li>Go to the pending requests section</li>
+          <li>Accept the request</li>
+        </ol></td>
+        <td class="col-expect">Supervisor is assigned to the team's project. Student receives a notification. Project shows supervisor name.</td>
+        <td class="col-check"><input type="checkbox"></td>
+        <td class="col-notes"><textarea placeholder="Write what happened..."></textarea></td>
+      </tr>
+
+      <tr>
+        <td class="col-id">2.11</td>
+        <td class="col-title">Supervisor Declines Request</td>
+        <td class="col-steps"><ol>
+          <li>As the supervisor, go to pending requests</li>
+          <li>Decline a supervision request</li>
+        </ol></td>
+        <td class="col-expect">Request is declined. Student receives a notification. Student can still send requests to other supervisors.</td>
+        <td class="col-check"><input type="checkbox"></td>
+        <td class="col-notes"><textarea placeholder="Write what happened..."></textarea></td>
+      </tr>
+
+      <tr>
+        <td class="col-id">2.12</td>
+        <td class="col-title">Supervisor at Capacity Block</td>
+        <td class="col-steps"><ol>
+          <li>As admin, find a supervisor who has reached their team limit</li>
+          <li>Try to manually assign another project to them</li>
+        </ol></td>
+        <td class="col-expect">Error message saying the supervisor has reached their limit. Assignment is blocked.</td>
+        <td class="col-check"><input type="checkbox"></td>
+        <td class="col-notes"><textarea placeholder="Write what happened..."></textarea></td>
+      </tr>
+
+    </tbody>
+  </table>
+</div>
+
+
+<!-- ═══════════════════════════════════════════════════════════════════════
+     TESTER 3 — Milestones & Submissions
+═══════════════════════════════════════════════════════════════════════════ -->
+<div class="tester-section t3">
+  <div class="tester-header">
+    <div class="tester-avatar">3</div>
+    <div class="tester-info">
+      Tester 3 — Milestones &amp; Submissions
+      <small>Submitting files · resubmissions · late submissions · task tracking · admin milestone setup</small>
+    </div>
+    <div class="tester-count">12 Cases</div>
+  </div>
+  <table class="cases-table">
+    <thead>
+      <tr>
+        <th class="col-id">#</th>
+        <th class="col-title">Use Case</th>
+        <th class="col-steps">Steps to Perform</th>
+        <th class="col-expect">Expected Result</th>
+        <th class="col-check">✓ Done</th>
+        <th class="col-notes">Notes / What Happened</th>
+      </tr>
+    </thead>
+    <tbody>
+
+      <tr><td colspan="6" class="group-row">Admin: Milestone Setup</td></tr>
+
+      <tr>
+        <td class="col-id">3.1</td>
+        <td class="col-title">Admin Creates Milestone <span class="phase-tag tag-cri">Critical</span></td>
+        <td class="col-steps"><ol>
+          <li>Log in as admin, go to the Milestones panel</li>
+          <li>Create a new milestone with title, start date, due date, and weight</li>
+          <li>Optionally upload a guide file</li>
+        </ol></td>
+        <td class="col-expect">Milestone is created. All active teams receive a notification. Milestone appears in student dashboards.</td>
+        <td class="col-check"><input type="checkbox"></td>
+        <td class="col-notes"><textarea placeholder="Write what happened..."></textarea></td>
+      </tr>
+
+      <tr>
+        <td class="col-id">3.2</td>
+        <td class="col-title">Admin Edits Milestone Due Date</td>
+        <td class="col-steps"><ol>
+          <li>As admin, find an existing milestone in the Milestones panel</li>
+          <li>Edit it and change the due date</li>
+          <li>Save changes</li>
+        </ol></td>
+        <td class="col-expect">Due date is updated. Teams and supervisors receive a "due date changed" notification.</td>
+        <td class="col-check"><input type="checkbox"></td>
+        <td class="col-notes"><textarea placeholder="Write what happened..."></textarea></td>
+      </tr>
+
+      <tr>
+        <td class="col-id">3.3</td>
+        <td class="col-title">Admin Sets Milestone Weights</td>
+        <td class="col-steps"><ol>
+          <li>As admin, go to the Grades panel</li>
+          <li>Adjust weights for each milestone so they total exactly 100%</li>
+          <li>Save weights</li>
+        </ol></td>
+        <td class="col-expect">Weights saved successfully. Success message confirms total is 100%. A warning appears if they don't sum to 100.</td>
+        <td class="col-check"><input type="checkbox"></td>
+        <td class="col-notes"><textarea placeholder="Write what happened..."></textarea></td>
+      </tr>
+
+      <tr>
+        <td class="col-id">3.4</td>
+        <td class="col-title">Admin Deletes Milestone</td>
+        <td class="col-steps"><ol>
+          <li>As admin, delete an existing milestone from the Milestones panel</li>
+        </ol></td>
+        <td class="col-expect">Milestone is removed. It no longer appears in student dashboards or submission panels.</td>
+        <td class="col-check"><input type="checkbox"></td>
+        <td class="col-notes"><textarea placeholder="Write what happened..."></textarea></td>
+      </tr>
+
+      <tr><td colspan="6" class="group-row">Student: Submissions</td></tr>
+
+      <tr>
+        <td class="col-id">3.5</td>
+        <td class="col-title">Submit Milestone (First Time) <span class="phase-tag tag-p2">Phase 2</span> <span class="phase-tag tag-cri">Critical</span></td>
+        <td class="col-steps"><ol>
+          <li>Log in as a student (team leader) with an active project</li>
+          <li>Go to the Milestones section</li>
+          <li>Upload 1–3 allowed files (PDF/DOC/PPT/ZIP/image) for an open milestone</li>
+          <li>Click Submit</li>
+        </ol></td>
+        <td class="col-expect">Submission is saved as v1. Supervisor and reviewers receive a notification. Milestone shows as submitted.</td>
+        <td class="col-check"><input type="checkbox"></td>
+        <td class="col-notes"><textarea placeholder="Write what happened..."></textarea></td>
+      </tr>
+
+      <tr>
+        <td class="col-id">3.6</td>
+        <td class="col-title">Resubmit (v2) <span class="phase-tag tag-p2">Phase 2</span></td>
+        <td class="col-steps"><ol>
+          <li>Submit a milestone again (after the first submission)</li>
+          <li>Upload a different file</li>
+        </ol></td>
+        <td class="col-expect">New submission is created as v2. Previous submission is still in the database (is_latest=False). Version counter increments.</td>
+        <td class="col-check"><input type="checkbox"></td>
+        <td class="col-notes"><textarea placeholder="Write what happened..."></textarea></td>
+      </tr>
+
+      <tr>
+        <td class="col-id">3.7</td>
+        <td class="col-title">Submission Limit Enforced</td>
+        <td class="col-steps"><ol>
+          <li>Keep resubmitting until you reach the team's max resubmission limit</li>
+          <li>Try to submit one more time</li>
+        </ol></td>
+        <td class="col-expect">System blocks the submission with "You have used all X submission(s) allowed" error.</td>
+        <td class="col-check"><input type="checkbox"></td>
+        <td class="col-notes"><textarea placeholder="Write what happened..."></textarea></td>
+      </tr>
+
+      <tr>
+        <td class="col-id">3.8</td>
+        <td class="col-title">Blocked File Type Upload</td>
+        <td class="col-steps"><ol>
+          <li>Try to upload a file with a disallowed extension (e.g. <code>.exe</code>, <code>.mp4</code>)</li>
+        </ol></td>
+        <td class="col-expect">Upload is rejected with an error listing allowed file types. No file is saved.</td>
+        <td class="col-check"><input type="checkbox"></td>
+        <td class="col-notes"><textarea placeholder="Write what happened..."></textarea></td>
+      </tr>
+
+      <tr>
+        <td class="col-id">3.9</td>
+        <td class="col-title">Non-Leader Cannot Submit <span class="phase-tag tag-sec">Security</span></td>
+        <td class="col-steps"><ol>
+          <li>Log in as a student who is a team MEMBER (not leader)</li>
+          <li>Try to submit a milestone</li>
+        </ol></td>
+        <td class="col-expect">Submission is blocked with "Only the team leader can submit" error.</td>
+        <td class="col-check"><input type="checkbox"></td>
+        <td class="col-notes"><textarea placeholder="Write what happened..."></textarea></td>
+      </tr>
+
+      <tr><td colspan="6" class="group-row">Task Tracking</td></tr>
+
+      <tr>
+        <td class="col-id">3.10</td>
+        <td class="col-title">Create a Task</td>
+        <td class="col-steps"><ol>
+          <li>Log in as a student (team leader)</li>
+          <li>Go to a milestone in the Milestones section</li>
+          <li>Create a task, assign it to a team member, set a due date</li>
+        </ol></td>
+        <td class="col-expect">Task appears in the milestone. Assigned member receives a notification.</td>
+        <td class="col-check"><input type="checkbox"></td>
+        <td class="col-notes"><textarea placeholder="Write what happened..."></textarea></td>
+      </tr>
+
+      <tr>
+        <td class="col-id">3.11</td>
+        <td class="col-title">Update Task Status</td>
+        <td class="col-steps"><ol>
+          <li>Log in as the student a task is assigned to</li>
+          <li>Change the task status from "To Do" → "In Progress" → "Done"</li>
+        </ol></td>
+        <td class="col-expect">Status updates correctly. Task completion count in the dashboard chart updates.</td>
+        <td class="col-check"><input type="checkbox"></td>
+        <td class="col-notes"><textarea placeholder="Write what happened..."></textarea></td>
+      </tr>
+
+      <tr>
+        <td class="col-id">3.12</td>
+        <td class="col-title">Admin Manages Submission</td>
+        <td class="col-steps"><ol>
+          <li>As admin, go to the Submissions panel</li>
+          <li>Find a submission and change its status (Pending → Approved)</li>
+          <li>Delete a submission</li>
+        </ol></td>
+        <td class="col-expect">Status is updated. Deleted submission is removed from the list.</td>
+        <td class="col-check"><input type="checkbox"></td>
+        <td class="col-notes"><textarea placeholder="Write what happened..."></textarea></td>
+      </tr>
+
+    </tbody>
+  </table>
+</div>
+
+
+<!-- ═══════════════════════════════════════════════════════════════════════
+     TESTER 4 — Grading System
+═══════════════════════════════════════════════════════════════════════════ -->
+<div class="tester-section t4">
+  <div class="tester-header">
+    <div class="tester-avatar">4</div>
+    <div class="tester-info">
+      Tester 4 — Grading System
+      <small>Supervisor grading · reviewer grading · admin grade panel · archived project exclusion · analytics charts</small>
+    </div>
+    <div class="tester-count">12 Cases</div>
+  </div>
+  <table class="cases-table">
+    <thead>
+      <tr>
+        <th class="col-id">#</th>
+        <th class="col-title">Use Case</th>
+        <th class="col-steps">Steps to Perform</th>
+        <th class="col-expect">Expected Result</th>
+        <th class="col-check">✓ Done</th>
+        <th class="col-notes">Notes / What Happened</th>
+      </tr>
+    </thead>
+    <tbody>
+
+      <tr><td colspan="6" class="group-row">Supervisor Grading</td></tr>
+
+      <tr>
+        <td class="col-id">4.1</td>
+        <td class="col-title">Supervisor Grades a Submission <span class="phase-tag tag-cri">Critical</span></td>
+        <td class="col-steps"><ol>
+          <li>Log in as a supervisor with at least one team's submission</li>
+          <li>Go to the Submissions section on the supervisor dashboard</li>
+          <li>Enter a grade (0–100) for a submission and save</li>
+        </ol></td>
+        <td class="col-expect">Grade is saved. Students on that team receive a notification. Grade appears in the grading table.</td>
+        <td class="col-check"><input type="checkbox"></td>
+        <td class="col-notes"><textarea placeholder="Write what happened..."></textarea></td>
+      </tr>
+
+      <tr>
+        <td class="col-id">4.2</td>
+        <td class="col-title">Supervisor Grades Split Milestone (Report + Presentation)</td>
+        <td class="col-steps"><ol>
+          <li>Find a milestone that has a Report + Presentation split</li>
+          <li>As supervisor, grade both components separately</li>
+        </ol></td>
+        <td class="col-expect">Both component grades are saved. The weighted overall grade is calculated correctly based on split percentages.</td>
+        <td class="col-check"><input type="checkbox"></td>
+        <td class="col-notes"><textarea placeholder="Write what happened..."></textarea></td>
+      </tr>
+
+      <tr>
+        <td class="col-id">4.3</td>
+        <td class="col-title">Invalid Grade Rejected</td>
+        <td class="col-steps"><ol>
+          <li>As supervisor, try to enter a grade of 101 or a negative number</li>
+          <li>Try entering text (e.g. "A+")</li>
+        </ol></td>
+        <td class="col-expect">Error message: grade must be between 0 and 100. No invalid grade is saved.</td>
+        <td class="col-check"><input type="checkbox"></td>
+        <td class="col-notes"><textarea placeholder="Write what happened..."></textarea></td>
+      </tr>
+
+      <tr><td colspan="6" class="group-row">Reviewer Grading</td></tr>
+
+      <tr>
+        <td class="col-id">4.4</td>
+        <td class="col-title">Reviewer Grades a Submission <span class="phase-tag tag-cri">Critical</span></td>
+        <td class="col-steps"><ol>
+          <li>Log in as a user with reviewer role assigned to a project</li>
+          <li>Go to the reviewer grading section for a submission</li>
+          <li>Enter a reviewer grade and save</li>
+        </ol></td>
+        <td class="col-expect">Reviewer grade is saved. The overall submission grade is recalculated averaging supervisor + reviewer grades.</td>
+        <td class="col-check"><input type="checkbox"></td>
+        <td class="col-notes"><textarea placeholder="Write what happened..."></textarea></td>
+      </tr>
+
+      <tr>
+        <td class="col-id">4.5</td>
+        <td class="col-title">Reviewer Cannot Grade Non-Assigned Project <span class="phase-tag tag-sec">Security</span></td>
+        <td class="col-steps"><ol>
+          <li>Log in as a reviewer assigned to Project A</li>
+          <li>Try to manually access the grade form for Project B (not assigned)</li>
+        </ol></td>
+        <td class="col-expect">Access is denied. Reviewer can only grade projects they are assigned to.</td>
+        <td class="col-check"><input type="checkbox"></td>
+        <td class="col-notes"><textarea placeholder="Write what happened..."></textarea></td>
+      </tr>
+
+      <tr><td colspan="6" class="group-row">Admin Grade Panel</td></tr>
+
+      <tr>
+        <td class="col-id">4.6</td>
+        <td class="col-title">Admin Saves Grades from Grade Table <span class="phase-tag tag-cri">Critical</span></td>
+        <td class="col-steps"><ol>
+          <li>Log in as admin and go to the Grades panel</li>
+          <li>Enter grades for multiple projects and milestones</li>
+          <li>Click "Save All Grades"</li>
+        </ol></td>
+        <td class="col-expect">All entered grades are saved. Success message shows count of saved grades.</td>
+        <td class="col-check"><input type="checkbox"></td>
+        <td class="col-notes"><textarea placeholder="Write what happened..."></textarea></td>
+      </tr>
+
+      <tr>
+        <td class="col-id">4.7</td>
+        <td class="col-title">Archived Projects Excluded from Grades</td>
+        <td class="col-steps"><ol>
+          <li>As admin, go to the Grades panel</li>
+          <li>Check if any project with "completed" status appears in the grading table</li>
+        </ol></td>
+        <td class="col-expect">Archived (completed) projects do NOT appear in the grade table. Only active projects are listed.</td>
+        <td class="col-check"><input type="checkbox"></td>
+        <td class="col-notes"><textarea placeholder="Write what happened..."></textarea></td>
+      </tr>
+
+      <tr>
+        <td class="col-id">4.8</td>
+        <td class="col-title">Archived Projects Excluded from Milestones Missed</td>
+        <td class="col-steps"><ol>
+          <li>As admin, go to the Submissions panel</li>
+          <li>Check the "Not Submitted" list for each milestone</li>
+        </ol></td>
+        <td class="col-expect">Archived projects do NOT appear in the "not submitted" (missed) lists.</td>
+        <td class="col-check"><input type="checkbox"></td>
+        <td class="col-notes"><textarea placeholder="Write what happened..."></textarea></td>
+      </tr>
+
+      <tr><td colspan="6" class="group-row">Analytics Charts</td></tr>
+
+      <tr>
+        <td class="col-id">4.9</td>
+        <td class="col-title">Average Score per Milestone Chart</td>
+        <td class="col-steps"><ol>
+          <li>Log in as admin and go to the Analytics panel</li>
+          <li>Find the "Average Score per Milestone" bar chart</li>
+          <li>Manually calculate the average for one milestone using the grade table and compare</li>
+        </ol></td>
+        <td class="col-expect">Chart averages match the manual calculation. Zero grades are correctly included in the average.</td>
+        <td class="col-check"><input type="checkbox"></td>
+        <td class="col-notes"><textarea placeholder="Write what happened..."></textarea></td>
+      </tr>
+
+      <tr>
+        <td class="col-id">4.10</td>
+        <td class="col-title">Active vs Archived Teams Chart</td>
+        <td class="col-steps"><ol>
+          <li>In the Analytics panel, find the "Active vs Archived Teams" doughnut</li>
+          <li>Count active and archived teams manually and compare</li>
+        </ol></td>
+        <td class="col-expect">Chart shows only 2 segments (Active, Archived). No "Dissolved" segment. Center shows total team count. Numbers match reality.</td>
+        <td class="col-check"><input type="checkbox"></td>
+        <td class="col-notes"><textarea placeholder="Write what happened..."></textarea></td>
+      </tr>
+
+      <tr>
+        <td class="col-id">4.11</td>
+        <td class="col-title">Auto Zero for Missed Overdue Milestone</td>
+        <td class="col-steps"><ol>
+          <li>Find a milestone whose due date has passed</li>
+          <li>Find an active project that did NOT submit for that milestone</li>
+          <li>As admin, load the dashboard and check the grade table for that project/milestone</li>
+        </ol></td>
+        <td class="col-expect">A grade of 0 is automatically entered for the missed submission in the grade table.</td>
+        <td class="col-check"><input type="checkbox"></td>
+        <td class="col-notes"><textarea placeholder="Write what happened..."></textarea></td>
+      </tr>
+
+      <tr>
+        <td class="col-id">4.12</td>
+        <td class="col-title">Student Milestone Completion Chart Accuracy</td>
+        <td class="col-steps"><ol>
+          <li>As a student with 2 out of 4 milestones submitted</li>
+          <li>Check the "Milestone Completion" chart on the student dashboard</li>
+        </ol></td>
+        <td class="col-expect">Chart shows 50% with center label "2 / 4 submitted". Doughnut is half green, half grey.</td>
+        <td class="col-check"><input type="checkbox"></td>
+        <td class="col-notes"><textarea placeholder="Write what happened..."></textarea></td>
+      </tr>
+
+    </tbody>
+  </table>
+</div>
+
+
+<!-- ═══════════════════════════════════════════════════════════════════════
+     TESTER 5 — Admin Operations, Meetings & System
+═══════════════════════════════════════════════════════════════════════════ -->
+<div class="tester-section t5">
+  <div class="tester-header">
+    <div class="tester-avatar">5</div>
+    <div class="tester-info">
+      Tester 5 — Admin Operations, Meetings &amp; System Config
+      <small>Phase switch · archive · meetings · user management · system logs · supervisor assignments</small>
+    </div>
+    <div class="tester-count">12 Cases</div>
+  </div>
+  <table class="cases-table">
+    <thead>
+      <tr>
+        <th class="col-id">#</th>
+        <th class="col-title">Use Case</th>
+        <th class="col-steps">Steps to Perform</th>
+        <th class="col-expect">Expected Result</th>
+        <th class="col-check">✓ Done</th>
+        <th class="col-notes">Notes / What Happened</th>
+      </tr>
+    </thead>
+    <tbody>
+
+      <tr><td colspan="6" class="group-row">Phase Management</td></tr>
+
+      <tr>
+        <td class="col-id">5.1</td>
+        <td class="col-title">Phase 1 → Phase 2 Switch <span class="phase-tag tag-cri">Critical</span></td>
+        <td class="col-steps"><ol>
+          <li>Log in as admin and go to the System panel</li>
+          <li>Run the Phase 2 preflight check — review any warnings</li>
+          <li>Confirm and execute the Phase 2 switch</li>
+          <li>Check that auto-teams were created and supervisors assigned</li>
+        </ol></td>
+        <td class="col-expect">Phase switches to 2. Auto-teams created for teamless students. Supervisors and reviewers auto-assigned. Success message with counts. Students can now submit.</td>
+        <td class="col-check"><input type="checkbox"></td>
+        <td class="col-notes"><textarea placeholder="Write what happened..."></textarea></td>
+      </tr>
+
+      <tr>
+        <td class="col-id">5.2</td>
+        <td class="col-title">Revert to Phase 1</td>
+        <td class="col-steps"><ol>
+          <li>As admin (while in Phase 2), revert back to Phase 1 via the System panel</li>
+        </ol></td>
+        <td class="col-expect">Auto-assigned supervisors are removed. Auto-created teams are dissolved. System returns to Phase 1. Declined supervision requests are re-opened.</td>
+        <td class="col-check"><input type="checkbox"></td>
+        <td class="col-notes"><textarea placeholder="Write what happened..."></textarea></td>
+      </tr>
+
+      <tr>
+        <td class="col-id">5.3</td>
+        <td class="col-title">Students Cannot Submit in Phase 1 <span class="phase-tag tag-sec">Security</span></td>
+        <td class="col-steps"><ol>
+          <li>While the system is in Phase 1, log in as a student and try to submit a milestone</li>
+        </ol></td>
+        <td class="col-expect">Submission is blocked with message "Submissions are not open yet. System is still in Phase 1."</td>
+        <td class="col-check"><input type="checkbox"></td>
+        <td class="col-notes"><textarea placeholder="Write what happened..."></textarea></td>
+      </tr>
+
+      <tr><td colspan="6" class="group-row">Archive Management</td></tr>
+
+      <tr>
+        <td class="col-id">5.4</td>
+        <td class="col-title">View Archive</td>
+        <td class="col-steps"><ol>
+          <li>As admin, go to the Archive panel</li>
+          <li>Check that only completed projects appear</li>
+          <li>View project details, members, and final files</li>
+        </ol></td>
+        <td class="col-expect">Archive shows only completed projects. Each entry has project title, team, supervisor, and members.</td>
+        <td class="col-check"><input type="checkbox"></td>
+        <td class="col-notes"><textarea placeholder="Write what happened..."></textarea></td>
+      </tr>
+
+      <tr>
+        <td class="col-id">5.5</td>
+        <td class="col-title">Toggle Archive Visibility</td>
+        <td class="col-steps"><ol>
+          <li>As admin, in the Archive panel, hide a project from the public archive</li>
+          <li>Log in as a student and check the archive page</li>
+          <li>As admin, unhide it and check again</li>
+        </ol></td>
+        <td class="col-expect">Hidden project does not appear in student/supervisor archive views. Unhiding restores it.</td>
+        <td class="col-check"><input type="checkbox"></td>
+        <td class="col-notes"><textarea placeholder="Write what happened..."></textarea></td>
+      </tr>
+
+      <tr>
+        <td class="col-id">5.6</td>
+        <td class="col-title">Add Manual Archive Project</td>
+        <td class="col-steps"><ol>
+          <li>As admin, in the Archive panel, add a historical project manually</li>
+          <li>Fill in project name, team name, supervisor, and member names</li>
+        </ol></td>
+        <td class="col-expect">Project appears in the archive immediately. Members are listed as inactive users.</td>
+        <td class="col-check"><input type="checkbox"></td>
+        <td class="col-notes"><textarea placeholder="Write what happened..."></textarea></td>
+      </tr>
+
+      <tr><td colspan="6" class="group-row">Meetings</td></tr>
+
+      <tr>
+        <td class="col-id">5.7</td>
+        <td class="col-title">Schedule a Meeting <span class="phase-tag tag-cri">Critical</span></td>
+        <td class="col-steps"><ol>
+          <li>Log in as a supervisor</li>
+          <li>Go to the Meetings section and schedule a meeting for one of your teams</li>
+          <li>Add participants and set date/time</li>
+        </ol></td>
+        <td class="col-expect">Meeting is created. All participants receive an invitation notification. Meeting appears in upcoming meetings.</td>
+        <td class="col-check"><input type="checkbox"></td>
+        <td class="col-notes"><textarea placeholder="Write what happened..."></textarea></td>
+      </tr>
+
+      <tr>
+        <td class="col-id">5.8</td>
+        <td class="col-title">Student Accepts/Declines Meeting</td>
+        <td class="col-steps"><ol>
+          <li>Log in as a student who received a meeting invitation</li>
+          <li>Accept the meeting invitation</li>
+          <li>Log in as another student and decline their invitation</li>
+        </ol></td>
+        <td class="col-expect">Responses are recorded. Supervisor can see who accepted and who declined.</td>
+        <td class="col-check"><input type="checkbox"></td>
+        <td class="col-notes"><textarea placeholder="Write what happened..."></textarea></td>
+      </tr>
+
+      <tr>
+        <td class="col-id">5.9</td>
+        <td class="col-title">Reschedule a Meeting</td>
+        <td class="col-steps"><ol>
+          <li>As a supervisor, find an upcoming meeting and propose a reschedule</li>
+          <li>Set a new date/time and submit the proposal</li>
+          <li>As the meeting organizer, accept the reschedule</li>
+        </ol></td>
+        <td class="col-expect">Meeting is updated to the new time. Participants receive a notification about the change.</td>
+        <td class="col-check"><input type="checkbox"></td>
+        <td class="col-notes"><textarea placeholder="Write what happened..."></textarea></td>
+      </tr>
+
+      <tr><td colspan="6" class="group-row">User Management &amp; Logs</td></tr>
+
+      <tr>
+        <td class="col-id">5.10</td>
+        <td class="col-title">Admin Manages User Accounts</td>
+        <td class="col-steps"><ol>
+          <li>As admin, go to the Users panel</li>
+          <li>Add a new supervisor user</li>
+          <li>Edit an existing student's department</li>
+          <li>Deactivate a student account</li>
+        </ol></td>
+        <td class="col-expect">All changes take effect. Deactivated student is logged out immediately on next request.</td>
+        <td class="col-check"><input type="checkbox"></td>
+        <td class="col-notes"><textarea placeholder="Write what happened..."></textarea></td>
+      </tr>
+
+      <tr>
+        <td class="col-id">5.11</td>
+        <td class="col-title">Verify Logs: Login Events</td>
+        <td class="col-steps"><ol>
+          <li>Check the server/Render logs (or run the server locally and check the terminal)</li>
+          <li>Log in as a student, then log out</li>
+          <li>Try a wrong password once</li>
+          <li>Check the log output</li>
+        </ol></td>
+        <td class="col-expect">Logs show: <code>[INFO] gpms.auth: LOGIN user=... role=... ip=...</code>, <code>[INFO] gpms.auth: LOGOUT user=...</code>, <code>[WARNING] gpms.auth: LOGIN_FAILED username=...</code></td>
+        <td class="col-check"><input type="checkbox"></td>
+        <td class="col-notes"><textarea placeholder="Write what happened..."></textarea></td>
+      </tr>
+
+      <tr>
+        <td class="col-id">5.12</td>
+        <td class="col-title">Verify Logs: Key Actions</td>
+        <td class="col-steps"><ol>
+          <li>As a student, submit a milestone and check logs</li>
+          <li>As admin, assign a supervisor and save grades — check logs</li>
+          <li>Switch to Phase 2 — check logs</li>
+        </ol></td>
+        <td class="col-expect">Logs show: <code>SUBMIT user=...</code>, <code>SUPERVISOR_ASSIGNED admin=...</code>, <code>GRADES_SAVED admin=...</code>, <code>PHASE2_SWITCH admin=...</code> — all with correct details.</td>
+        <td class="col-check"><input type="checkbox"></td>
+        <td class="col-notes"><textarea placeholder="Write what happened..."></textarea></td>
+      </tr>
+
+    </tbody>
+  </table>
+</div>
+
+
+<!-- Footer -->
+<div style="text-align:center; padding: 40px 16px; color: #94a3b8; font-size: .8rem;">
+  GPMS Use Case Testing Sheet · v1.2 · 60 cases across 5 testers
+</div>
+
+</body>
+</html>

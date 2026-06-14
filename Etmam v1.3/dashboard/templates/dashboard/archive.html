@@ -1,0 +1,200 @@
+﻿{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Project Archive — Etmam</title>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap');
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --bg:       #0d1117;
+      --bg-card:  #161b27;
+      --bg-card2: #1c2333;
+      --border:   rgba(27,45,82,.06);
+      --primary:  #6366f1;
+      --primary-lt: rgba(99,102,241,.15);
+      --text:     #e2e8f0;
+      --text-muted: #64748b;
+      --green:    #4ade80;
+      --red:      #f87171;
+    }
+    body { font-family:'Plus Jakarta Sans',system-ui,sans-serif; background:var(--bg); color:var(--text); font-size:14px; min-height:100vh; }
+
+    /* ── Topbar ── */
+    .topbar { background:var(--bg-card); border-bottom:1px solid var(--border); padding:0 28px; height:54px; display:flex; align-items:center; gap:12px; position:sticky; top:0; z-index:10; }
+    .topbar a { font-size:.82rem; color:var(--text-muted); text-decoration:none; }
+    .topbar a:hover { color:var(--primary); }
+    .topbar .sep { color:var(--border); }
+    .topbar strong { font-size:.85rem; color:var(--text); }
+    .topbar-logo { height:26px; filter: brightness(0) invert(1); flex-shrink:0; margin-right:4px; opacity:.9; }
+
+    /* ── Page ── */
+    .page { max-width:1100px; margin:36px auto; padding:0 24px 60px; }
+    .ph { margin-bottom:32px; }
+    .ph h1 { font-size:1.3rem; font-weight:700; }
+    .ph p { color:var(--text-muted); margin-top:5px; font-size:.85rem; }
+
+    /* ── Grid ── */
+    .grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(300px,1fr)); gap:18px; }
+
+    /* ── Card ── */
+    .arc-card { background:var(--bg-card); border:1px solid var(--border); border-radius:14px; overflow:hidden; cursor:pointer; transition:border-color .2s, box-shadow .2s; }
+    .arc-card:hover { border-color:rgba(99,102,241,.4); box-shadow:0 8px 32px rgba(0,0,0,.4); }
+    .arc-card.open { border-color:var(--primary); }
+
+    .card-top { background:linear-gradient(135deg,#1B2D52,#243D6B); padding:20px; display:flex; align-items:center; gap:14px; }
+    .card-avatar { width:48px; height:48px; border-radius:12px; background:rgba(255,255,255,.15); display:grid; place-items:center; font-size:1.3rem; font-weight:700; color:white; flex-shrink:0; }
+    .card-title { font-size:.95rem; font-weight:700; color:white; line-height:1.3; }
+    .card-year  { font-size:.72rem; color:rgba(255,255,255,.55); margin-top:3px; }
+
+    .card-body { padding:16px; }
+    .card-meta { display:flex; gap:6px; flex-wrap:wrap; margin-bottom:12px; }
+    .meta-chip { background:var(--primary-lt); color:var(--primary); border-radius:20px; padding:3px 10px; font-size:.72rem; font-weight:600; }
+
+    .card-footer { display:flex; align-items:center; justify-content:space-between; }
+    .card-dept { font-size:.75rem; color:var(--text-muted); }
+    .toggle-btn { background:none; border:1px solid rgba(255,255,255,.12); color:var(--text-muted); border-radius:6px; padding:4px 12px; font-size:.75rem; cursor:pointer; transition:all .15s; display:flex; align-items:center; gap:5px; }
+    .toggle-btn:hover { border-color:var(--primary); color:var(--primary); }
+    .toggle-arrow { transition:transform .2s; display:inline-block; }
+    .arc-card.open .toggle-arrow { transform:rotate(180deg); }
+
+    /* ── Expanded details ── */
+    .card-details { display:none; border-top:1px solid var(--border); padding:16px; background:var(--bg-card2); }
+    .arc-card.open .card-details { display:block; }
+
+    .details-label { font-size:.7rem; font-weight:700; text-transform:uppercase; letter-spacing:.5px; color:var(--text-muted); margin-bottom:6px; }
+    .details-desc { font-size:.83rem; color:var(--text); line-height:1.6; margin-bottom:16px; }
+
+    .members-list { display:flex; flex-wrap:wrap; gap:8px; margin-bottom:16px; }
+    .member-chip { display:flex; align-items:center; gap:7px; background:var(--bg-card); border:1px solid var(--border); border-radius:20px; padding:4px 10px; font-size:.75rem; }
+    .member-av { width:22px; height:22px; border-radius:50%; background:var(--primary-lt); color:var(--primary); display:grid; place-items:center; font-size:.65rem; font-weight:700; flex-shrink:0; }
+
+    .download-btn { display:inline-flex; align-items:center; gap:7px; background:var(--primary); color:white; border-radius:8px; padding:8px 16px; font-size:.82rem; font-weight:600; text-decoration:none; transition:opacity .15s; }
+    .download-btn:hover { opacity:.85; }
+    .no-file { font-size:.8rem; color:var(--text-muted); font-style:italic; }
+
+    /* ── Empty ── */
+    .empty { text-align:center; padding:5rem; color:var(--text-muted); }
+    .empty .ei { font-size:3rem; margin-bottom:1rem; }
+
+    /* ── Toast ── */
+    .toast-wrap { position:fixed; top:16px; right:16px; z-index:9999; display:flex; flex-direction:column; gap:8px; max-width:360px; }
+    .toast { background:var(--bg-card); border:1px solid var(--border); border-radius:10px; padding:12px 16px; font-size:.85rem; display:flex; align-items:flex-start; gap:10px; box-shadow:0 8px 24px rgba(0,0,0,.4); }
+
+    @media (max-width:640px) { .grid { grid-template-columns:1fr; } }
+  </style>
+</head>
+<body>
+
+{% if messages %}
+<div class="toast-wrap">
+  {% for message in messages %}
+  <div class="toast">
+    {% if message.tags == 'error' %}<span style="color:var(--red);flex-shrink:0;">✕</span><span style="border-left:3px solid var(--red);padding-left:10px;">{{ message }}</span>
+    {% elif message.tags == 'success' %}<span style="color:var(--green);flex-shrink:0;">✔</span><span style="border-left:3px solid var(--green);padding-left:10px;">{{ message }}</span>
+    {% else %}<span style="color:#60a5fa;flex-shrink:0;">ℹ</span><span style="border-left:3px solid #60a5fa;padding-left:10px;">{{ message }}</span>{% endif %}
+  </div>
+  {% endfor %}
+</div>
+<script>setTimeout(function(){document.querySelectorAll('.toast').forEach(function(t){t.style.transition='opacity .4s';t.style.opacity='0';setTimeout(function(){t.remove()},400)})},3500)</script>
+{% endif %}
+
+<div class="topbar">
+  <img src="{% static 'images/logo_trans.png' %}" alt="Etmam" class="topbar-logo" onerror="this.style.display='none'">
+  <a href="{% url 'dashboard:index' %}">← Dashboard</a>
+  <span class="sep">/</span>
+  <strong>Project Archive</strong>
+</div>
+
+<div class="page">
+  <div class="ph">
+    <h1>Project Archive</h1>
+    <p>{{ archive_data|length }} completed project{{ archive_data|length|pluralize }} available.</p>
+  </div>
+
+  {% if archive_data %}
+  <div class="grid">
+    {% for item in archive_data %}
+    <div class="arc-card" id="card-{{ forloop.counter }}">
+
+      <div class="card-top" onclick="toggleCard('{{ forloop.counter }}')">
+        <div class="card-avatar">{{ item.project.title|first|upper }}</div>
+        <div style="flex:1;min-width:0;">
+          <div class="card-title">{{ item.project.title }}</div>
+          <div class="card-year">
+            {% if item.project.approved_at %}{{ item.project.approved_at|date:"Y" }}{% else %}{{ item.project.created_at|date:"Y" }}{% endif %}
+            {% if item.project.supervisor %} · {{ item.project.supervisor.full_name|default:item.project.supervisor.username }}{% endif %}
+          </div>
+        </div>
+      </div>
+
+      <div class="card-body" onclick="toggleCard('{{ forloop.counter }}')">
+        <div class="card-meta">
+          {% if item.project.supervisor %}
+          <span class="meta-chip">{{ item.project.supervisor.full_name|default:item.project.supervisor.username }}</span>
+          {% endif %}
+          {% if item.project.team.name %}
+          <span class="meta-chip">{{ item.project.team.name }}</span>
+          {% endif %}
+        </div>
+        <div class="card-footer">
+          <span class="card-dept">{{ item.project.supervisor.department|default:"CIS" }}</span>
+          <button class="toggle-btn" onclick="event.stopPropagation();toggleCard('{{ forloop.counter }}')">
+            Details <span class="toggle-arrow">▾</span>
+          </button>
+        </div>
+      </div>
+
+      <div class="card-details">
+        <div class="details-label">Description</div>
+        <div class="details-desc">{{ item.project.description|default:"No description provided." }}</div>
+
+        <div class="details-label">Team Members</div>
+        <div class="members-list">
+          {% for m in item.members %}
+          <div class="member-chip">
+            <div class="member-av">{{ m.user.full_name|default:m.user.username|first|upper }}</div>
+            <span>{{ m.user.full_name|default:m.user.username }}</span>
+          </div>
+          {% empty %}
+          <span style="font-size:.8rem;color:var(--text-muted);">No members found.</span>
+          {% endfor %}
+        </div>
+
+        {% if item.final_files %}
+        <div class="details-label" style="margin-bottom:8px;">Final Submission</div>
+        {% for f in item.final_files %}
+        <a href="{{ f.file.url }}" class="download-btn" download>
+          ⬇ {{ f.file_name|default:"Download Report" }}
+        </a>
+        {% endfor %}
+        {% else %}
+        <span class="no-file">No final submission file available.</span>
+        {% endif %}
+      </div>
+
+    </div>
+    {% endfor %}
+  </div>
+
+  {% else %}
+  <div class="empty">
+    <div class="ei">🗄️</div>
+    <p>No archived projects yet. Completed projects will appear here.</p>
+  </div>
+  {% endif %}
+
+</div>
+
+<script>
+  function toggleCard(id) {
+    var card = document.getElementById('card-' + id);
+    card.classList.toggle('open');
+  }
+</script>
+</body>
+</html>
+
+

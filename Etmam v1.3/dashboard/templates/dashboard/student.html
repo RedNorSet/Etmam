@@ -1,0 +1,1601 @@
+﻿{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Dashboard — Etmam{% endblock %}
+
+{% block content %}
+<div class="dash-layout">
+
+  
+  <aside class="sidebar">
+    <div class="sidebar-brand">
+      <img src="{% static 'images/logo_trans.png' %}" alt="Etmam" style="height:28px;" onerror="this.style.display='none'">
+      <span class="brand-text">Etmam</span>
+    </div>
+
+    <button onclick="showSection('profile', null)" class="sidebar-user" style="text-decoration:none;color:inherit;transition:background .15s;background:transparent;border:none;cursor:pointer;width:100%;text-align:left;outline:none;" onmouseover="this.style.background='rgba(255,255,255,.1)'" onmouseout="this.style.background='transparent'" onblur="this.style.background='transparent'">
+      <div class="user-avatar">
+        {% if user.avatar %}
+          <img src="{{ user.avatar.url }}" alt="" style="width:100%;height:100%;object-fit:cover;border-radius:50%;">
+        {% else %}
+          🎓
+        {% endif %}
+      </div>
+      <div class="user-info">
+        <div class="user-name">{{ user.full_name|default:user.username }}</div>
+        <div class="user-role">Student{% if user.department %} · {{ user.department }}{% endif %}</div>
+      </div>
+    </button>
+
+    <nav class="sidebar-nav">
+      <span class="nav-section-label">Main</span>
+
+      <button class="nav-item active" onclick="showSection('dashboard', this)">
+        <span class="nav-label">Dashboard</span>
+      </button>
+
+      <button class="nav-item" onclick="showSection('team', this)">
+        <span class="nav-label">My Team</span>
+      </button>
+
+      <button class="nav-item" onclick="showSection('milestones', this)">
+        <span class="nav-label">Milestones</span>
+      </button>
+
+      <button class="nav-item" onclick="showSection('supervisors', this)">
+        <span class="nav-label">Supervisors</span>
+      </button>
+
+      <span class="nav-section-label">Other</span>
+
+      <button class="nav-item" onclick="showSection('meetings', this)">
+        <span class="nav-label">Meetings</span>
+      </button>
+
+      <button class="nav-item" onclick="showSection('notifications', this)">
+        <span class="nav-label">Notifications</span>
+        {% if unread_count %}<span class="nav-badge" id="notif-nav-badge">{{ unread_count }}</span>{% endif %}
+      </button>
+
+      <button class="nav-item" onclick="showSection('archive', this)">
+        <span class="nav-label">Archive</span>
+      </button>
+
+    </nav>
+
+    <div class="sidebar-bottom">
+      <form method="post" action="{% url 'accounts:logout' %}">
+        {% csrf_token %}
+        <button type="submit" class="nav-item" style="color:#ef4444;background:none;border:none;cursor:pointer;width:100%;">
+          <span class="nav-label">Sign Out</span>
+        </button>
+      </form>
+    </div>
+  </aside>
+
+  
+  <div class="dash-main">
+
+    <header class="dash-topbar">
+      <span class="topbar-title" id="topbar-title">Dashboard</span>
+      <div class="topbar-right">
+        <button class="topbar-icon-btn" onclick="showSection('notifications', document.querySelector('[onclick*=notifications]'))">
+          🔔
+          {% if unread_count %}<span class="topbar-notif-dot" id="notif-topbar-dot"></span>{% endif %}
+        </button>
+      </div>
+    </header>
+
+    <div class="dash-body">
+
+      
+      <section class="dash-section active" id="sec-dashboard">
+
+        <div class="welcome-banner">
+          <div class="welcome-text">
+            <h2>Hello, {{ user.full_name|default:user.username }}</h2>
+            {% if project %}
+              <p>Project: <strong>{{ project.title }}</strong> — status: <strong>{{ project.get_status_display }}</strong></p>
+            {% else %}
+              <p>You don't have a project yet. Join a team or request a supervisor to get started.</p>
+            {% endif %}
+          </div>
+        </div>
+
+        {% if project %}
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem;margin-bottom:1rem;">
+          <div style="background:var(--bg-card);border:1px solid var(--border);border-radius:var(--radius);padding:1.5rem;box-shadow:var(--shadow);">
+            <div style="font-size:.8rem;font-weight:700;color:var(--primary);margin-bottom:1rem;">Milestone Completion</div>
+            <div style="position:relative;height:200px;"><canvas id="chart-grade-breakdown"></canvas></div>
+          </div>
+          <div style="background:var(--bg-card);border:1px solid var(--border);border-radius:var(--radius);padding:1.5rem;box-shadow:var(--shadow);">
+            <div style="font-size:.8rem;font-weight:700;color:var(--primary);margin-bottom:1rem;">Task Completion</div>
+            <div style="position:relative;height:200px;"><canvas id="chart-tasks"></canvas></div>
+          </div>
+        </div>
+        <div style="background:var(--bg-card);border:1px solid var(--border);border-radius:var(--radius);padding:1.5rem;box-shadow:var(--shadow);margin-bottom:1.75rem;">
+          <div style="font-size:.8rem;font-weight:700;color:var(--primary);margin-bottom:1.25rem;">Milestone Timeline</div>
+          <div id="chart-deadlines"></div>
+        </div>
+        {% endif %}
+
+        <div class="section-hdr">
+          <h2>Quick Overview</h2>
+        </div>
+
+        <div class="cards-grid">
+
+          {% if project %}
+          <div class="dash-card" onclick="showSection('milestones', document.querySelector('[onclick*=milestones]'))">
+            <div class="card-body">
+              <div class="card-title" style="display:flex;align-items:center;justify-content:space-between;gap:.5rem;flex-wrap:wrap;">
+                {{ project.title }}
+                <span class="card-status-tag tag-active" style="position:static;">{{ project.get_status_display }}</span>
+              </div>
+              <div class="card-sub">{{ project.description|truncatechars:60 }}</div>
+              <div class="card-meta">
+                <span>{{ global_milestones|length }} milestones</span>
+              </div>
+            </div>
+          </div>
+          {% endif %}
+
+          {% if team %}
+          <div class="dash-card" onclick="showSection('team', document.querySelector('[onclick*=team]'))">
+            <div class="card-body">
+              <div class="card-title" style="display:flex;align-items:center;justify-content:space-between;gap:.5rem;flex-wrap:wrap;">
+                {{ team.name }}
+                <span class="card-status-tag tag-open" style="position:static;">{{ team_members|length }} Members</span>
+              </div>
+              <div class="card-sub">{{ user.department|default:"Your Team" }}</div>
+              <div class="card-meta">
+                <span>Active</span>
+              </div>
+            </div>
+          </div>
+          {% endif %}
+
+          {% if project.supervisor %}
+          <div class="dash-card" onclick="showSection('supervisors', document.querySelector('[onclick*=supervisors]'))">
+            <div class="card-body">
+              <div class="card-title" style="display:flex;align-items:center;justify-content:space-between;gap:.5rem;flex-wrap:wrap;">
+                {{ project.supervisor.full_name|default:project.supervisor.username }}
+                <span class="card-status-tag tag-done" style="position:static;">Assigned</span>
+              </div>
+              <div class="card-sub">Supervisor · {{ project.supervisor.department|default:"" }}</div>
+              <div class="card-meta">
+                <span>{{ project.supervisor.current_load }} team(s) supervised</span>
+              </div>
+            </div>
+          </div>
+          {% endif %}
+
+          <div class="dash-card" onclick="showSection('notifications', document.querySelector('[onclick*=notifications]'))">
+            <div class="card-body">
+              <div class="card-title" style="display:flex;align-items:center;justify-content:space-between;gap:.5rem;flex-wrap:wrap;">
+                Notifications
+                <span class="card-status-tag tag-pending" style="position:static;">{{ unread_count }} New</span>
+              </div>
+              <div class="card-sub">{% if unread_count %}{{ unread_count }} unread alert{{ unread_count|pluralize }}{% else %}All caught up{% endif %}</div>
+              <div class="card-meta">
+                {% if notifications %}<span>{{ notifications.0.created_at|timesince }} ago</span>{% endif %}
+              </div>
+            </div>
+          </div>
+
+        </div>
+
+      </section>
+
+
+      <section class="dash-section" id="sec-team">
+
+        {% if team %}
+        <div class="section-hdr">
+          <h2>My Team</h2>
+        </div>
+
+        <div class="team-card-big">
+          <div class="team-name-row">
+            <h3>{{ team.name }}</h3>
+            <span class="card-status-tag tag-active" style="position:static">Active</span>
+            {% if current_phase < 2 and membership.role == 'leader' %}
+            <button class="btn btn-outline btn-sm" onclick="openDeleteTeamModal()"
+              style="border-color:#ef4444;color:#ef4444;margin-left:auto;">Delete Team</button>
+            {% endif %}
+          </div>
+          <div class="member-list">
+            {% for m in team_members %}
+            {% if m.status == 'pending' %}
+            <div class="member-row" style="opacity:.55;">
+              <div class="member-avatar" style="background:rgba(100,116,139,.3);border:1px dashed rgba(100,116,139,.5);">⏳</div>
+              <div>
+                <div class="member-name" style="color:var(--text-muted);">{{ m.user.full_name|default:m.user.username }}</div>
+                <div class="member-id">{{ m.user.student_id|default:"" }}{% if m.user.department %} · {{ m.user.department }}{% endif %}</div>
+              </div>
+              <span class="member-role-badge" style="background:rgba(245,158,11,.15);color:#f59e0b;border:1px solid rgba(245,158,11,.3);">⏳ Pending</span>
+            </div>
+            {% else %}
+            <div class="member-row">
+              <div class="member-avatar" style="background:#E8EDF5;border:1px solid #D1DCE8;color:#1B2D52;font-size:.75rem;font-weight:700;">{{ m.user.full_name|default:m.user.username|first|upper }}</div>
+              <div>
+                <div class="member-name">{{ m.user.full_name|default:m.user.username }}</div>
+                <div class="member-id">{{ m.user.student_id|default:"" }}{% if m.user.department %} · {{ m.user.department }}{% endif %}</div>
+              </div>
+              {% if m.user == user %}
+                <span class="member-role-badge badge-leader">You ({{ m.role }})</span>
+                {% if current_phase < 2 and m.role != 'leader' %}
+                <button class="btn btn-outline btn-sm" onclick="openLeaveTeamModal()"
+                  style="border-color:#f59e0b;color:#f59e0b;padding:.25rem .6rem;margin-left:.5rem;">Exit</button>
+                {% endif %}
+              {% else %}
+                <span class="member-role-badge badge-member">{{ m.role|capfirst }}</span>
+                {% if membership.role == 'leader' %}
+                <form method="post" action="{% url 'teams:remove_member' m.pk %}" style="margin-left:.5rem;">
+                  {% csrf_token %}
+                  <button type="submit" class="btn btn-outline btn-sm"
+                    style="border-color:#ef4444;color:#ef4444;padding:.25rem .6rem;"
+                    onclick="return confirm('Remove {{ m.user.full_name|default:m.user.username }} from the team?')">
+                    ✕
+                  </button>
+                </form>
+                {% endif %}
+              {% endif %}
+            </div>
+            {% endif %}
+            {% endfor %}
+          </div>
+        </div>
+
+        {% if current_phase < 2 and membership.role == 'leader' %}
+        
+        <div class="section-hdr" style="margin-top:1.5rem;">
+          <h2>Invite a Member</h2>
+        </div>
+
+        <style>
+          .invite-wrap { position:relative; max-width:520px; }
+          .invite-row { display:flex; gap:.75rem; align-items:center; }
+          .invite-row .input-wrap { flex:1; margin:0; }
+          .search-dropdown { position:absolute; left:0; right:80px; top:calc(100% + 4px); z-index:100; background:#fff; border:1px solid #D1DCE8; border-radius:10px; overflow:hidden; box-shadow:0 8px 24px rgba(0,0,0,.15); }
+          .search-option { display:flex; align-items:center; gap:.75rem; padding:.65rem 1rem; cursor:pointer; transition:background .15s; }
+          .search-option:hover { background:rgba(27,45,82,.05); }
+          .search-option-avatar { width:32px; height:32px; border-radius:8px; background:linear-gradient(135deg,#1B2D52,#6B8CAE); display:grid; place-items:center; font-size:.8rem; font-weight:700; color:white; flex-shrink:0; }
+          .search-option-name { font-size:.85rem; font-weight:600; }
+          .search-option-meta { font-size:.73rem; color:var(--text-muted); }
+          .invite-selected-tag { font-size:.8rem; color:#22c55e; margin-top:.4rem; min-height:1rem; }
+        </style>
+
+        <form method="post" action="{% url 'teams:invite' %}" autocomplete="off">
+          {% csrf_token %}
+          <input type="hidden" name="username" id="invite-username-val" />
+          <div class="invite-wrap">
+            <div class="invite-row">
+              <div class="input-wrap">
+                <input type="text" id="invite-search-input" placeholder="Type a student's name..."
+                  name="q"
+                  hx-get="{% url 'teams:search_students' %}"
+                  hx-trigger="keyup changed delay:300ms"
+                  hx-target="#invite-search-results"
+                  oninput="document.getElementById('invite-username-val').value='';document.getElementById('invite-selected').textContent='';"
+                />
+              </div>
+              <button type="submit" class="btn btn-primary" style="white-space:nowrap;flex-shrink:0;">+ Send Invite</button>
+            </div>
+            <div id="invite-search-results"></div>
+            <div class="invite-selected-tag" id="invite-selected"></div>
+          </div>
+        </form>
+
+        <script>
+          function selectStudent(username, displayName) {
+            document.getElementById('invite-username-val').value = username;
+            document.getElementById('invite-search-input').value = displayName;
+            document.getElementById('invite-selected').textContent = 'Selected: ' + displayName;
+            document.getElementById('invite-search-results').innerHTML = '';
+          }
+        </script>
+        {% endif %}
+
+        {% if project %}
+        <div class="section-hdr" style="margin-top:1.5rem;"><h2>Our Project</h2></div>
+        <div style="background:var(--bg-card);border:1px solid var(--border);border-radius:14px;padding:18px 20px;">
+          <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-bottom:12px;">
+            <div>
+              <div style="font-size:.95rem;font-weight:700;color:#1B2D52;">{{ project.title }}</div>
+              {% if project.description %}<div style="font-size:.82rem;color:#64748b;margin-top:3px;line-height:1.5;">{{ project.description|truncatechars:120 }}</div>{% endif %}
+            </div>
+            <span class="card-status-tag tag-active" style="position:static;white-space:nowrap;">{{ project.get_status_display }}</span>
+          </div>
+          <div style="display:flex;flex-wrap:wrap;gap:14px;font-size:.82rem;color:#64748b;border-top:1px solid rgba(27,45,82,.08);padding-top:12px;">
+            {% if project.supervisor %}
+            <span>🧑‍🏫 <span style="color:#1B2D52;font-weight:600;">{{ project.supervisor.full_name|default:project.supervisor.username }}</span></span>
+            {% else %}
+            <span>🧑‍🏫 No supervisor yet</span>
+            {% endif %}
+            {% for r in project.reviewers.all %}
+            <span>📋 <span style="color:#1B2D52;font-weight:600;">{{ r.full_name|default:r.username }}</span></span>
+            {% endfor %}
+            <span>📌 {{ global_milestones|length }} milestone{{ global_milestones|length|pluralize }}</span>
+          </div>
+        </div>
+        {% endif %}
+
+        {% else %}
+        
+        <div class="section-hdr">
+          <h2>My Team</h2>
+        </div>
+
+        {% if pending_invite %}
+        
+        <div class="team-card-big" style="text-align:center;padding:2.5rem 2rem;margin-bottom:1.5rem;border:2px solid rgba(27,45,82,.4);">
+          <div style="font-size:2.5rem;margin-bottom:.75rem;">📬</div>
+          <h3 style="margin-bottom:.4rem;">Team Invitation</h3>
+          <p style="color:var(--text-muted);margin-bottom:1.5rem;">
+            You have been invited to join <strong>{{ pending_invite.team.name }}</strong>.
+          </p>
+          <div style="display:flex;gap:.75rem;justify-content:center;flex-wrap:wrap;">
+            <form method="post" action="{% url 'teams:accept_invite' pending_invite.pk %}">
+              {% csrf_token %}
+              <button type="submit" class="btn btn-primary">Accept</button>
+            </form>
+            <form method="post" action="{% url 'teams:decline_invite' pending_invite.pk %}">
+              {% csrf_token %}
+              <button type="submit" class="btn btn-outline" style="border-color:#ef4444;color:#ef4444;">Decline</button>
+            </form>
+          </div>
+        </div>
+
+        {% else %}
+        
+        <div class="team-card-big" style="text-align:center;padding:3rem 2rem;margin-bottom:1.5rem;">
+          <h3 style="margin-bottom:.5rem;">No Team Yet</h3>
+          <p style="color:var(--text-muted);margin-bottom:1.5rem;">Create a team and invite your classmates.</p>
+          <form method="post" action="{% url 'teams:create' %}" style="display:flex;gap:.75rem;justify-content:center;flex-wrap:wrap;">
+            {% csrf_token %}
+            <div class="input-wrap" style="width:260px;">
+              <input type="text" name="name" placeholder="Team name" required />
+            </div>
+            <button type="submit" class="btn btn-primary">Create Team</button>
+          </form>
+        </div>
+        {% endif %}
+
+        {% endif %}
+
+      </section>
+
+      
+      <section class="dash-section" id="sec-milestones">
+
+        <div class="section-hdr">
+          <h2>Milestones</h2>
+        </div>
+
+        {% if project %}
+
+        {% if membership.role == 'leader' %}
+        <div style="background:rgba(27,45,82,.04);border:1px solid rgba(27,45,82,.06);border-radius:14px;padding:16px 20px;margin-bottom:18px;">
+          <div style="display:flex;align-items:center;justify-content:space-between;cursor:pointer;gap:12px;" onclick="toggleEditProjectForm()">
+            <div style="font-size:.88rem;font-weight:700;color:var(--primary,#1B2D52);">✏️ Edit Project Details</div>
+            <span id="edit-project-arrow" style="color:#64748b;font-size:.85rem;transition:transform .2s;">▾</span>
+          </div>
+          {% if project.pending_edit %}
+          <div style="margin-top:10px;padding:10px 12px;background:rgba(245,158,11,.1);border:1px solid rgba(245,158,11,.3);border-radius:8px;font-size:.8rem;color:#fbbf24;">
+            ⏳ A change request is pending supervisor approval.
+            Proposed title: <strong>{{ project.pending_edit.new_title }}</strong>
+          </div>
+          {% endif %}
+          <div id="edit-project-form-wrap" style="display:none;margin-top:14px;">
+            <form method="post" action="{% url 'projects:propose_edit' project.pk %}">
+              {% csrf_token %}
+              <div style="display:flex;flex-direction:column;gap:10px;">
+                <div>
+                  <label style="font-size:.7rem;font-weight:700;text-transform:uppercase;letter-spacing:.4px;color:#64748b;display:block;margin-bottom:4px;">Title</label>
+                  <input type="text" name="new_title" value="{{ project.pending_edit.new_title|default:project.title }}"
+                         style="width:100%;background:#F5F8FC;border:1px solid #D1DCE8;border-radius:8px;padding:8px 12px;color:#1B2D52;font-size:.85rem;font-family:inherit;"
+                         required {% if project.pending_edit %}placeholder="Pending: {{ project.pending_edit.new_title }}"{% endif %} />
+                </div>
+                <div>
+                  <label style="font-size:.7rem;font-weight:700;text-transform:uppercase;letter-spacing:.4px;color:#64748b;display:block;margin-bottom:4px;">Description</label>
+                  <textarea name="new_description" rows="3"
+                            style="width:100%;background:#F5F8FC;border:1px solid #D1DCE8;border-radius:8px;padding:8px 12px;color:#1B2D52;font-size:.83rem;font-family:inherit;resize:vertical;box-sizing:border-box;">{{ project.pending_edit.new_description|default:project.description }}</textarea>
+                </div>
+                <div style="display:flex;gap:8px;">
+                  <button type="submit" style="padding:7px 16px;border-radius:7px;border:none;background:var(--primary);color:white;font-size:.8rem;font-weight:700;cursor:pointer;">
+                    {% if project.pending_edit %}Update Request{% else %}Submit for Approval{% endif %}
+                  </button>
+                </div>
+              </div>
+            </form>
+          </div>
+        </div>
+        <script>
+          function toggleEditProjectForm() {
+            var wrap  = document.getElementById('edit-project-form-wrap');
+            var arrow = document.getElementById('edit-project-arrow');
+            var open  = wrap.style.display === 'block';
+            wrap.style.display  = open ? 'none' : 'block';
+            arrow.style.transform = open ? '' : 'rotate(180deg)';
+          }
+        </script>
+        {% endif %}
+
+        {% if project.status == 'completed' %}
+        <div style="background:linear-gradient(135deg,#14401e,#15803d);border:1px solid rgba(34,197,94,.3);border-radius:14px;padding:18px 22px;margin-bottom:20px;display:flex;align-items:center;gap:14px;">
+          <div style="font-size:2rem;">🎓</div>
+          <div>
+            <div style="font-size:.95rem;font-weight:700;color:#4ade80;">Project Completed</div>
+            <div style="font-size:.82rem;color:#86efac;margin-top:2px;">This project has been marked as completed. Your work is saved in the archive.</div>
+          </div>
+        </div>
+        {% endif %}
+
+        {% if graded_weight > 0 %}
+        <div style="background:rgba(99,102,241,.06);border:1px solid rgba(99,102,241,.18);border-radius:13px;padding:16px 20px;margin-bottom:18px;display:flex;align-items:center;justify-content:space-between;gap:16px;">
+          <div>
+            <div style="font-size:.6rem;font-weight:800;text-transform:uppercase;letter-spacing:.6px;color:#6B8CAE;margin-bottom:5px;">Running Total</div>
+            <div style="font-size:2rem;font-weight:800;color:#a5b4fc;line-height:1;">{{ running_total }}<span style="font-size:.82rem;font-weight:500;color:#64748b;"> / {{ graded_weight }}</span></div>
+          </div>
+          <div style="text-align:right;">
+            <div style="font-size:.72rem;color:#64748b;line-height:1.5;">From <strong style="color:#94a3b8;">{{ graded_weight }}%</strong> of milestones graded</div>
+            <div style="font-size:.68rem;color:#6B7A99;margin-top:2px;">Updates after each milestone is fully graded</div>
+          </div>
+        </div>
+        {% endif %}
+
+        {% if global_milestones %}
+        <style>
+          .ms-layout { display:grid; grid-template-columns:280px 1fr; gap:14px; align-items:start; }
+          @media(max-width:860px) { .ms-layout { grid-template-columns:1fr; } }
+
+          /* Left list */
+          .ms-list { display:flex; flex-direction:column; gap:5px; }
+          .ms-li {
+            background:var(--bg-card); border:1px solid var(--border);
+            border-radius:11px; padding:11px 13px; cursor:pointer;
+            transition:border-color .2s, background .15s; user-select:none;
+          }
+          .ms-li:hover:not(.ms-li--locked) { border-color:rgba(27,45,82,.3); background:var(--bg-card2); }
+          .ms-li.active { border-color:var(--primary); background:rgba(27,45,82,.05); }
+          .ms-li.active .ms-li-title { color:var(--primary); }
+          .ms-li.active .ms-li-num { background:rgba(27,45,82,.15); border-color:rgba(27,45,82,.35); color:var(--primary); }
+          .ms-li.active .ms-li-due { color:var(--text-muted); }
+          .ms-li.active .ms-li-grade { color:#16a34a; }
+          .ms-li--locked { opacity:.38; cursor:default; }
+          .ms-li-row1 { display:flex; align-items:center; gap:7px; margin-bottom:5px; }
+          .ms-li-num {
+            width:20px; height:20px; border-radius:5px;
+            background:rgba(27,45,82,.08); border:1px solid rgba(27,45,82,.2);
+            color:var(--primary); font-size:.68rem; font-weight:800;
+            display:grid; place-items:center; flex-shrink:0;
+          }
+          .ms-li-title { font-size:.83rem; font-weight:700; color:var(--text); flex:1; min-width:0; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+          .ms-li-pill { font-size:.58rem; font-weight:800; letter-spacing:.4px; padding:2px 7px; border-radius:20px; text-transform:uppercase; flex-shrink:0; }
+          .ms-li-pill--pending   { background:rgba(100,116,139,.15); color:#64748b; }
+          .ms-li-pill--submitted { background:rgba(59,130,246,.12);  color:#2563eb; }
+          .ms-li-pill--locked    { background:rgba(100,116,139,.12); color:#94a3b8; }
+          .ms-li-sub { display:flex; align-items:center; justify-content:space-between; gap:8px; }
+          .ms-li-due { font-size:.7rem; color:var(--text-muted); }
+          .ms-li-grade { font-size:.88rem; font-weight:800; color:#16a34a; }
+          .ms-tbar { margin-top:7px; }
+          .ms-tbar-label { display:flex; justify-content:space-between; font-size:.65rem; color:var(--text-muted); margin-bottom:3px; }
+          .ms-tbar-track { height:3px; background:var(--border); border-radius:3px; overflow:hidden; }
+          .ms-tbar-fill { height:100%; background:linear-gradient(90deg,var(--primary),#6B8CAE); border-radius:3px; }
+
+          /* Right panel */
+          .ms-detail-wrap { background:var(--bg-card); border:1px solid var(--border); border-radius:13px; overflow:hidden; min-height:440px; }
+          .ms-detail-empty { display:flex; flex-direction:column; align-items:center; justify-content:center; min-height:440px; gap:10px; color:var(--text-muted); }
+          .ms-dp { display:none; }
+
+          /* Status banner */
+          .ms-sbanner { padding:11px 18px; display:flex; align-items:center; gap:9px; border-bottom:1px solid var(--border); font-size:.8rem; }
+          .ms-sbanner--pending   { background:var(--bg-card2); color:var(--text-muted); }
+          .ms-sbanner--submitted { background:rgba(59,130,246,.06); color:#2563eb; }
+          .ms-sdot { width:7px; height:7px; border-radius:50%; flex-shrink:0; }
+          .ms-sdot--pending   { background:#94a3b8; }
+          .ms-sdot--submitted { background:#3b82f6; box-shadow:0 0 5px rgba(59,130,246,.4); }
+          .ms-sbanner-label { font-weight:700; }
+          .ms-sbanner-date  { margin-left:auto; font-size:.7rem; color:var(--text-muted); }
+
+          /* Detail body */
+          .ms-dbody { padding:18px 20px; display:flex; flex-direction:column; gap:16px; }
+          .ms-dhdr { display:flex; align-items:flex-start; gap:10px; }
+          .ms-dnum { width:30px; height:30px; border-radius:8px; background:rgba(27,45,82,.08); border:1px solid rgba(27,45,82,.2); color:var(--primary); font-size:.82rem; font-weight:800; display:grid; place-items:center; flex-shrink:0; }
+          .ms-dtitle { font-size:1rem; font-weight:700; color:var(--text); margin-bottom:3px; }
+          .ms-dmeta { display:flex; gap:6px; align-items:center; flex-wrap:wrap; }
+          .ms-dweight { font-size:.7rem; color:var(--text-muted); background:var(--bg-card2); padding:2px 7px; border-radius:10px; border:1px solid var(--border); }
+          .ms-ddue { font-size:.72rem; font-weight:700; }
+
+          /* Grade block */
+          .ms-grade { padding:14px 16px; background:rgba(22,163,74,.04); border:1px solid rgba(22,163,74,.2); border-radius:10px; }
+          .ms-grade-lbl { font-size:.62rem; font-weight:700; text-transform:uppercase; letter-spacing:.5px; color:#16a34a; margin-bottom:6px; }
+          .ms-grade-score { font-size:2.2rem; font-weight:800; color:#16a34a; line-height:1; }
+          .ms-grade-score span { font-size:.8rem; font-weight:500; color:var(--text-muted); }
+          .ms-fb { display:flex; flex-direction:column; gap:6px; margin-top:10px; }
+          .ms-fb-card { padding:9px 11px; border-radius:8px; font-size:.8rem; }
+          .ms-fb-sup { background:rgba(27,45,82,.04); border:1px solid rgba(27,45,82,.15); }
+          .ms-fb-rev { background:rgba(5,150,105,.05); border:1px solid rgba(5,150,105,.18); }
+          .ms-fb-lbl { font-size:.62rem; font-weight:700; text-transform:uppercase; letter-spacing:.5px; margin-bottom:3px; }
+          .ms-fb-sup .ms-fb-lbl { color:var(--primary); }
+          .ms-fb-rev .ms-fb-lbl { color:#059669; }
+          .ms-fb-text { color:var(--text); line-height:1.55; }
+
+          /* Tasks section */
+          .ms-tasks-hdr { display:flex; align-items:center; gap:8px; padding-bottom:9px; border-bottom:1px solid var(--border); margin-bottom:10px; }
+          .ms-tasks-lbl { font-size:.75rem; font-weight:700; color:var(--text-muted); text-transform:uppercase; letter-spacing:.5px; flex:1; }
+          .ms-tasks-cnt { font-size:.72rem; color:var(--text-muted); }
+          .ms-tasks-ibar { width:56px; height:4px; background:var(--border); border-radius:3px; overflow:hidden; }
+          .ms-tasks-ifill { height:100%; background:linear-gradient(90deg,var(--primary),#6B8CAE); border-radius:3px; }
+          .ms-ti { display:flex; align-items:center; gap:8px; padding:9px 10px; background:var(--bg-card2); border:1px solid var(--border); border-radius:8px; margin-bottom:4px; transition:background .15s; }
+          .ms-ti:hover { background:rgba(27,45,82,.06); }
+          .ms-ti--done { opacity:.55; }
+          .ms-ti-av { width:28px; height:28px; border-radius:7px; background:#E8EDF5; border:1px solid var(--border); display:grid; place-items:center; font-size:.7rem; font-weight:800; color:var(--primary); flex-shrink:0; }
+          .ms-ti-info { flex:1; min-width:0; }
+          .ms-ti-name { font-size:.83rem; font-weight:600; color:var(--text); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+          .ms-ti-name--done { color:var(--text-muted); text-decoration:line-through; }
+          .ms-ti-sub { font-size:.7rem; color:var(--text-muted); }
+          .ms-ti-pill { font-size:.62rem; font-weight:700; padding:2px 8px; border-radius:20px; flex-shrink:0; }
+          .ms-ti-pill--todo { background:rgba(100,116,139,.12); color:#64748b; }
+          .ms-ti-pill--prog { background:rgba(59,130,246,.12);  color:#2563eb; }
+          .ms-ti-pill--done { background:rgba(22,163,74,.12);   color:#16a34a; }
+          .ms-ti-acts { display:flex; gap:3px; flex-shrink:0; }
+          .ms-ti-btn { font-size:.62rem; padding:3px 7px; border-radius:5px; border:1px solid; background:transparent; cursor:pointer; line-height:1; }
+          .ms-ti-btn--go { border-color:rgba(59,130,246,.5); color:#2563eb; }
+          .ms-ti-btn--ok { border-color:rgba(22,163,74,.5);  color:#16a34a; }
+          .ms-ti-btn--rm { border-color:rgba(239,68,68,.4);   color:#dc2626; }
+          .ms-tc { display:flex; gap:7px; flex-wrap:wrap; align-items:flex-end; margin-top:8px; padding-top:10px; border-top:1px dashed var(--border); }
+          .ms-tc input { background:var(--bg-card2); border:1px solid var(--border); border-radius:7px; padding:7px 10px; color:var(--text); font-size:.8rem; }
+          .ms-tc input:focus { outline:none; border-color:rgba(99,102,241,.5); }
+          .ms-dd { position:relative; }
+          .ms-dd-btn { background:var(--bg-card2); border:1px solid var(--border); border-radius:7px; padding:7px 10px; color:var(--text); font-size:.8rem; cursor:pointer; display:flex; align-items:center; justify-content:space-between; gap:8px; white-space:nowrap; min-width:110px; }
+          .ms-dd-btn:focus { outline:none; border-color:rgba(99,102,241,.5); }
+          .ms-dd-list { position:absolute; top:calc(100% + 4px); left:0; min-width:160px; background:#fff; border:1px solid var(--border); border-radius:8px; box-shadow:0 4px 14px rgba(0,0,0,.1); z-index:200; overflow:hidden; display:none; }
+          .ms-dd-opt { padding:8px 12px; font-size:.8rem; color:#1B2D52; cursor:pointer; }
+          .ms-dd-opt:hover { background:rgba(27,45,82,.07); }
+          .ms-tc input[type="text"] { flex:1; min-width:130px; }
+
+          /* Submit section */
+          .ms-sub-hdr { font-size:.75rem; font-weight:700; color:var(--text-muted); text-transform:uppercase; letter-spacing:.5px; margin-bottom:10px; padding-bottom:9px; border-bottom:1px solid var(--border); }
+          .ms-fi { width:100%; padding:9px; border:1px dashed rgba(27,45,82,.25); border-radius:8px; background:var(--bg-card2); color:var(--text); font-size:.82rem; margin-bottom:8px; box-sizing:border-box; }
+          .ms-fnotes { width:100%; padding:8px 11px; border:1px solid var(--border); border-radius:8px; background:var(--bg-card2); color:var(--text); font-size:.82rem; resize:vertical; margin-bottom:10px; box-sizing:border-box; }
+        </style>
+
+        <div class="ms-layout">
+
+          
+          <div class="ms-list">
+          {% for item in global_milestones %}
+          {% with m=item.milestone sub=item.submission %}
+
+          {% if m.start_date and m.start_date > today %}
+          <div class="ms-li ms-li--locked">
+            <div class="ms-li-row1">
+              <div class="ms-li-num">{{ m.order }}</div>
+              <div class="ms-li-title">{{ m.title }}</div>
+              <span class="ms-li-pill ms-li-pill--locked">Locked</span>
+            </div>
+            <div class="ms-li-sub"><div class="ms-li-due">Opens {{ m.start_date|date:"M d" }}</div></div>
+          </div>
+
+          {% elif sub %}
+          <div class="ms-li" id="ms-li-{{ m.pk }}" data-pk="{{ m.pk }}" onclick="selectMs({{ m.pk }})">
+            <div class="ms-li-row1">
+              <div class="ms-li-num">{{ m.order }}</div>
+              <div class="ms-li-title">{{ m.title }}</div>
+              <span class="ms-li-pill ms-li-pill--submitted">Submitted</span>
+            </div>
+            <div class="ms-li-sub">
+              {% if m.due_date %}<div class="ms-li-due ms-li-due-js" data-due="{{ m.due_date|date:'Y-m-d' }}"></div>{% endif %}
+              {% if item.all_graded and sub.grade is not None %}<div class="ms-li-grade">{{ sub.grade|floatformat:1 }}</div>{% endif %}
+            </div>
+            {% if item.task_total > 0 %}
+            <div class="ms-tbar"><div class="ms-tbar-label"><span>Tasks</span><span>{{ item.task_done }}/{{ item.task_total }}</span></div><div class="ms-tbar-track"><div class="ms-tbar-fill" style="width:{% widthratio item.task_done item.task_total 100 %}%"></div></div></div>
+            {% endif %}
+          </div>
+
+          {% else %}
+          <div class="ms-li" id="ms-li-{{ m.pk }}" data-pk="{{ m.pk }}" onclick="selectMs({{ m.pk }})">
+            <div class="ms-li-row1">
+              <div class="ms-li-num">{{ m.order }}</div>
+              <div class="ms-li-title">{{ m.title }}</div>
+              <span class="ms-li-pill ms-li-pill--pending">Not Submitted</span>
+            </div>
+            <div class="ms-li-sub">
+              {% if m.due_date %}<div class="ms-li-due ms-li-due-js" data-due="{{ m.due_date|date:'Y-m-d' }}"></div>{% endif %}
+            </div>
+            {% if item.task_total > 0 %}
+            <div class="ms-tbar"><div class="ms-tbar-label"><span>Tasks</span><span>{{ item.task_done }}/{{ item.task_total }}</span></div><div class="ms-tbar-track"><div class="ms-tbar-fill" style="width:{% widthratio item.task_done item.task_total 100 %}%"></div></div></div>
+            {% endif %}
+          </div>
+          {% endif %}
+
+          {% endwith %}
+          {% endfor %}
+          </div>
+
+          
+          <div class="ms-detail-wrap">
+            <div class="ms-detail-empty" id="ms-detail-empty">
+              <div style="font-size:2.8rem;opacity:.18;">📋</div>
+              <div style="font-size:.84rem;">Select a milestone</div>
+            </div>
+
+            {% for item in global_milestones %}
+            {% with m=item.milestone sub=item.submission tasks=item.tasks %}
+            {% if not m.start_date or m.start_date <= today %}
+            <div class="ms-dp" id="ms-dp-{{ m.pk }}">
+
+              
+              {% if sub %}
+              <div class="ms-sbanner ms-sbanner--submitted"><div class="ms-sdot ms-sdot--submitted"></div><span class="ms-sbanner-label">Submitted · Pending Review</span><span class="ms-sbanner-date">v{{ sub.version }} · {{ sub.submitted_at|date:"M d, Y" }}</span></div>
+              {% else %}
+              <div class="ms-sbanner ms-sbanner--pending"><div class="ms-sdot ms-sdot--pending"></div><span class="ms-sbanner-label">Not Submitted</span>{% if m.due_date %}<span class="ms-sbanner-date">Due {{ m.due_date|date:"M d, Y" }}</span>{% endif %}</div>
+              {% endif %}
+
+              <div class="ms-dbody">
+
+                
+                <div class="ms-dhdr">
+                  <div class="ms-dnum">{{ m.order }}</div>
+                  <div>
+                    <div class="ms-dtitle">{{ m.title }}</div>
+                    <div class="ms-dmeta">
+                      {% if m.weight %}<span class="ms-dweight">{{ m.weight }}% weight</span>{% endif %}
+                      {% if m.due_date %}<span class="ms-ddue ms-ddue-js" data-due="{{ m.due_date|date:'Y-m-d' }}"></span>{% endif %}
+                    </div>
+                  </div>
+                </div>
+
+                {% if m.description %}<p style="font-size:.82rem;color:#64748b;margin:0 0 8px;line-height:1.6;">{{ m.description }}</p>{% endif %}
+
+                {% if m.guide_file %}
+                <a href="{{ m.guide_file.url }}" target="_blank"
+                   style="display:inline-flex;align-items:center;gap:6px;padding:5px 12px;border:1px solid rgba(99,102,241,.35);border-radius:8px;font-size:.77rem;color:#6B8CAE;text-decoration:none;margin-bottom:8px;">
+                  📄 Download Milestone Guide
+                </a>
+                {% endif %}
+
+                
+                {% if sub and sub.grade is not None and item.all_graded %}
+                <div class="ms-grade">
+                  <div class="ms-grade-lbl">Final Grade</div>
+                  <div class="ms-grade-score">{{ sub.grade|floatformat:1 }}<span> / 100</span></div>
+                  <div class="ms-fb">
+                    {% if sub.supervisor_feedback %}<div class="ms-fb-card ms-fb-sup"><div class="ms-fb-lbl">Supervisor Feedback</div><div class="ms-fb-text">{{ sub.supervisor_feedback }}</div></div>{% endif %}
+                    {% for rg in sub.reviewer_grades.all %}{% if rg.feedback %}<div class="ms-fb-card ms-fb-rev"><div class="ms-fb-lbl">Reviewer Feedback ({{ rg.reviewer.full_name|default:rg.reviewer.username }})</div><div class="ms-fb-text">{{ rg.feedback }}</div></div>{% endif %}{% endfor %}
+                  </div>
+                </div>
+                {% elif sub %}
+                  {% if sub.supervisor_grade is not None or sub.reviewer_grades.exists %}
+                  <div style="padding:10px 13px;background:rgba(234,179,8,.05);border:1px solid rgba(234,179,8,.12);border-radius:9px;font-size:.8rem;color:#fbbf24;">⏳ Grading in progress — results appear once all graders submit.</div>
+                  {% endif %}
+                {% endif %}
+
+                
+                <div>
+                  <div class="ms-tasks-hdr">
+                    <div class="ms-tasks-lbl">Tasks</div>
+                    {% if item.task_total > 0 %}
+                    <div class="ms-tasks-cnt">{{ item.task_done }}/{{ item.task_total }} done</div>
+                    <div class="ms-tasks-ibar"><div class="ms-tasks-ifill" style="width:{% widthratio item.task_done item.task_total 100 %}%"></div></div>
+                    {% endif %}
+                  </div>
+
+                  {% if tasks %}
+                  {% for task in tasks %}
+                  <div class="ms-ti{% if task.status == 'done' %} ms-ti--done{% endif %}">
+                    <div class="ms-ti-av">{{ task.assigned_to.full_name|default:task.assigned_to.username|first|upper }}</div>
+                    <div class="ms-ti-info">
+                      <div class="ms-ti-name{% if task.status == 'done' %} ms-ti-name--done{% endif %}">{{ task.title }}</div>
+                      <div class="ms-ti-sub">{{ task.assigned_to.full_name|default:task.assigned_to.username }}{% if task.due_date %} · {{ task.due_date|date:"M d" }}{% endif %}</div>
+                      {% if task.description %}
+                      <div style="font-size:.73rem;color:#6B7A99;margin-top:3px;line-height:1.5;" id="desc-text-{{ task.pk }}">{{ task.description }}</div>
+                      {% elif membership.role == 'leader' %}
+                      <div style="font-size:.7rem;color:#D1DCE8;margin-top:2px;font-style:italic;" id="desc-text-{{ task.pk }}">No description — click ✎ to add</div>
+                      {% endif %}
+                      {% if membership.role == 'leader' %}
+                      <div id="desc-form-{{ task.pk }}" style="display:none;margin-top:5px;">
+                        <form method="post" action="{% url 'dashboard:student_update_task_description' task.pk %}">
+                          {% csrf_token %}
+                          <textarea name="description" rows="2" placeholder="Add a description…"
+                                    style="width:100%;background:rgba(27,45,82,.05);border:1px solid rgba(255,255,255,.12);border-radius:6px;padding:5px 8px;color:#e2e8f0;font-size:.75rem;font-family:inherit;resize:none;box-sizing:border-box;">{{ task.description }}</textarea>
+                          <div style="display:flex;gap:5px;margin-top:4px;">
+                            <button type="submit" style="font-size:.68rem;padding:2px 8px;border-radius:5px;border:none;background:var(--primary);color:white;cursor:pointer;">Save</button>
+                            <button type="button" onclick="document.getElementById('desc-form-{{ task.pk }}').style.display='none'" style="font-size:.68rem;padding:2px 8px;border-radius:5px;border:1px solid rgba(255,255,255,.15);background:transparent;color:#94a3b8;cursor:pointer;">Cancel</button>
+                          </div>
+                        </form>
+                      </div>
+                      {% endif %}
+                    </div>
+                    <span class="ms-ti-pill {% if task.status == 'todo' %}ms-ti-pill--todo{% elif task.status == 'in_progress' %}ms-ti-pill--prog{% else %}ms-ti-pill--done{% endif %}">{{ task.get_status_display }}</span>
+                    {% if task.assigned_to == user or membership.role == 'leader' %}
+                    <div class="ms-ti-acts">
+                      {% if task.status == 'todo' %}<form method="post" action="{% url 'dashboard:student_update_task' task.pk %}">{% csrf_token %}<input type="hidden" name="status" value="in_progress"><button type="submit" class="ms-ti-btn ms-ti-btn--go" title="Start">▶</button></form>{% endif %}
+                      {% if task.status != 'done' %}<form method="post" action="{% url 'dashboard:student_update_task' task.pk %}">{% csrf_token %}<input type="hidden" name="status" value="done"><button type="submit" class="ms-ti-btn ms-ti-btn--ok" title="Done">✔</button></form>{% endif %}
+                      {% if membership.role == 'leader' %}<button type="button" class="ms-ti-btn" title="Edit description" onclick="document.getElementById('desc-form-{{ task.pk }}').style.display='block'" style="font-size:.72rem;">✎</button>{% endif %}
+                      {% if membership.role == 'leader' %}<form method="post" action="{% url 'dashboard:student_delete_task' task.pk %}">{% csrf_token %}<button type="submit" class="ms-ti-btn ms-ti-btn--rm" title="Delete">✕</button></form>{% endif %}
+                    </div>
+                    {% endif %}
+                  </div>
+                  {% endfor %}
+                  {% else %}
+                  <div style="text-align:center;padding:20px 0;font-size:.82rem;color:#D1DCE8;">No tasks yet for this milestone.</div>
+                  {% endif %}
+
+                  {% if membership.role == 'leader' and project %}
+                  <form method="post" action="{% url 'dashboard:student_create_task' m.pk %}" class="ms-tc">
+                    {% csrf_token %}
+                    <input type="text" name="title" placeholder="New task…" required style="grid-column:1/-1;">
+                    <textarea name="description" placeholder="Description (optional)…" rows="2"
+                              style="grid-column:1/-1;background:var(--bg-card2);border:1px solid var(--border);border-radius:7px;padding:6px 10px;color:var(--text);font-size:.78rem;font-family:inherit;resize:none;"></textarea>
+                    <input type="hidden" name="assigned_to" id="at-val-{{ m.pk }}">
+                    <div class="ms-dd" id="ms-dd-{{ m.pk }}">
+                      <button type="button" class="ms-dd-btn" onclick="msDdToggle('{{ m.pk }}')">
+                        <span id="at-lbl-{{ m.pk }}" style="color:var(--text-muted);">Assign to…</span>
+                        <svg xmlns="http://www.w3.org/2000/svg" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
+                      </button>
+                      <div class="ms-dd-list" id="ms-dd-list-{{ m.pk }}">
+                        {% for tm in team_members %}{% if tm.status == 'active' %}
+                        <div class="ms-dd-opt" data-dd="{{ m.pk }}" data-val="{{ tm.user.pk }}" data-lbl="{{ tm.user.full_name|default:tm.user.username }}" onclick="msDdSelect(this)">{{ tm.user.full_name|default:tm.user.username }}</div>
+                        {% endif %}{% endfor %}
+                      </div>
+                    </div>
+                    <input type="date" name="due_date">
+                    <button type="submit" class="btn btn-primary btn-sm">+ Add</button>
+                  </form>
+                  {% endif %}
+                </div>
+
+                
+                <div>
+                  <div class="ms-sub-hdr">Submission</div>
+                  {% if sub %}
+                  <div style="padding:9px 12px;background:rgba(27,45,82,.06);border:1px solid rgba(27,45,82,.11);border-radius:8px;font-size:.79rem;color:#94a3b8;margin-bottom:10px;">
+                    v{{ sub.version }} · {{ sub.submitted_at|date:"M d, Y · g:i A" }} by {{ sub.submitted_by.full_name|default:sub.submitted_by.username }}
+                    {% if sub.files.exists %}
+                    <div style="margin-top:6px;display:flex;flex-wrap:wrap;gap:4px;">
+                      {% for f in sub.files.all %}<a href="{{ f.file.url }}" target="_blank" style="display:inline-flex;align-items:center;gap:4px;padding:3px 8px;border:1px solid rgba(27,45,82,.28);border-radius:5px;font-size:.71rem;color:#60a5fa;text-decoration:none;">📎 {{ f.file_name|truncatechars:22 }}</a>{% endfor %}
+                    </div>
+                    {% endif %}
+                    {% if sub.notes %}<div style="margin-top:5px;font-style:italic;color:#64748b;">{{ sub.notes }}</div>{% endif %}
+                  </div>
+                  {% endif %}
+                  {% if project.status == 'completed' %}
+                  <div style="text-align:center;padding:13px;font-size:.82rem;color:#4ade80;border:1px dashed rgba(34,197,94,.18);border-radius:8px;">🎓 Project completed.</div>
+                  {% elif current_phase < 2 %}
+                  <div style="text-align:center;padding:13px;font-size:.82rem;color:#64748b;border:1px dashed rgba(27,45,82,.05);border-radius:8px;">🔒 Submissions open in Phase 2.</div>
+                  {% elif membership.role == 'leader' %}
+                  {% if item.subs_maxed %}
+                  <div style="text-align:center;padding:13px;font-size:.82rem;color:#f87171;border:1px dashed rgba(239,68,68,.25);border-radius:8px;">✗ Submission limit reached ({{ item.subs_used }}/{{ item.subs_used }}).</div>
+                  {% else %}
+                  <form method="post" action="{% url 'dashboard:student_submit_milestone' m.pk %}" enctype="multipart/form-data">
+                    {% csrf_token %}
+                    <div style="font-size:.74rem;color:#64748b;margin-bottom:6px;">
+                      {% if sub %}Resubmit (v{{ sub.version|add:1 }}):{% else %}Upload deliverable files:{% endif %}
+                      <span style="float:right;color:#94a3b8;">{{ item.subs_remaining }} submission{{ item.subs_remaining|pluralize }} remaining · max 3 files</span>
+                    </div>
+                    <input type="file" name="files" class="ms-fi" multiple required>
+                    <textarea name="notes" class="ms-fnotes" rows="2" placeholder="Notes (optional)…"></textarea>
+                    <button type="submit" class="btn btn-primary" style="width:100%;justify-content:center;">{% if sub %}↑ Resubmit{% else %}📤 Submit{% endif %}</button>
+                  </form>
+                  {% endif %}
+                  {% else %}
+                  <div style="text-align:center;padding:13px;font-size:.82rem;color:#64748b;border:1px dashed rgba(27,45,82,.05);border-radius:8px;">🔑 Only the team leader can submit.</div>
+                  {% endif %}
+                </div>
+
+              </div>
+            </div>
+            {% endif %}
+            {% endwith %}
+            {% endfor %}
+          </div>
+
+        </div>
+
+        <script>
+          var _selMs = null;
+          function selectMs(pk) {
+            if (_selMs !== null) {
+              var ol = document.getElementById('ms-li-' + _selMs);
+              var od = document.getElementById('ms-dp-' + _selMs);
+              if (ol) ol.classList.remove('active');
+              if (od) od.style.display = 'none';
+            }
+            if (_selMs === pk) {
+              document.getElementById('ms-detail-empty').style.display = 'flex';
+              _selMs = null;
+              return;
+            }
+            document.getElementById('ms-detail-empty').style.display = 'none';
+            var li = document.getElementById('ms-li-' + pk);
+            var dp = document.getElementById('ms-dp-' + pk);
+            if (li) li.classList.add('active');
+            if (dp) dp.style.display = 'block';
+            _selMs = pk;
+          }
+          function applyCountdown(el) {
+            if (!el.dataset.due) return;
+            var diff = Math.round((new Date(el.dataset.due + 'T23:59:59') - new Date()) / 86400000);
+            if (diff < 0)        { el.textContent = '⚠ ' + Math.abs(diff) + 'd overdue'; el.style.color = '#f87171'; }
+            else if (diff === 0) { el.textContent = '⚠ Due today';                        el.style.color = '#f87171'; }
+            else if (diff <= 5)  { el.textContent = diff + 'd left';                       el.style.color = '#f87171'; }
+            else if (diff <= 14) { el.textContent = diff + 'd left';                       el.style.color = '#fbbf24'; }
+            else                 { el.textContent = diff + 'd left';                       el.style.color = '#4ade80'; }
+          }
+          document.querySelectorAll('.ms-li-due-js, .ms-ddue-js').forEach(applyCountdown);
+          (function() {
+            var first = document.querySelector('.ms-li:not(.ms-li--locked)');
+            if (first) selectMs(parseInt(first.dataset.pk));
+          })();
+        </script>
+        {% endif %}
+
+        {% else %}
+        <div class="team-card-big" style="text-align:center;padding:3rem 2rem;">
+          <h3 style="margin-bottom:.5rem;">No Project Yet</h3>
+          <p style="color:var(--text-muted);">Your team needs a supervisor and an approved project to get started.</p>
+        </div>
+        {% endif %}
+
+      </section>
+
+      
+      <section class="dash-section" id="sec-supervisors">
+
+        <div class="section-hdr">
+          <h2>Available Supervisors</h2>
+          {% if current_phase >= 2 %}
+            <span style="font-size:.85rem;color:#f87171;">🔒 Phase 2 — requests locked</span>
+          {% elif not project.supervisor and team %}
+            <span style="font-size:.85rem;color:var(--text-muted);">Request a supervisor for your team</span>
+          {% endif %}
+        </div>
+
+        {% if current_phase >= 2 %}
+        
+        {% if project and project.supervisor %}
+        <div style="margin-bottom:1.25rem;">
+          <div style="font-size:.72rem;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:#64748b;margin-bottom:8px;">Your Supervisor</div>
+          <details style="background:#fff;border:1px solid #D1DCE8;border-radius:12px;overflow:hidden;box-shadow:0 2px 8px rgba(27,45,82,.06);">
+            <summary style="display:flex;align-items:center;gap:12px;padding:12px 16px;cursor:pointer;list-style:none;">
+              <div style="width:38px;height:38px;border-radius:9px;background:linear-gradient(135deg,#0F1E3A,#6B8CAE);display:grid;place-items:center;font-size:1.1rem;flex-shrink:0;">🧑‍🏫</div>
+              <div style="flex:1;min-width:0;">
+                <div style="font-weight:700;font-size:.9rem;color:#1B2D52;">{{ project.supervisor.full_name|default:project.supervisor.username }}</div>
+                <div style="font-size:.74rem;color:#6B7A99;">{{ project.supervisor.department|default:"Supervisor" }}</div>
+              </div>
+              <span style="color:#6B7A99;font-size:.8rem;">▾</span>
+            </summary>
+            <div style="padding:10px 16px 14px;border-top:1px solid #D1DCE8;font-size:.82rem;color:#6B7A99;">
+              {% if project.supervisor.expertise %}<div style="margin-bottom:6px;"><strong style="color:#1B2D52;">Expertise:</strong> {{ project.supervisor.expertise }}</div>{% endif %}
+              {% if project.supervisor.office_hours %}<div><strong style="color:#1B2D52;">Office Hours:</strong> {{ project.supervisor.office_hours }}</div>{% endif %}
+            </div>
+          </details>
+        </div>
+        {% endif %}
+        {% with reviewers=project.reviewers.all %}
+        {% if reviewers %}
+        <div style="margin-bottom:1.25rem;">
+          <div style="font-size:.72rem;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:#64748b;margin-bottom:8px;">Your Reviewers</div>
+          {% for rev in reviewers %}
+          <details style="background:#fff;border:1px solid #D1DCE8;border-radius:12px;overflow:hidden;margin-bottom:6px;box-shadow:0 2px 8px rgba(27,45,82,.06);">
+            <summary style="display:flex;align-items:center;gap:12px;padding:12px 16px;cursor:pointer;list-style:none;">
+              <div style="width:38px;height:38px;border-radius:9px;background:linear-gradient(135deg,#059669,#0284c7);display:grid;place-items:center;font-size:1.1rem;flex-shrink:0;">📋</div>
+              <div style="flex:1;min-width:0;">
+                <div style="font-weight:700;font-size:.9rem;color:#1B2D52;">{{ rev.full_name|default:rev.username }}</div>
+                <div style="font-size:.74rem;color:#6B7A99;">{{ rev.department|default:"Reviewer" }}</div>
+              </div>
+              <span style="color:#6B7A99;font-size:.8rem;">▾</span>
+            </summary>
+            <div style="padding:10px 16px 14px;border-top:1px solid #D1DCE8;font-size:.82rem;color:#6B7A99;">
+              {% if rev.expertise %}<div><strong style="color:#1B2D52;">Expertise:</strong> {{ rev.expertise }}</div>{% endif %}
+            </div>
+          </details>
+          {% endfor %}
+        </div>
+        {% endif %}
+        {% endwith %}
+        {% if not project or not project.supervisor %}
+        <div style="text-align:center;padding:3rem 1rem;color:#64748b;font-size:.85rem;">No supervisor assigned yet.</div>
+        {% endif %}
+
+        {% else %}
+        {% if pending_request %}
+        <div style="background:rgba(245,158,11,.1);border:1px solid rgba(245,158,11,.3);border-radius:var(--radius);padding:1rem 1.25rem;margin-bottom:1.5rem;font-size:.9rem;color:#fcd34d;">
+          ⏳ Your supervision request is pending a response from
+          <strong>{{ pending_request.supervisor.full_name|default:pending_request.supervisor.username }}</strong>.
+        </div>
+        {% endif %}
+
+        <div class="supervisor-grid">
+          {% for sup in supervisors %}
+          <div class="supervisor-card {% if project.supervisor == sup %}sup-card--active{% endif %}">
+            <div class="sup-header" onclick="toggleSupCard(this.closest('.supervisor-card'))" style="cursor:pointer;">
+              <div class="sup-avatar" style="background:linear-gradient(135deg,#0F1E3A,#6B8CAE)">🧑‍🏫</div>
+              <div style="flex:1;min-width:0;">
+                <div class="sup-name">{{ sup.full_name|default:sup.username }}</div>
+                <div class="sup-dept">{{ sup.department|default:"Faculty" }}</div>
+              </div>
+              <span class="sup-chevron">▾</span>
+            </div>
+
+            <div class="sup-expand">
+              {% if sup.expertise %}
+              <div class="sup-expand-section">
+                <div class="sup-expand-label">Expertise</div>
+                <div class="sup-tags">
+                  {% for area in sup.expertise.splitlines %}
+                    {% if area.strip %}<span class="sup-tag">{{ area.strip }}</span>{% endif %}
+                  {% endfor %}
+                </div>
+              </div>
+              {% endif %}
+              {% if sup.bio %}
+              <div class="sup-expand-section">
+                <div class="sup-expand-label">About</div>
+                <p class="sup-expand-text">{{ sup.bio }}</p>
+              </div>
+              {% endif %}
+              {% if sup.past_projects %}
+              <div class="sup-expand-section">
+                <div class="sup-expand-label">Previous Projects</div>
+                <p class="sup-expand-text">{{ sup.past_projects }}</p>
+              </div>
+              {% endif %}
+              {% if sup.office_hours %}
+              <div class="sup-expand-section">
+                <div class="sup-expand-label">Office Hours</div>
+                <p class="sup-expand-text">🕐 {{ sup.office_hours }}</p>
+              </div>
+              {% endif %}
+            </div>
+
+            <div class="sup-footer">
+              <span class="sup-slots">Load: <span>{{ sup.current_load }} / {{ sup.max_teams_supervise }}</span></span>
+              {% if project.supervisor == sup %}
+                <button class="btn btn-primary btn-sm" disabled style="opacity:.6;cursor:default;">✓ Your Supervisor</button>
+              {% elif current_phase >= 2 %}
+                <button class="btn btn-outline btn-sm" disabled style="opacity:.4;cursor:default;">Locked</button>
+              {% elif not team %}
+                <span style="font-size:.8rem;color:var(--text-muted);">Join a team first</span>
+              {% elif membership.role != 'leader' %}
+                <button class="btn btn-outline btn-sm" disabled style="opacity:.4;cursor:default;">Leaders only</button>
+              {% elif pending_request %}
+                {% if sup == pending_request.supervisor %}
+                  <button class="btn btn-outline btn-sm" disabled style="opacity:.5;">Request Pending</button>
+                {% else %}
+                  <button class="btn btn-outline btn-sm" disabled style="opacity:.25;cursor:not-allowed;">Unavailable</button>
+                {% endif %}
+              {% elif sup.is_at_capacity %}
+                <button class="btn btn-outline btn-sm" disabled style="opacity:.5;">Full</button>
+              {% else %}
+                <button class="btn btn-outline btn-sm" onclick="openRequestModal('{{ sup.pk }}', '{{ sup.full_name|default:sup.username }}')">Request</button>
+              {% endif %}
+            </div>
+          </div>
+          {% empty %}
+          <p style="color:var(--text-muted);">No supervisors available at the moment.</p>
+          {% endfor %}
+        </div>
+
+        {% endif %}
+
+      </section>
+
+      
+      <section class="dash-section" id="sec-meetings">
+        {% include 'meetings/_calendar_section.html' %}
+      </section>
+
+      
+      <section class="dash-section" id="sec-notifications">
+
+        <div class="section-hdr">
+          <h2>Notifications</h2>
+          <div style="display:flex;gap:8px;align-items:center;">
+            {% if unread_count %}
+            <button type="button" class="btn btn-ghost btn-sm" id="mark-all-read-btn" onclick="markAllRead()">Mark all read</button>
+            {% endif %}
+            {% if notifications %}
+            <form method="post" action="{% url 'notifications:delete_all' %}" onsubmit="return confirm('Delete all notifications?');">
+              {% csrf_token %}
+              <button type="submit" class="btn btn-ghost btn-sm" style="color:var(--red);">Delete All</button>
+            </form>
+            {% endif %}
+          </div>
+        </div>
+
+        <div class="notif-list">
+          {% for n in notifications %}
+          <div class="notif-item {% if not n.is_read %}unread{% endif %}"
+               onclick="openNotif('{{ n.type }}')" style="cursor:pointer;">
+            <span class="notif-icon">
+              {% if n.type == 'invite' %}📬
+              {% elif n.type == 'meeting' %}📅
+              {% elif n.type == 'approval' %}✅
+              {% elif n.type == 'feedback' %}💬
+              {% elif n.type == 'deadline' %}⏰
+              {% elif n.type == 'risk' %}⚠️
+              {% else %}🔔{% endif %}
+            </span>
+            <div class="notif-body">
+              <div class="notif-title">{{ n.title }}</div>
+              <div class="notif-desc">{{ n.message }}</div>
+              <div class="notif-time">{{ n.created_at|timesince }} ago</div>
+            </div>
+            <span style="font-size:.8rem;color:#6B7A99;flex-shrink:0;">→</span>
+          </div>
+          {% empty %}
+          <div style="text-align:center;padding:2rem;color:var(--text-muted);">No notifications yet.</div>
+          {% endfor %}
+        </div>
+
+      </section>
+
+      
+      <section class="dash-section" id="sec-archive">
+        <div class="section-hdr">
+          <h2>Project Archive</h2>
+          <span style="font-size:.82rem;color:var(--text-muted);">{{ archive_data|length }} completed project{{ archive_data|length|pluralize }}</span>
+        </div>
+
+        <div style="margin-bottom:1rem;">
+          <input type="text" id="arc-search" class="form-input" placeholder="Search by project title, team, or supervisor..." oninput="filterStudentArchive(this.value)" style="max-width:400px;">
+        </div>
+
+        {% if archive_data %}
+        <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(290px,1fr));gap:16px;" id="arc-student-grid">
+          {% for item in archive_data %}
+          <div style="background:var(--bg-card);border:1px solid var(--border);border-radius:14px;overflow:hidden;transition:border-color .2s;" id="arc-{{ forloop.counter }}" data-arc-text="{{ item.project.title|lower }}{% if item.project.team %} {{ item.project.team.name|lower }}{% endif %}{% if item.project.supervisor %} {{ item.project.supervisor.full_name|default:item.project.supervisor.username|lower }}{% endif %}{% for m in item.members %} {{ m.user.full_name|default:m.user.username|lower }}{% endfor %}">
+            <div style="background:linear-gradient(135deg,#1B2D52,#243D6B);padding:18px;display:flex;align-items:center;gap:12px;cursor:pointer;" onclick="toggleArc('{{ forloop.counter }}')">
+              <div style="width:44px;height:44px;border-radius:10px;background:rgba(255,255,255,.15);display:grid;place-items:center;font-size:1.2rem;font-weight:700;color:white;flex-shrink:0;">{{ item.project.title|first|upper }}</div>
+              <div style="flex:1;min-width:0;">
+                <div style="font-size:.9rem;font-weight:700;color:white;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">{{ item.project.title }}</div>
+                <div style="font-size:.72rem;color:rgba(255,255,255,.55);margin-top:2px;">
+                  {% if item.project.approved_at %}{{ item.project.approved_at|date:"Y" }}{% else %}{{ item.project.created_at|date:"Y" }}{% endif %}
+                  {% if item.project.supervisor %} · {{ item.project.supervisor.full_name|default:item.project.supervisor.username }}{% endif %}
+                </div>
+              </div>
+              <span style="color:rgba(255,255,255,.4);font-size:.7rem;transition:transform .2s;" id="arc-arrow-{{ forloop.counter }}">▾</span>
+            </div>
+            <div style="padding:14px;display:flex;align-items:center;justify-content:space-between;cursor:pointer;" onclick="toggleArc('{{ forloop.counter }}')">
+              <div style="display:flex;gap:6px;flex-wrap:wrap;">
+                {% if item.project.supervisor %}<span style="background:rgba(99,102,241,.15);color:#6B8CAE;border-radius:20px;padding:2px 9px;font-size:.7rem;font-weight:600;">{{ item.project.supervisor.full_name|default:item.project.supervisor.username }}</span>{% endif %}
+                <span style="background:rgba(99,102,241,.15);color:#6B8CAE;border-radius:20px;padding:2px 9px;font-size:.7rem;font-weight:600;">{{ item.project.team.name }}</span>
+              </div>
+              <span style="font-size:.72rem;color:var(--text-muted);">{{ item.project.supervisor.department|default:"CIS" }}</span>
+            </div>
+            <div style="display:none;border-top:1px solid var(--border);padding:16px;background:var(--bg-card2);" id="arc-body-{{ forloop.counter }}">
+              <div style="font-size:.7rem;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--text-muted);margin-bottom:5px;">Description</div>
+              <div style="font-size:.83rem;color:var(--text);line-height:1.6;margin-bottom:14px;">{{ item.project.description|default:"No description provided." }}</div>
+              <div style="font-size:.7rem;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--text-muted);margin-bottom:8px;">Team Members</div>
+              <div style="display:flex;flex-wrap:wrap;gap:7px;margin-bottom:14px;">
+                {% for m in item.members %}
+                <div style="display:flex;align-items:center;gap:6px;background:var(--bg-card);border:1px solid var(--border);border-radius:20px;padding:3px 9px;font-size:.74rem;">
+                  <div style="width:20px;height:20px;border-radius:50%;background:rgba(99,102,241,.2);color:#6B8CAE;display:grid;place-items:center;font-size:.6rem;font-weight:700;">{{ m.user.full_name|default:m.user.username|first|upper }}</div>
+                  {{ m.user.full_name|default:m.user.username }}
+                </div>
+                {% empty %}<span style="font-size:.8rem;color:var(--text-muted);">No members found.</span>{% endfor %}
+              </div>
+              {% if item.final_files %}
+              <div style="font-size:.7rem;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--text-muted);margin-bottom:8px;">Final Submission</div>
+              {% for f in item.final_files %}
+              <a href="{{ f.file.url }}" download style="display:inline-flex;align-items:center;gap:7px;background:var(--primary);color:white;border-radius:8px;padding:7px 14px;font-size:.8rem;font-weight:600;text-decoration:none;">⬇ {{ f.file_name|default:"Download Report" }}</a>
+              {% endfor %}
+              {% else %}
+              <span style="font-size:.8rem;color:var(--text-muted);font-style:italic;">No final submission file available.</span>
+              {% endif %}
+              {% if item.links %}
+              <div style="font-size:.7rem;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--text-muted);margin-bottom:8px;margin-top:14px;">Project Links</div>
+              <div style="display:flex;flex-direction:column;gap:6px;">
+                {% for lnk in item.links %}
+                <a href="{{ lnk.url }}" target="_blank" rel="noopener" style="font-size:.85rem;color:#3b82f6;font-weight:500;">🔗 {{ lnk.label }}</a>
+                {% endfor %}
+              </div>
+              {% endif %}
+            </div>
+          </div>
+          {% endfor %}
+        </div>
+        {% else %}
+        <div style="text-align:center;padding:4rem;color:var(--text-muted);">
+          <p>No archived projects yet. Completed projects will appear here.</p>
+        </div>
+        {% endif %}
+      </section>
+
+
+      <section class="dash-section" id="sec-profile">
+        <div class="section-hdr"><h2>My Profile</h2></div>
+        <div style="max-width:700px;">
+
+          <div class="settings-card" style="margin-bottom:1.25rem;">
+            <h3>Account Information</h3>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:.75rem 1.5rem;">
+              <div>
+                <div style="font-size:.68rem;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--text-muted);margin-bottom:.3rem;">Full Name</div>
+                <div style="font-size:.9rem;font-weight:600;">{{ user.full_name|default:"—" }}</div>
+              </div>
+              <div>
+                <div style="font-size:.68rem;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--text-muted);margin-bottom:.3rem;">Username</div>
+                <div style="font-size:.9rem;font-weight:600;">{{ user.username }}</div>
+              </div>
+              <div>
+                <div style="font-size:.68rem;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--text-muted);margin-bottom:.3rem;">Email</div>
+                <div style="font-size:.9rem;font-weight:600;">{{ user.email|default:"—" }}</div>
+              </div>
+              <div>
+                <div style="font-size:.68rem;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--text-muted);margin-bottom:.3rem;">Student ID</div>
+                <div style="font-size:.9rem;font-weight:600;">{{ user.student_id|default:"—" }}</div>
+              </div>
+              <div>
+                <div style="font-size:.68rem;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--text-muted);margin-bottom:.3rem;">Department</div>
+                <div style="font-size:.9rem;font-weight:600;">{{ user.department|default:"—" }}</div>
+              </div>
+              <div>
+                <div style="font-size:.68rem;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--text-muted);margin-bottom:.3rem;">Gender</div>
+                <div style="font-size:.9rem;font-weight:600;">{{ user.get_gender_display|default:"—" }}</div>
+              </div>
+            </div>
+            <p style="font-size:.75rem;color:var(--text-muted);margin-top:.85rem;">To change your name, email, or other account details contact the administrator.</p>
+          </div>
+
+          <form method="post" action="{% url 'dashboard:student_edit_profile' %}">
+            {% csrf_token %}
+            <input type="hidden" name="action" value="bio">
+            <div class="settings-card" style="margin-bottom:1rem;">
+              <h3>About Me</h3>
+              <div class="form-group" style="margin-bottom:0;">
+                <label>Bio / Description</label>
+                <textarea name="bio" class="form-input" style="min-height:120px;" placeholder="Introduce yourself — your interests, goals, or anything you'd like your supervisor to know...">{{ user.bio }}</textarea>
+                <span style="font-size:.72rem;color:var(--text-muted);margin-top:.35rem;display:block;">This may be visible to your supervisor.</span>
+              </div>
+            </div>
+            <div style="display:flex;gap:.75rem;margin-bottom:1.5rem;">
+              <button type="submit" class="btn btn-primary btn-sm">Save Profile</button>
+            </div>
+          </form>
+
+          <form method="post" action="{% url 'dashboard:student_edit_profile' %}">
+            {% csrf_token %}
+            <input type="hidden" name="action" value="password">
+            <div class="settings-card" style="margin-bottom:1rem;">
+              <h3>Change Password</h3>
+              <div class="form-group">
+                <label>Current Password</label>
+                <input type="password" name="current_password" class="form-input" required autocomplete="current-password">
+              </div>
+              <div class="form-group">
+                <label>New Password</label>
+                <div style="position:relative;">
+                  <input type="password" name="new_password" id="prof-new-pw" class="form-input" required autocomplete="new-password"
+                         oninput="profCheckPwStrength(this.value)" style="padding-right:40px;">
+                  <button type="button" onclick="profTogglePw('prof-new-pw','prof-eye1','prof-eye1off')"
+                          style="position:absolute;right:10px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;color:var(--text-muted);padding:0;line-height:1;">
+                    <svg id="prof-eye1" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+                    <svg id="prof-eye1off" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:none;"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/></svg>
+                  </button>
+                </div>
+                <div style="display:flex;gap:4px;margin-top:8px;">
+                  <div id="prof-pw-bar1" style="flex:1;height:4px;border-radius:2px;background:var(--border);transition:background .2s;"></div>
+                  <div id="prof-pw-bar2" style="flex:1;height:4px;border-radius:2px;background:var(--border);transition:background .2s;"></div>
+                  <div id="prof-pw-bar3" style="flex:1;height:4px;border-radius:2px;background:var(--border);transition:background .2s;"></div>
+                  <div id="prof-pw-bar4" style="flex:1;height:4px;border-radius:2px;background:var(--border);transition:background .2s;"></div>
+                </div>
+                <div style="margin-top:6px;display:flex;flex-direction:column;gap:3px;">
+                  <span id="prof-rule-len"     style="font-size:.72rem;color:var(--text-muted);">○ At least 8 characters</span>
+                  <span id="prof-rule-letter"  style="font-size:.72rem;color:var(--text-muted);">○ At least one letter</span>
+                  <span id="prof-rule-digit"   style="font-size:.72rem;color:var(--text-muted);">○ At least one number</span>
+                  <span id="prof-rule-special" style="font-size:.72rem;color:var(--text-muted);">○ At least one special character</span>
+                </div>
+              </div>
+              <div class="form-group" style="margin-bottom:0;">
+                <label>Confirm New Password</label>
+                <div style="position:relative;">
+                  <input type="password" name="confirm_password" id="prof-confirm-pw" class="form-input" required autocomplete="new-password"
+                         oninput="profCheckMatch()" style="padding-right:40px;">
+                  <button type="button" onclick="profTogglePw('prof-confirm-pw','prof-eye2','prof-eye2off')"
+                          style="position:absolute;right:10px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;color:var(--text-muted);padding:0;line-height:1;">
+                    <svg id="prof-eye2" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+                    <svg id="prof-eye2off" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:none;"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/></svg>
+                  </button>
+                </div>
+                <span id="prof-match-msg" style="font-size:.72rem;display:none;margin-top:4px;"></span>
+              </div>
+            </div>
+            <div style="margin-bottom:1rem;">
+              <button type="submit" class="btn btn-primary btn-sm">Change Password</button>
+            </div>
+          </form>
+
+        </div>
+      </section>
+
+
+    </div>
+  </div>
+</div>
+
+<div id="request-modal" style="display:none;position:fixed;inset:0;z-index:1000;background:rgba(0,0,0,.6);align-items:center;justify-content:center;">
+  <div style="background:#1e2433;border:1px solid rgba(255,255,255,.1);border-radius:14px;padding:28px;width:100%;max-width:480px;margin:20px;">
+    <h3 style="font-size:1rem;font-weight:700;margin-bottom:4px;">Request Supervision</h3>
+    <p id="modal-supervisor-name" style="font-size:.83rem;color:var(--text-muted);margin-bottom:20px;"></p>
+
+    <form id="request-form" method="post" action="">
+      {% csrf_token %}
+      <div class="form-group">
+        <label>Project Title</label>
+        <div class="input-wrap">
+          <input type="text" name="title" placeholder="e.g. AI-powered attendance system" required />
+        </div>
+      </div>
+      <div class="form-group" style="margin-top:12px;">
+        <label>Pitch — why this supervisor?</label>
+        <textarea name="pitch" rows="4" placeholder="Describe your project idea and why you'd like this supervisor..." required
+          style="width:100%;background:rgba(27,45,82,.05);border:1px solid rgba(255,255,255,.1);border-radius:10px;padding:.75rem 1rem;color:var(--text-primary);font-family:inherit;font-size:.875rem;resize:vertical;outline:none;"></textarea>
+      </div>
+      <div style="display:flex;gap:.75rem;margin-top:20px;">
+        <button type="submit" class="btn btn-primary">Send Request</button>
+        <button type="button" class="btn btn-outline" onclick="closeRequestModal()">Cancel</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<div id="leave-team-modal" style="display:none;position:fixed;inset:0;z-index:1000;background:rgba(0,0,0,.6);align-items:center;justify-content:center;">
+  <div style="background:#1e2433;border:1px solid rgba(255,255,255,.1);border-radius:14px;padding:28px;width:100%;max-width:420px;margin:20px;">
+    <div style="font-size:2rem;margin-bottom:12px;">🚪</div>
+    <h3 style="font-size:1rem;font-weight:700;margin-bottom:8px;">Leave Team?</h3>
+    <p style="font-size:.85rem;color:#94a3b8;margin-bottom:24px;">
+      You will be removed from <strong style="color:#e2e8f0;">{{ team.name }}</strong>.
+      You will need a new invite to rejoin.
+    </p>
+    <div style="display:flex;gap:.75rem;">
+      <form method="post" action="{% url 'teams:leave' %}">
+        {% csrf_token %}
+        <button type="submit" class="btn btn-primary" style="background:#f59e0b;border-color:#f59e0b;">Yes, Leave</button>
+      </form>
+      <button type="button" class="btn btn-outline" onclick="closeLeaveTeamModal()">Cancel</button>
+    </div>
+  </div>
+</div>
+
+<div id="delete-team-modal" style="display:none;position:fixed;inset:0;z-index:1000;background:rgba(0,0,0,.6);align-items:center;justify-content:center;">
+  <div style="background:#1e2433;border:1px solid rgba(239,68,68,.25);border-radius:14px;padding:28px;width:100%;max-width:420px;margin:20px;">
+    <div style="font-size:2rem;margin-bottom:12px;">🗑️</div>
+    <h3 style="font-size:1rem;font-weight:700;margin-bottom:8px;color:#f87171;">Delete Team?</h3>
+    <p style="font-size:.85rem;color:#94a3b8;margin-bottom:24px;">
+      This will permanently delete <strong style="color:#e2e8f0;">{{ team.name }}</strong>
+      and remove all members. Any associated project will be reset. This cannot be undone.
+    </p>
+    <div style="display:flex;gap:.75rem;">
+      <form method="post" action="{% url 'teams:delete' %}">
+        {% csrf_token %}
+        <button type="submit" class="btn btn-primary" style="background:#ef4444;border-color:#ef4444;">Yes, Delete Team</button>
+      </form>
+      <button type="button" class="btn btn-outline" onclick="closeDeleteTeamModal()">Cancel</button>
+    </div>
+  </div>
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<script>
+(function() {
+  var _raw = {{ analytics_json|safe }};
+  var G = '#10b981', O = '#f97316', PU = '#6366f1';
+
+  // KPI cards
+  var _t = _raw.tasks;
+  var tkEl = document.getElementById('an-task-val');
+  var _allTasks = _t.todo + _t.in_progress + _t.done;
+  if (tkEl) tkEl.textContent = _allTasks > 0 ? _t.done + ' / ' + _allTasks : '—';
+
+  // Milestone completion doughnut
+  var gbEl = document.getElementById('chart-grade-breakdown');
+  if (gbEl) {
+    var _cp = _raw.completion;
+    if (_cp && _cp.total > 0) {
+      var _centrePlugin = {
+        id: 'cp-centre',
+        afterDraw: function(chart) {
+          var ctx = chart.ctx;
+          var cx = chart.chartArea.left + (chart.chartArea.right - chart.chartArea.left) / 2;
+          var cy = chart.chartArea.top  + (chart.chartArea.bottom - chart.chartArea.top)  / 2;
+          var pct = Math.round(_cp.submitted / _cp.total * 100);
+          ctx.save();
+          ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+          ctx.fillStyle = '#1B2D52'; ctx.font = 'bold 20px sans-serif';
+          ctx.fillText(pct + '%', cx, cy - 8);
+          ctx.fillStyle = '#6B7A99'; ctx.font = '11px sans-serif';
+          ctx.fillText(_cp.submitted + ' / ' + _cp.total + ' submitted', cx, cy + 10);
+          ctx.restore();
+        }
+      };
+      new Chart(gbEl, {
+        type: 'doughnut',
+        data: {
+          labels: ['Submitted', 'Not Submitted'],
+          datasets: [{ data: [_cp.submitted, _cp.not_submitted],
+                       backgroundColor: [G, 'rgba(100,116,139,.2)'],
+                       borderWidth: 0, hoverOffset: 6 }]
+        },
+        options: {
+          responsive: true, maintainAspectRatio: false, cutout: '68%',
+          plugins: {
+            legend: { position: 'bottom', labels: { color: '#6B7A99', font: { size: 10 }, padding: 10 } },
+            tooltip: { callbacks: { label: function(c) { return c.label + ': ' + c.raw + ' milestone' + (c.raw !== 1 ? 's' : ''); } } }
+          }
+        },
+        plugins: [_centrePlugin]
+      });
+    } else {
+      gbEl.closest('div').insertAdjacentHTML('beforeend', '<p style="text-align:center;color:var(--text-muted);font-size:.82rem;margin-top:2rem;">No milestones yet.</p>');
+      gbEl.style.display = 'none';
+    }
+  }
+
+  // Task doughnut
+  var tkChEl = document.getElementById('chart-tasks');
+  if (tkChEl && _allTasks > 0) {
+    new Chart(tkChEl, {
+      type: 'doughnut',
+      data: {
+        labels: ['To Do', 'In Progress', 'Done'],
+        datasets: [{ data: [_t.todo, _t.in_progress, _t.done],
+                     backgroundColor: ['rgba(100,116,139,.3)', O, G],
+                     borderWidth: 0, hoverOffset: 6 }]
+      },
+      options: {
+        responsive: true, maintainAspectRatio: false, cutout: '70%',
+        plugins: { legend: { position: 'bottom', labels: { color: '#6B7A99', font: { size: 11 }, padding: 12 } } }
+      }
+    });
+  } else if (tkChEl) {
+    tkChEl.closest('div').insertAdjacentHTML('beforeend', '<p style="text-align:center;color:var(--text-muted);font-size:.82rem;margin-top:2rem;">No tasks yet.</p>');
+    tkChEl.style.display = 'none';
+  }
+
+  // Milestone timeline
+  var dlEl = document.getElementById('chart-deadlines');
+  if (dlEl) {
+    var _dl = _raw.deadlines;
+    if (!_dl.length) {
+      dlEl.innerHTML = '<p style="color:var(--text-muted);font-size:.82rem;">No milestones set.</p>';
+    } else {
+      var N = _dl.length;
+      var halfPct = (100 / (2 * N)).toFixed(2);
+
+      var dotsHtml = _dl.map(function(d) {
+        var color, dayLabel;
+        if (d.submitted)          { color = '#3b82f6'; dayLabel = 'Submitted'; }
+        else if (d.days === null) { color = '#94a3b8'; dayLabel = 'No date'; }
+        else if (d.days < 0)     { color = '#8b5cf6'; dayLabel = Math.abs(d.days) + 'd overdue'; }
+        else if (d.days < 5)     { color = '#ef4444'; dayLabel = d.days === 0 ? 'Today' : d.days + 'd left'; }
+        else if (d.days < 10)    { color = '#eab308'; dayLabel = d.days + 'd left'; }
+        else                     { color = '#10b981'; dayLabel = d.days + 'd left'; }
+
+        return '<div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:5px;">' +
+          '<div style="width:14px;height:14px;border-radius:50%;background:' + color + ';box-shadow:0 0 0 4px ' + color + '28;position:relative;z-index:1;flex-shrink:0;"></div>' +
+          '<div style="font-size:.68rem;font-weight:600;color:#1B2D52;text-align:center;word-break:break-word;white-space:normal;line-height:1.3;" title="' + d.label + '">' + d.label + '</div>' +
+          '<div style="font-size:.62rem;color:#6B7A99;text-align:center;">' + (d.due_date || '—') + '</div>' +
+          '<div style="font-size:.62rem;font-weight:700;color:' + color + ';text-align:center;">' + dayLabel + '</div>' +
+          '</div>';
+      }).join('');
+
+      dlEl.innerHTML =
+        '<div style="position:relative;">' +
+          '<div style="position:absolute;top:7px;left:' + halfPct + '%;right:' + halfPct + '%;height:2px;background:rgba(100,116,139,.18);border-radius:1px;z-index:0;"></div>' +
+          '<div style="display:flex;position:relative;">' + dotsHtml + '</div>' +
+        '</div>';
+    }
+  }
+})();
+</script>
+<script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.15/index.global.min.js"></script>
+<script src="{% static 'js/meetings_calendar.js' %}"></script>
+<script>
+  var _notifSectionMap = {
+    invite:   'team',
+    meeting:  'meetings',
+    approval: 'milestones',
+    feedback: 'milestones',
+    deadline: 'milestones',
+    risk:     'milestones',
+    general:  'milestones',
+  };
+
+  function openNotif(type) {
+    var target = _notifSectionMap[type] || 'dashboard';
+    var btn = document.querySelector('.nav-item[onclick*="\'' + target + '\'"]');
+    showSection(target, btn);
+  }
+
+  function markAllRead() {
+    var badge = document.getElementById('notif-nav-badge');
+    var dot   = document.getElementById('notif-topbar-dot');
+    var btn   = document.getElementById('mark-all-read-btn');
+    if (!badge && !document.querySelector('.notif-item.unread')) return;
+    // Optimistic UI update immediately
+    if (badge) badge.remove();
+    if (dot)   dot.remove();
+    if (btn)   btn.remove();
+    document.querySelectorAll('.notif-item.unread').forEach(function(el) {
+      el.classList.remove('unread');
+    });
+    // Sync to backend
+    var csrf = (document.querySelector('[name=csrfmiddlewaretoken]') || {}).value || '';
+    if (!csrf) {
+      var m = document.cookie.split(';');
+      for (var i = 0; i < m.length; i++) {
+        var c = m[i].trim();
+        if (c.indexOf('csrftoken=') === 0) { csrf = decodeURIComponent(c.slice(10)); break; }
+      }
+    }
+    fetch('{% url "notifications:mark_all_read" %}', {
+      method: 'POST',
+      headers: { 'X-CSRFToken': csrf, 'X-Requested-With': 'XMLHttpRequest' },
+    }).catch(function() {});
+  }
+
+  function toggleSupCard(card) {
+    var isOpen = card.classList.contains('expanded');
+    document.querySelectorAll('.supervisor-card.expanded').forEach(function(c) { c.classList.remove('expanded'); });
+    if (!isOpen) card.classList.add('expanded');
+  }
+
+  function openRequestModal(supervisorId, supervisorName) {
+    document.getElementById('modal-supervisor-name').textContent = 'Supervisor: ' + supervisorName;
+    document.getElementById('request-form').action = '/projects/request/' + supervisorId + '/';
+    const modal = document.getElementById('request-modal');
+    modal.style.display = 'flex';
+  }
+
+  function closeRequestModal() {
+    document.getElementById('request-modal').style.display = 'none';
+  }
+
+  document.getElementById('request-modal').addEventListener('click', function(e) {
+    if (e.target === this) closeRequestModal();
+  });
+
+  var PW_COLORS_PROF = { 1:'#ef4444', 2:'#f97316', 3:'#eab308', 4:'#22c55e' };
+  function profCheckPwStrength(v) {
+    var len=v.length>=8, letter=/[A-Za-z]/.test(v), digit=/[0-9]/.test(v), special=/[^A-Za-z0-9]/.test(v);
+    document.getElementById('prof-rule-len').style.color     = len     ? '#4ade80' : 'var(--text-muted)';
+    document.getElementById('prof-rule-letter').style.color  = letter  ? '#4ade80' : 'var(--text-muted)';
+    document.getElementById('prof-rule-digit').style.color   = digit   ? '#4ade80' : 'var(--text-muted)';
+    document.getElementById('prof-rule-special').style.color = special ? '#4ade80' : 'var(--text-muted)';
+    var score=[len,letter,digit,special].filter(Boolean).length;
+    var color=PW_COLORS_PROF[score]||'var(--border)';
+    for(var i=1;i<=4;i++) document.getElementById('prof-pw-bar'+i).style.background=(i<=score)?color:'var(--border)';
+    profCheckMatch();
+  }
+  function profCheckMatch() {
+    var pw=document.getElementById('prof-new-pw').value, cpw=document.getElementById('prof-confirm-pw').value;
+    var msg=document.getElementById('prof-match-msg');
+    if(!cpw){msg.style.display='none';return;}
+    msg.style.display='block';
+    if(pw===cpw){msg.style.color='#4ade80';msg.textContent='✓ Passwords match';}
+    else{msg.style.color='#f87171';msg.textContent='✕ Passwords do not match';}
+  }
+  function profTogglePw(inputId, eyeOnId, eyeOffId) {
+    var input=document.getElementById(inputId), on=document.getElementById(eyeOnId), off=document.getElementById(eyeOffId);
+    if(input.type==='password'){input.type='text';on.style.display='none';off.style.display='inline';}
+    else{input.type='password';on.style.display='inline';off.style.display='none';}
+  }
+
+  const sections = {
+    dashboard:     'Dashboard',
+    team:          'My Team',
+    milestones:    'Milestones',
+    supervisors:   'Supervisors',
+    meetings:      'Meetings',
+    notifications: 'Notifications',
+    archive:       'Archive',
+    profile:       'My Profile',
+  };
+
+  function showSection(id, btn) {
+    document.querySelectorAll('.dash-section').forEach(s => s.classList.remove('active'));
+    document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+    document.getElementById('sec-' + id).classList.add('active');
+    if (btn) btn.classList.add('active');
+    document.getElementById('topbar-title').textContent = sections[id] || id;
+    if (id === 'notifications') markAllRead();
+  }
+
+  // Restore the last-active section from URL hash (e.g. redirect with #sec-team)
+  (function() {
+    var hash = window.location.hash;
+    if (hash && hash.startsWith('#sec-')) {
+      var id = hash.slice(5);
+      if (document.getElementById('sec-' + id)) {
+        var btn = document.querySelector('[onclick*="\'' + id + '\'"]');
+        showSection(id, btn);
+      }
+    }
+  })();
+
+  function toggleArc(id) {
+    var body  = document.getElementById('arc-body-'  + id);
+    var arrow = document.getElementById('arc-arrow-' + id);
+    var open  = body.style.display === 'block';
+    body.style.display  = open ? 'none'   : 'block';
+    arrow.style.transform = open ? ''     : 'rotate(180deg)';
+  }
+
+  function openLeaveTeamModal() {
+    document.getElementById('leave-team-modal').style.display = 'flex';
+  }
+  function closeLeaveTeamModal() {
+    document.getElementById('leave-team-modal').style.display = 'none';
+  }
+  document.getElementById('leave-team-modal').addEventListener('click', function(e) {
+    if (e.target === this) closeLeaveTeamModal();
+  });
+
+  function openDeleteTeamModal() {
+    document.getElementById('delete-team-modal').style.display = 'flex';
+  }
+  function closeDeleteTeamModal() {
+    document.getElementById('delete-team-modal').style.display = 'none';
+  }
+  document.getElementById('delete-team-modal').addEventListener('click', function(e) {
+    if (e.target === this) closeDeleteTeamModal();
+  });
+
+  function switchTab(btn, targetId) {
+    btn.closest('.dash-section').querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    const section = btn.closest('.dash-section');
+    section.querySelectorAll('.meeting-list').forEach(l => l.style.display = 'none');
+    const target = section.querySelector('#' + targetId);
+    target.style.display = 'flex';
+    target.style.flexDirection = 'column';
+  }
+
+  function filterStudentArchive(q) {
+    q = q.toLowerCase().trim();
+    document.querySelectorAll('#arc-student-grid [data-arc-text]').forEach(function(c) {
+      c.style.display = (!q || c.dataset.arcText.indexOf(q) !== -1) ? '' : 'none';
+    });
+  }
+
+  function msDdToggle(pk) {
+    var list = document.getElementById('ms-dd-list-' + pk);
+    var open = list.style.display === 'block';
+    document.querySelectorAll('.ms-dd-list').forEach(function(l) { l.style.display = 'none'; });
+    list.style.display = open ? 'none' : 'block';
+  }
+  function msDdSelect(el) {
+    var pk = el.dataset.dd;
+    document.getElementById('at-val-' + pk).value = el.dataset.val;
+    var lbl = document.getElementById('at-lbl-' + pk);
+    lbl.textContent = el.dataset.lbl;
+    lbl.style.color = 'var(--text)';
+    document.getElementById('ms-dd-list-' + pk).style.display = 'none';
+  }
+  document.addEventListener('click', function(e) {
+    if (!e.target.closest('.ms-dd')) {
+      document.querySelectorAll('.ms-dd-list').forEach(function(l) { l.style.display = 'none'; });
+    }
+  });
+  document.querySelectorAll('.ms-tc').forEach(function(form) {
+    form.addEventListener('submit', function(e) {
+      var hidden = form.querySelector('input[name="assigned_to"]');
+      if (hidden && !hidden.value) {
+        e.preventDefault();
+        var btn = form.querySelector('.ms-dd-btn');
+        if (btn) { btn.style.borderColor = '#ef4444'; setTimeout(function(){ btn.style.borderColor = ''; }, 1500); }
+      }
+    });
+  });
+</script>
+{% endblock %}
+
+

@@ -1,0 +1,11 @@
+# Exclude the old locked folder (renamed copy is in "Etmam v1.3")
+Etmam-etmam-v1.2/
+
+# OS
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Python cache at root level
+__pycache__/
+*.py[cod]

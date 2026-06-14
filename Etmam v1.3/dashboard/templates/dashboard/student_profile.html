@@ -1,0 +1,220 @@
+﻿{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}My Profile — Etmam{% endblock %}
+
+{% block content %}
+<div class="dash-layout">
+
+  
+  <aside class="sidebar">
+    <div class="sidebar-brand">
+      <img src="{% static 'images/logo_trans.png' %}" alt="Etmam" style="height:28px;" onerror="this.style.display='none'">
+      <span class="brand-text">Etmam</span>
+    </div>
+
+    <div class="sidebar-user" style="background:rgba(27,45,82,.08);border-left:3px solid var(--primary);cursor:default;">
+      <div class="user-avatar">
+        {% if profile_user.avatar %}
+          <img src="{{ profile_user.avatar.url }}" alt="" style="width:100%;height:100%;object-fit:cover;border-radius:50%;">
+        {% else %}
+          🎓
+        {% endif %}
+      </div>
+      <div class="user-info">
+        <div class="user-name">{{ profile_user.full_name|default:profile_user.username }}</div>
+        <div class="user-role">Student{% if profile_user.department %} · {{ profile_user.department }}{% endif %}</div>
+      </div>
+    </div>
+
+    <div style="flex:1;"></div>
+
+    <div class="sidebar-bottom">
+      <a href="{% url 'dashboard:student' %}" class="nav-item" style="text-decoration:none;">
+        <span class="nav-icon">🏠</span>
+        <span class="nav-label">Dashboard</span>
+      </a>
+      <form method="post" action="{% url 'accounts:logout' %}">
+        {% csrf_token %}
+        <button type="submit" class="nav-item" style="color:#ef4444;background:none;border:none;cursor:pointer;width:100%;">
+          <span class="nav-label">Sign Out</span>
+        </button>
+      </form>
+    </div>
+  </aside>
+
+  
+  <div class="dash-main">
+    <header class="dash-topbar">
+      <span class="topbar-title">My Profile</span>
+    </header>
+
+    <div class="dash-body">
+      <div style="max-width:700px;">
+
+        
+        <div class="welcome-banner" style="margin-bottom:1.75rem;">
+          <div class="welcome-text">
+            <h2>{{ profile_user.full_name|default:profile_user.username }}</h2>
+            <p>Student{% if profile_user.department %} · {{ profile_user.department }}{% endif %}{% if profile_user.student_id %} · ID {{ profile_user.student_id }}{% endif %}</p>
+          </div>
+          <div class="welcome-emoji">🎓</div>
+        </div>
+
+        
+        <div class="settings-card" style="margin-bottom:1.25rem;">
+          <h3>Account Information</h3>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:.75rem 1.5rem;">
+            {% for label, value in info_items %}
+            <div>
+              <div style="font-size:.68rem;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--text-muted);margin-bottom:.3rem;">{{ label }}</div>
+              <div style="font-size:.9rem;font-weight:600;">{{ value|default:"—" }}</div>
+            </div>
+            {% empty %}
+            <div>
+              <div style="font-size:.68rem;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--text-muted);margin-bottom:.3rem;">Full Name</div>
+              <div style="font-size:.9rem;font-weight:600;">{{ profile_user.full_name|default:"—" }}</div>
+            </div>
+            <div>
+              <div style="font-size:.68rem;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--text-muted);margin-bottom:.3rem;">Username</div>
+              <div style="font-size:.9rem;font-weight:600;">{{ profile_user.username }}</div>
+            </div>
+            <div>
+              <div style="font-size:.68rem;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--text-muted);margin-bottom:.3rem;">Email</div>
+              <div style="font-size:.9rem;font-weight:600;">{{ profile_user.email|default:"—" }}</div>
+            </div>
+            <div>
+              <div style="font-size:.68rem;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--text-muted);margin-bottom:.3rem;">Student ID</div>
+              <div style="font-size:.9rem;font-weight:600;">{{ profile_user.student_id|default:"—" }}</div>
+            </div>
+            <div>
+              <div style="font-size:.68rem;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--text-muted);margin-bottom:.3rem;">Department</div>
+              <div style="font-size:.9rem;font-weight:600;">{{ profile_user.department|default:"—" }}</div>
+            </div>
+            <div>
+              <div style="font-size:.68rem;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--text-muted);margin-bottom:.3rem;">Gender</div>
+              <div style="font-size:.9rem;font-weight:600;">{{ profile_user.get_gender_display|default:"—" }}</div>
+            </div>
+            {% endfor %}
+          </div>
+          <p style="font-size:.75rem;color:var(--text-muted);margin-top:.85rem;">To change your name, email, or other account details contact the administrator.</p>
+        </div>
+
+        
+        <form method="post" action="{% url 'dashboard:student_edit_profile' %}">
+          {% csrf_token %}
+          <input type="hidden" name="action" value="bio">
+          <div class="settings-card" style="margin-bottom:1rem;">
+            <h3>About Me</h3>
+            <div class="form-group" style="margin-bottom:0;">
+              <label>Bio / Description</label>
+              <textarea name="bio" class="form-input" style="min-height:120px;" placeholder="Introduce yourself — your interests, goals, or anything you'd like your supervisor to know...">{{ profile_user.bio }}</textarea>
+              <span style="font-size:.72rem;color:var(--text-muted);margin-top:.35rem;display:block;">This may be visible to your supervisor.</span>
+            </div>
+          </div>
+          <div style="display:flex;gap:.75rem;margin-bottom:1.5rem;">
+            <button type="submit" class="btn btn-primary btn-sm">Save Profile</button>
+            <a href="{% url 'dashboard:student' %}" class="btn btn-outline btn-sm">Cancel</a>
+          </div>
+        </form>
+
+        
+        <form method="post" action="{% url 'dashboard:student_edit_profile' %}">
+          {% csrf_token %}
+          <input type="hidden" name="action" value="password">
+          <div class="settings-card" style="margin-bottom:1rem;">
+            <h3>Change Password</h3>
+
+            <div class="form-group">
+              <label>Current Password</label>
+              <input type="password" name="current_password" class="form-input" required autocomplete="current-password">
+            </div>
+
+            <div class="form-group">
+              <label>New Password</label>
+              <div style="position:relative;">
+                <input type="password" name="new_password" id="new_pw" class="form-input" required autocomplete="new-password"
+                       oninput="checkPwStrength(this.value)" style="padding-right:40px;">
+                <button type="button" onclick="togglePw('new_pw','eye1','eye1off')"
+                        style="position:absolute;right:10px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;color:var(--text-muted);padding:0;line-height:1;">
+                  <svg id="eye1" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+                  <svg id="eye1off" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:none;"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/></svg>
+                </button>
+              </div>
+              <div style="display:flex;gap:4px;margin-top:8px;">
+                <div id="pw-bar1" style="flex:1;height:4px;border-radius:2px;background:var(--border);transition:background .2s;"></div>
+                <div id="pw-bar2" style="flex:1;height:4px;border-radius:2px;background:var(--border);transition:background .2s;"></div>
+                <div id="pw-bar3" style="flex:1;height:4px;border-radius:2px;background:var(--border);transition:background .2s;"></div>
+                <div id="pw-bar4" style="flex:1;height:4px;border-radius:2px;background:var(--border);transition:background .2s;"></div>
+              </div>
+              <div style="margin-top:6px;display:flex;flex-direction:column;gap:3px;">
+                <span id="rule-len"     style="font-size:.72rem;color:var(--text-muted);">○ At least 8 characters</span>
+                <span id="rule-letter"  style="font-size:.72rem;color:var(--text-muted);">○ At least one letter</span>
+                <span id="rule-digit"   style="font-size:.72rem;color:var(--text-muted);">○ At least one number</span>
+                <span id="rule-special" style="font-size:.72rem;color:var(--text-muted);">○ At least one special character</span>
+              </div>
+            </div>
+
+            <div class="form-group" style="margin-bottom:0;">
+              <label>Confirm New Password</label>
+              <div style="position:relative;">
+                <input type="password" name="confirm_password" id="confirm_pw" class="form-input" required autocomplete="new-password"
+                       oninput="checkMatch()" style="padding-right:40px;">
+                <button type="button" onclick="togglePw('confirm_pw','eye2','eye2off')"
+                        style="position:absolute;right:10px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;color:var(--text-muted);padding:0;line-height:1;">
+                  <svg id="eye2" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+                  <svg id="eye2off" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:none;"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/></svg>
+                </button>
+              </div>
+              <span id="match-msg" style="font-size:.72rem;display:none;margin-top:4px;"></span>
+            </div>
+          </div>
+          <div>
+            <button type="submit" class="btn btn-primary btn-sm">Change Password</button>
+          </div>
+        </form>
+
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+var PW_COLORS = { 1:'#ef4444', 2:'#f97316', 3:'#eab308', 4:'#22c55e' };
+function checkPwStrength(v) {
+  var len     = v.length >= 8;
+  var letter  = /[A-Za-z]/.test(v);
+  var digit   = /[0-9]/.test(v);
+  var special = /[^A-Za-z0-9]/.test(v);
+  document.getElementById('rule-len').style.color     = len     ? '#4ade80' : 'var(--text-muted)';
+  document.getElementById('rule-letter').style.color  = letter  ? '#4ade80' : 'var(--text-muted)';
+  document.getElementById('rule-digit').style.color   = digit   ? '#4ade80' : 'var(--text-muted)';
+  document.getElementById('rule-special').style.color = special ? '#4ade80' : 'var(--text-muted)';
+  var score = [len, letter, digit, special].filter(Boolean).length;
+  var color = PW_COLORS[score] || 'var(--border)';
+  for (var i = 1; i <= 4; i++) {
+    document.getElementById('pw-bar' + i).style.background = (i <= score) ? color : 'var(--border)';
+  }
+  checkMatch();
+}
+function checkMatch() {
+  var pw  = document.getElementById('new_pw').value;
+  var cpw = document.getElementById('confirm_pw').value;
+  var msg = document.getElementById('match-msg');
+  if (!cpw) { msg.style.display = 'none'; return; }
+  msg.style.display = 'block';
+  if (pw === cpw) { msg.style.color = '#4ade80'; msg.textContent = '✓ Passwords match'; }
+  else            { msg.style.color = '#f87171'; msg.textContent = '✕ Passwords do not match'; }
+}
+function togglePw(inputId, eyeOnId, eyeOffId) {
+  var input = document.getElementById(inputId);
+  var on    = document.getElementById(eyeOnId);
+  var off   = document.getElementById(eyeOffId);
+  if (input.type === 'password') { input.type = 'text';     on.style.display = 'none';   off.style.display = 'inline'; }
+  else                           { input.type = 'password'; on.style.display = 'inline'; off.style.display = 'none';   }
+}
+</script>
+{% endblock %}
+
