@@ -251,27 +251,49 @@ def student_dashboard(request):
     )
 
     # ── Analytics data ──────────────────────────────────────────────
-    _grade_labels = [item['milestone'].title for item in global_milestones]
-    _grade_values = [
-        float(item['submission'].grade)
-        if (item['submission'] and item['submission'].grade is not None and item['all_graded'])
-        else None
-        for item in global_milestones
-    ]
+    _today = timezone.now().date()
     _all_tasks = [t for item in global_milestones for t in item['tasks']]
-    _submitted_flags = [bool(item['submission']) for item in global_milestones]
+
+    # Grade breakdown: earned, pending (submitted not yet graded), locked (not submitted)
+    _earned        = 0.0
+    _pending_pts   = 0.0
+    _locked_pts    = 0.0
+    _graded_weight = 0.0
+    for item in global_milestones:
+        w = item['milestone'].weight
+        sub = item['submission']
+        if sub and sub.grade is not None and item['all_graded']:
+            _earned        += float(sub.grade) * w / 100
+            _graded_weight += w
+        elif sub:
+            _pending_pts += w
+        else:
+            _locked_pts += w
+
+    # Deadline countdown per milestone
+    _deadlines = []
+    for item in global_milestones:
+        dd = item['milestone'].due_date
+        _deadlines.append({
+            'label':     item['milestone'].title,
+            'days':      (dd - _today).days if dd else None,
+            'due_date':  dd.strftime('%b %d') if dd else None,
+            'submitted': bool(item['submission']),
+        })
+
     _student_analytics = _json.dumps({
-        'grade_trend': {'labels': _grade_labels, 'grades': _grade_values, 'submitted': _submitted_flags},
         'tasks': {
             'todo':        sum(1 for t in _all_tasks if t.status == 'todo'),
             'in_progress': sum(1 for t in _all_tasks if t.status == 'in_progress'),
             'done':        sum(1 for t in _all_tasks if t.status == 'done'),
         },
-        'submissions': {
-            'submitted': sum(1 for item in global_milestones if item['submission']),
-            'pending':   sum(1 for item in global_milestones if not item['submission']),
-            'total':     len(global_milestones),
+        'grade_breakdown': {
+            'earned':         round(_earned, 1),
+            'pending':        round(_pending_pts, 1),
+            'locked':         round(_locked_pts, 1),
+            'graded_weight':  round(_graded_weight, 1),
         },
+        'deadlines': _deadlines,
     })
 
     return render(request, 'dashboard/student.html', {
@@ -487,7 +509,7 @@ def supervisor_dashboard(request):
     _team_labels, _team_avgs = [], []
     for _d in supervised_data:
         _team_labels.append(_d['project'].team.name)
-        _gs = [ms['submission'].supervisor_grade for ms in _d['milestones']
+        _gs = [float(ms['submission'].supervisor_grade) for ms in _d['milestones']
                if ms['submission'] and ms['submission'].supervisor_grade is not None]
         _team_avgs.append(round(sum(_gs) / len(_gs), 1) if _gs else None)
     _needs_grade = sum(1 for _d in supervised_data if _d['needs_my_grade'])
@@ -497,6 +519,13 @@ def supervisor_dashboard(request):
             'submitted':     [s['submitted_count'] for s in submissions_sections],
             'not_submitted': [s['total_count'] - s['submitted_count'] for s in submissions_sections],
             'graded':        [s['graded_count'] for s in submissions_sections],
+            'teams': [
+                {
+                    'name': proj.team.name,
+                    'submitted': [bool(sub_lookup.get((proj.pk, ms.pk))) for ms in global_ms_list],
+                }
+                for proj in all_proj_list
+            ],
         },
         'grading_status': {
             'needs_grade': _needs_grade,
@@ -577,6 +606,28 @@ def admin_dashboard(request):
             'reviewer_ids':    reviewer_ids,
             'excl_rev_ids':    excl_rev_ids,
         })
+
+    # Annotate user objects with team info (uses already-fetched teams_data, no extra queries)
+    _stu_team   = {}   # student pk -> team name
+    _sup_teams  = {}   # supervisor pk -> [team names]
+    _rev_teams  = {}   # reviewer pk -> [team names]
+    for _td in teams_data:
+        _tname = _td['team'].name
+        for _m in _td['active_members']:
+            _stu_team[_m.user_id] = _tname
+        _proj = _td['project']
+        if _proj:
+            if _proj.supervisor_id:
+                _sup_teams.setdefault(_proj.supervisor_id, []).append(_tname)
+            for _rid in _td['reviewer_ids']:
+                _rev_teams.setdefault(_rid, []).append(_tname)
+    students = list(students)
+    staff    = list(staff)
+    for _u in students:
+        _u.team_info = _stu_team.get(_u.pk)
+    for _u in staff:
+        _u.supervising_teams = _sup_teams.get(_u.pk, [])
+        _u.reviewing_teams   = _rev_teams.get(_u.pk, [])
 
     projects    = Project.objects.select_related('team', 'supervisor').order_by('-created_at')
 
@@ -732,6 +783,13 @@ def admin_dashboard(request):
             'submitted': [sd['submitted_count'] for sd in submissions_data],
             'missed':    [sd['total_count'] - sd['submitted_count'] for sd in submissions_data],
             'total':     [sd['total_count'] for sd in submissions_data],
+            'teams': [
+                {
+                    'name': p.team.name,
+                    'submitted': [p.pk in {s.project_id for s in sd['submissions']} for sd in submissions_data],
+                }
+                for p in active_projects
+            ],
         },
         'grade_distribution': {
             'labels': ['0-9','10-19','20-29','30-39','40-49','50-59','60-69','70-79','80-89','90-99','100'],
@@ -1762,22 +1820,37 @@ def _execute_phase2_switch(admin_user):
     unsupervised = list(
         Project.objects.filter(supervisor__isnull=True, team__is_active=True).select_related('team')
     )
-    sups_by_gender = defaultdict(list)
+    sups_by_gender_dept = defaultdict(list)
+    sups_by_gender_only = defaultdict(list)
     for sup in User.objects.filter(role='supervisor', is_active=True, available=True):
-        sups_by_gender[sup.gender or ''].append(sup)
+        sups_by_gender_dept[(sup.gender or '', sup.department or '')].append(sup)
+        sups_by_gender_only[sup.gender or ''].append(sup)
 
-    counters = defaultdict(int)
-    assigned_count = 0
-    no_sup_projects = 0
+    counters_strict     = defaultdict(int)
+    counters_loose      = defaultdict(int)
+    assigned_count      = 0
+    no_sup_projects     = 0
+    dept_mismatch_count = 0
     for project in unsupervised:
         first_member = project.team.memberships.filter(status='active').select_related('user').first()
-        team_gender  = (first_member.user.gender or '') if first_member else ''
-        sups = sups_by_gender.get(team_gender, [])
-        if not sups:
-            no_sup_projects += 1
-            continue
-        supervisor = sups[counters[team_gender] % len(sups)]
-        counters[team_gender] += 1
+        team_gender  = (first_member.user.gender     or '') if first_member else ''
+        team_dept    = (first_member.user.department or '') if first_member else ''
+
+        key_strict  = (team_gender, team_dept)
+        strict_pool = sups_by_gender_dept.get(key_strict, [])
+
+        if strict_pool:
+            supervisor = strict_pool[counters_strict[key_strict] % len(strict_pool)]
+            counters_strict[key_strict] += 1
+        else:
+            loose_pool = sups_by_gender_only.get(team_gender, [])
+            if not loose_pool:
+                no_sup_projects += 1
+                continue
+            supervisor = loose_pool[counters_loose[team_gender] % len(loose_pool)]
+            counters_loose[team_gender] += 1
+            dept_mismatch_count += 1
+
         project.supervisor = supervisor
         project.auto_assigned_supervisor = True
         project.save(update_fields=['supervisor', 'auto_assigned_supervisor'])
@@ -1827,15 +1900,200 @@ def _execute_phase2_switch(admin_user):
     declined_count = SupervisionRequest.objects.filter(status='pending').update(status='declined')
 
     return {
-        'cancelled_invites':     cancelled_invites,
-        'fill_count':            fill_count,
-        'auto_teams':            len(groups),
-        'distributed_count':     distributed_count,
-        'assigned_count':        assigned_count,
-        'no_sup_projects':       no_sup_projects,
+        'cancelled_invites':      cancelled_invites,
+        'fill_count':             fill_count,
+        'auto_teams':             len(groups),
+        'distributed_count':      distributed_count,
+        'assigned_count':         assigned_count,
+        'no_sup_projects':        no_sup_projects,
+        'dept_mismatch_count':    dept_mismatch_count,
         'reviewer_assigned_count': reviewer_assigned_count,
-        'declined_count':        declined_count,
+        'declined_count':         declined_count,
     }
+
+@login_required
+def admin_phase2_preflight(request):
+    """Simulate the Phase 2 switch (including auto-team creation) and return detailed warnings as JSON."""
+    from django.http import JsonResponse
+    if not request.user.is_administrator():
+        return JsonResponse({'error': 'forbidden'}, status=403)
+
+    from collections import defaultdict as _dd
+
+    # ── Step 1: simulate auto-team creation to find all projects that will need supervisors ──
+    in_team_pks = set(TeamMember.objects.filter(status='active').values_list('user_id', flat=True))
+    teamless = list(User.objects.filter(role='student', is_active=True).exclude(pk__in=in_team_pks))
+    teamless_count = len(teamless)
+
+    # Simulate filling existing under-capacity teams (mirrors _execute_phase2_switch)
+    buckets = _dd(list)
+    for s in teamless:
+        buckets[(s.gender or '', s.department or '')].append(s)
+
+    existing_teams = list(
+        Team.objects.filter(is_active=True, auto_created=False)
+        .prefetch_related('memberships__user').order_by('created_at')
+    )
+    for team in existing_teams:
+        active = [m for m in team.memberships.all() if m.status == 'active']
+        if len(active) >= 5 or not active:
+            continue
+        key  = (active[0].user.gender or '', active[0].user.department or '')
+        pool = buckets.get(key, [])
+        del pool[:5 - len(active)]
+
+    # Simulate new auto-team creation; collect (gender, dept) per new team
+    new_team_gd = []
+    for (gender, dept), pool in buckets.items():
+        i = 0
+        while len(pool) - i >= 5:
+            new_team_gd.append((gender, dept))
+            i += 5
+        if len(pool) - i >= 4:
+            new_team_gd.append((gender, dept))
+
+    # ── Step 2: build the full virtual unsupervised list ──
+    existing_unsupervised = list(
+        Project.objects.filter(supervisor__isnull=True, team__is_active=True)
+        .select_related('team')
+        .prefetch_related('team__memberships__user')
+    )
+    # Represent each project as (label, gender, dept)
+    virtual = []
+    for proj in existing_unsupervised:
+        members = [m for m in proj.team.memberships.all() if m.status == 'active']
+        first   = members[0] if members else None
+        virtual.append((proj.team.name,
+                         (first.user.gender     or '') if first else '',
+                         (first.user.department or '') if first else ''))
+    for gd in new_team_gd:
+        virtual.append(('Auto Team (new)', gd[0], gd[1]))
+
+    # ── Step 3: simulate supervisor assignment (dept-first, gender fallback) ──
+    all_sups = list(User.objects.filter(role='supervisor', is_active=True, available=True))
+    by_gd = _dd(list)
+    by_g  = _dd(list)
+    for s in all_sups:
+        by_gd[(s.gender or '', s.department or '')].append(s)
+        by_g[s.gender or ''].append(s)
+
+    c_strict = _dd(int)
+    c_loose  = _dd(int)
+    sup_new  = _dd(int)
+    dept_mismatches = []
+    no_sup_count = 0
+
+    for label, tg, td in virtual:
+        sp = by_gd.get((tg, td), [])
+        if sp:
+            sup = sp[c_strict[(tg, td)] % len(sp)]
+            c_strict[(tg, td)] += 1
+        else:
+            lp = by_g.get(tg, [])
+            if not lp:
+                no_sup_count += 1
+                continue
+            sup = lp[c_loose[tg] % len(lp)]
+            c_loose[tg] += 1
+            dept_mismatches.append({
+                'team':      label,
+                'team_dept': td or 'Unset',
+                'sup_name':  sup.full_name or sup.username,
+                'sup_dept':  sup.department or 'Unset',
+            })
+        sup_new[sup.pk] += 1
+
+    sup_overloads = []
+    sup_map = {s.pk: s for s in all_sups}
+    for pk, adding in sup_new.items():
+        s = sup_map[pk]
+        cur   = s.current_load()
+        total = cur + adding
+        if total > s.max_teams_supervise:
+            sup_overloads.append({
+                'name':      s.full_name or s.username,
+                'current':   cur,
+                'max':       s.max_teams_supervise,
+                'adding':    adding,
+                'new_total': total,
+                'over_by':   total - s.max_teams_supervise,
+            })
+
+    # ── Step 4: simulate reviewer assignment ──
+    # Include existing projects + new auto-team projects (no reviewers yet)
+    existing_projects = list(
+        Project.objects.filter(team__is_active=True)
+        .select_related('supervisor')
+        .prefetch_related('reviewers')
+    )
+    # new auto-team projects need 2 reviewers each, no existing reviewers
+    total_reviewer_slots = sum(max(0, 2 - len(list(p.reviewers.all()))) for p in existing_projects)
+    total_reviewer_slots += len(new_team_gd) * 2  # new projects need 2 each
+
+    rev_pool = list(User.objects.filter(can_review=True, is_active=True))
+    rev_new  = _dd(int)
+    rev_idx  = 0
+    pool_sz  = len(rev_pool)
+
+    for proj in existing_projects:
+        cur_revs = list(proj.reviewers.all())
+        if len(cur_revs) >= 2:
+            continue
+        needed = 2 - len(cur_revs)
+        excl   = {r.pk for r in cur_revs}
+        if proj.supervisor:
+            excl.add(proj.supervisor.pk)
+        added = attempts = 0
+        while added < needed and attempts < pool_sz:
+            cand = rev_pool[rev_idx % pool_sz]
+            rev_idx += 1; attempts += 1
+            if cand.pk in excl:
+                continue
+            rev_new[cand.pk] += 1
+            excl.add(cand.pk)
+            added += 1
+
+    # Simulate reviewer assignment for new auto-team projects (no supervisor known yet)
+    for _ in new_team_gd:
+        needed = 2
+        excl   = set()
+        added  = attempts = 0
+        while added < needed and attempts < pool_sz:
+            cand = rev_pool[rev_idx % pool_sz]
+            rev_idx += 1; attempts += 1
+            if cand.pk in excl:
+                continue
+            rev_new[cand.pk] += 1
+            excl.add(cand.pk)
+            added += 1
+
+    rev_overloads = []
+    rev_map = {r.pk: r for r in rev_pool}
+    for pk, adding in rev_new.items():
+        r = rev_map[pk]
+        cur   = r.current_review_load()
+        total = cur + adding
+        if total > r.max_teams_review:
+            rev_overloads.append({
+                'name':      r.full_name or r.username,
+                'current':   cur,
+                'max':       r.max_teams_review,
+                'adding':    adding,
+                'new_total': total,
+                'over_by':   total - r.max_teams_review,
+            })
+
+    return JsonResponse({
+        'sup_overloads':      sup_overloads,
+        'rev_overloads':      rev_overloads,
+        'dept_mismatches':    dept_mismatches,
+        'no_sup_count':       no_sup_count,
+        'teamless_count':     teamless_count,
+        'new_teams_count':    len(new_team_gd),
+        'unsupervised_count': len(virtual),
+        'has_warnings':       bool(sup_overloads or rev_overloads or dept_mismatches or no_sup_count),
+    })
+
 
 @login_required
 @require_POST
@@ -1846,32 +2104,8 @@ def admin_switch_phase2(request):
     if config.phase == 2:
         messages.warning(request, 'System is already in Phase 2.')
         return redirect(reverse('dashboard:admin') + '?panel=system')
-    warn = _compute_phase2_warning()
-    if warn['has_warning']:
-        config.pending_phase2_switch = True
-        config.save(update_fields=['pending_phase2_switch'])
-        messages.warning(request, 'Phase 2 would exceed configured limits. Review and confirm below.')
-    else:
-        # No capacity issues — execute immediately
-        r = _execute_phase2_switch(request.user)
-        if r['no_sup_projects']:
-            messages.warning(request, f'{r["no_sup_projects"]} project(s) could not be assigned a supervisor — no matching-gender supervisor available.')
-        messages.success(request, f'Switched to Phase 2. {r["auto_teams"]} auto team(s) created, {r["assigned_count"]} project(s) assigned supervisors, {r["reviewer_assigned_count"]} reviewer(s) assigned.')
-    return redirect(reverse('dashboard:admin') + '?panel=system')
-
-@login_required
-@require_POST
-def admin_confirm_phase2(request):
-    """Proceed with Phase 2 switch, bumping limits where needed."""
-    if not _require_admin(request):
-        return redirect('dashboard:index')
-    config = SystemConfig.get()
-    if config.phase == 2:
-        messages.warning(request, 'Already in Phase 2.')
-        return redirect(reverse('dashboard:admin') + '?panel=system')
-    # Execute the switch
     r = _execute_phase2_switch(request.user)
-    # Bump limits: ensure every supervisor's max >= their current load
+    # Always auto-bump limits to cover whatever was assigned
     from accounts.models import User as _User
     for sup in _User.objects.filter(role='supervisor', is_active=True):
         load = sup.current_load()
@@ -1886,21 +2120,29 @@ def admin_confirm_phase2(request):
     config.pending_phase2_switch = False
     config.save(update_fields=['pending_phase2_switch'])
     if r['no_sup_projects']:
-        messages.warning(request, f'{r["no_sup_projects"]} project(s) could not be assigned a supervisor — no matching-gender supervisor available.')
-    messages.success(request, f'Phase 2 activated. Limits adjusted automatically. {r["auto_teams"]} auto team(s) created, {r["assigned_count"]} supervisor(s) assigned, {r["reviewer_assigned_count"]} reviewer(s) assigned.')
+        messages.warning(request, f'{r["no_sup_projects"]} project(s) could not be assigned a supervisor — no same-gender supervisor available.')
+    if r['dept_mismatch_count']:
+        messages.warning(request, f'{r["dept_mismatch_count"]} project(s) were assigned a cross-department supervisor (limits auto-adjusted).')
+    messages.success(request, f'Switched to Phase 2. {r["auto_teams"]} auto team(s) created, {r["assigned_count"]} project(s) assigned supervisors, {r["reviewer_assigned_count"]} reviewer(s) assigned.')
     return redirect(reverse('dashboard:admin') + '?panel=system')
 
 
 @login_required
 @require_POST
+def admin_confirm_phase2(request):
+    """Legacy endpoint — redirects to admin_switch_phase2 logic."""
+    return admin_switch_phase2(request)
+
+
+@login_required
+@require_POST
 def admin_cancel_phase2(request):
-    """Cancel a pending Phase 2 switch."""
     if not _require_admin(request):
         return redirect('dashboard:index')
     config = SystemConfig.get()
     config.pending_phase2_switch = False
     config.save(update_fields=['pending_phase2_switch'])
-    messages.info(request, 'Phase 2 switch cancelled. You can add more supervisors/reviewers and try again.')
+    messages.info(request, 'Phase 2 switch cancelled.')
     return redirect(reverse('dashboard:admin') + '?panel=system')
 
 

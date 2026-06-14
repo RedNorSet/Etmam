@@ -103,19 +103,19 @@
         </div>
 
         {% if project %}
-        <div style="display:grid;grid-template-columns:2fr 1fr;gap:1rem;margin-bottom:1rem;">
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem;margin-bottom:1rem;">
           <div style="background:var(--bg-card);border:1px solid var(--border);border-radius:var(--radius);padding:1.5rem;box-shadow:var(--shadow);">
-            <div style="font-size:.8rem;font-weight:700;color:var(--primary);margin-bottom:1rem;">Grade Trend per Milestone</div>
-            <div style="position:relative;height:220px;"><canvas id="chart-grade-trend"></canvas></div>
+            <div style="font-size:.8rem;font-weight:700;color:var(--primary);margin-bottom:1rem;">Final Grade Breakdown</div>
+            <div style="position:relative;height:200px;"><canvas id="chart-grade-breakdown"></canvas></div>
           </div>
           <div style="background:var(--bg-card);border:1px solid var(--border);border-radius:var(--radius);padding:1.5rem;box-shadow:var(--shadow);">
             <div style="font-size:.8rem;font-weight:700;color:var(--primary);margin-bottom:1rem;">Task Completion</div>
-            <div style="position:relative;height:180px;"><canvas id="chart-tasks"></canvas></div>
+            <div style="position:relative;height:200px;"><canvas id="chart-tasks"></canvas></div>
           </div>
         </div>
         <div style="background:var(--bg-card);border:1px solid var(--border);border-radius:var(--radius);padding:1.5rem;box-shadow:var(--shadow);margin-bottom:1.75rem;">
-          <div style="font-size:.8rem;font-weight:700;color:var(--primary);margin-bottom:1rem;">Submission Progress per Milestone</div>
-          <div style="position:relative;height:180px;"><canvas id="chart-submissions"></canvas></div>
+          <div style="font-size:.8rem;font-weight:700;color:var(--primary);margin-bottom:1.25rem;">Milestone Timeline</div>
+          <div id="chart-deadlines"></div>
         </div>
         {% endif %}
 
@@ -547,9 +547,13 @@
           .ms-ti-btn--rm { border-color:rgba(239,68,68,.4);   color:#dc2626; }
           .ms-tc { display:flex; gap:7px; flex-wrap:wrap; align-items:flex-end; margin-top:8px; padding-top:10px; border-top:1px dashed var(--border); }
           .ms-tc input { background:var(--bg-card2); border:1px solid var(--border); border-radius:7px; padding:7px 10px; color:var(--text); font-size:.8rem; }
-          .ms-tc select { background:var(--bg-card2); border:1px solid var(--border); border-radius:7px; padding:7px 10px; color:var(--text); font-size:.8rem; cursor:pointer; }
-          .ms-tc select option { background:#fff; color:#1B2D52; }
-          .ms-tc input:focus, .ms-tc select:focus { outline:none; border-color:rgba(99,102,241,.5); }
+          .ms-tc input:focus { outline:none; border-color:rgba(99,102,241,.5); }
+          .ms-dd { position:relative; }
+          .ms-dd-btn { background:var(--bg-card2); border:1px solid var(--border); border-radius:7px; padding:7px 10px; color:var(--text); font-size:.8rem; cursor:pointer; display:flex; align-items:center; justify-content:space-between; gap:8px; white-space:nowrap; min-width:110px; }
+          .ms-dd-btn:focus { outline:none; border-color:rgba(99,102,241,.5); }
+          .ms-dd-list { position:absolute; top:calc(100% + 4px); left:0; min-width:160px; background:#fff; border:1px solid var(--border); border-radius:8px; box-shadow:0 4px 14px rgba(0,0,0,.1); z-index:200; overflow:hidden; display:none; }
+          .ms-dd-opt { padding:8px 12px; font-size:.8rem; color:#1B2D52; cursor:pointer; }
+          .ms-dd-opt:hover { background:rgba(27,45,82,.07); }
           .ms-tc input[type="text"] { flex:1; min-width:130px; }
 
           /* Submit section */
@@ -725,11 +729,19 @@
                     {% csrf_token %}
                     <input type="text" name="title" placeholder="New task…" required style="grid-column:1/-1;">
                     <textarea name="description" placeholder="Description (optional)…" rows="2"
-                              style="grid-column:1/-1;background:rgba(27,45,82,.04);border:1px solid rgba(255,255,255,.1);border-radius:7px;padding:6px 10px;color:#e2e8f0;font-size:.78rem;font-family:inherit;resize:none;"></textarea>
-                    <select name="assigned_to" required>
-                      <option value="">Assign to…</option>
-                      {% for tm in team_members %}{% if tm.status == 'active' %}<option value="{{ tm.user.pk }}">{{ tm.user.full_name|default:tm.user.username }}</option>{% endif %}{% endfor %}
-                    </select>
+                              style="grid-column:1/-1;background:var(--bg-card2);border:1px solid var(--border);border-radius:7px;padding:6px 10px;color:var(--text);font-size:.78rem;font-family:inherit;resize:none;"></textarea>
+                    <input type="hidden" name="assigned_to" id="at-val-{{ m.pk }}">
+                    <div class="ms-dd" id="ms-dd-{{ m.pk }}">
+                      <button type="button" class="ms-dd-btn" onclick="msDdToggle('{{ m.pk }}')">
+                        <span id="at-lbl-{{ m.pk }}" style="color:var(--text-muted);">Assign to…</span>
+                        <svg xmlns="http://www.w3.org/2000/svg" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
+                      </button>
+                      <div class="ms-dd-list" id="ms-dd-list-{{ m.pk }}">
+                        {% for tm in team_members %}{% if tm.status == 'active' %}
+                        <div class="ms-dd-opt" data-dd="{{ m.pk }}" data-val="{{ tm.user.pk }}" data-lbl="{{ tm.user.full_name|default:tm.user.username }}" onclick="msDdSelect(this)">{{ tm.user.full_name|default:tm.user.username }}</div>
+                        {% endif %}{% endfor %}
+                      </div>
+                    </div>
                     <input type="date" name="due_date">
                     <button type="submit" class="btn btn-primary btn-sm">+ Add</button>
                   </form>
@@ -1275,42 +1287,59 @@
 <script>
 (function() {
   var _raw = {{ analytics_json|safe }};
-  var P = '#1B2D52', A = '#6B8CAE', G = '#10b981', O = '#f97316', R = '#ef4444', PU = '#6366f1';
+  var G = '#10b981', O = '#f97316', PU = '#6366f1';
 
   // KPI cards
-  var _s = _raw.submissions, _t = _raw.tasks;
-  var msEl = document.getElementById('an-ms-val');
+  var _t = _raw.tasks;
   var tkEl = document.getElementById('an-task-val');
-  if (msEl) msEl.textContent = _s.submitted + ' / ' + _s.total;
   var _allTasks = _t.todo + _t.in_progress + _t.done;
   if (tkEl) tkEl.textContent = _allTasks > 0 ? _t.done + ' / ' + _allTasks : '—';
 
-  // Grade trend line chart
-  var gtEl = document.getElementById('chart-grade-trend');
-  if (gtEl) {
-    new Chart(gtEl, {
-      type: 'line',
-      data: {
-        labels: _raw.grade_trend.labels,
-        datasets: [{
-          label: 'Grade',
-          data: _raw.grade_trend.grades,
-          borderColor: PU, backgroundColor: 'rgba(99,102,241,.08)',
-          borderWidth: 2.5, pointRadius: 5, pointBackgroundColor: PU,
-          tension: 0.35, fill: true, spanGaps: false,
-        }]
-      },
-      options: {
-        responsive: true, maintainAspectRatio: false,
-        scales: {
-          y: { min: 0, max: 100, grid: { color: 'rgba(27,45,82,.06)' },
-               ticks: { color: '#6B7A99', font: { size: 11 } } },
-          x: { grid: { display: false }, ticks: { color: '#6B7A99', font: { size: 11 } } }
+  // Final grade breakdown doughnut
+  var gbEl = document.getElementById('chart-grade-breakdown');
+  if (gbEl) {
+    var _gb = _raw.grade_breakdown;
+    var _total = _gb.earned + _gb.pending + _gb.locked;
+    if (_total > 0) {
+      var _centrePlugin = {
+        id: 'gb-centre',
+        afterDraw: function(chart) {
+          var ctx = chart.ctx;
+          var cx = chart.chartArea.left + (chart.chartArea.right - chart.chartArea.left) / 2;
+          var cy = chart.chartArea.top  + (chart.chartArea.bottom - chart.chartArea.top)  / 2;
+          ctx.save();
+          ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+          ctx.fillStyle = '#1B2D52'; ctx.font = 'bold 18px sans-serif';
+          var _label = _gb.graded_weight > 0
+            ? _gb.earned + ' / ' + _gb.graded_weight + ' pts'
+            : _gb.earned + ' pts';
+          ctx.fillText(_label, cx, cy - 8);
+          ctx.fillStyle = '#6B7A99'; ctx.font = '11px sans-serif';
+          ctx.fillText(_gb.graded_weight > 0 ? 'of graded weight' : 'earned', cx, cy + 10);
+          ctx.restore();
+        }
+      };
+      new Chart(gbEl, {
+        type: 'doughnut',
+        data: {
+          labels: ['Earned', 'Awaiting grade', 'Not submitted'],
+          datasets: [{ data: [_gb.earned, _gb.pending, _gb.locked],
+                       backgroundColor: [G, 'rgba(99,102,241,.5)', 'rgba(100,116,139,.2)'],
+                       borderWidth: 0, hoverOffset: 6 }]
         },
-        plugins: { legend: { display: false },
-                   tooltip: { callbacks: { label: function(c) { return c.raw !== null ? c.raw + ' / 100' : 'Not graded'; } } } }
-      }
-    });
+        options: {
+          responsive: true, maintainAspectRatio: false, cutout: '68%',
+          plugins: {
+            legend: { position: 'bottom', labels: { color: '#6B7A99', font: { size: 10 }, padding: 10 } },
+            tooltip: { callbacks: { label: function(c) { return c.label + ': ' + c.raw + ' pts'; } } }
+          }
+        },
+        plugins: [_centrePlugin]
+      });
+    } else {
+      gbEl.closest('div').insertAdjacentHTML('beforeend', '<p style="text-align:center;color:var(--text-muted);font-size:.82rem;margin-top:2rem;">No grades yet.</p>');
+      gbEl.style.display = 'none';
+    }
   }
 
   // Task doughnut
@@ -1330,33 +1359,43 @@
       }
     });
   } else if (tkChEl) {
-    tkChEl.closest('div').insertAdjacentHTML('beforeend', '<p style="text-align:center;color:var(--text-muted);font-size:.82rem;margin-top:1rem;">No tasks yet.</p>');
+    tkChEl.closest('div').insertAdjacentHTML('beforeend', '<p style="text-align:center;color:var(--text-muted);font-size:.82rem;margin-top:2rem;">No tasks yet.</p>');
+    tkChEl.style.display = 'none';
   }
 
-  // Submission bar chart
-  var sbEl = document.getElementById('chart-submissions');
-  if (sbEl) {
-    var _sf = _raw.grade_trend.submitted;
-    new Chart(sbEl, {
-      type: 'bar',
-      data: {
-        labels: _raw.grade_trend.labels,
-        datasets: [
-          { label: 'Submitted', data: _sf.map(function(v){ return v ? 1 : 0; }),
-            backgroundColor: 'rgba(99,102,241,.2)', borderColor: PU, borderWidth: 1.5, borderRadius: 5 },
-          { label: 'Pending',   data: _sf.map(function(v){ return v ? 0 : 1; }),
-            backgroundColor: 'rgba(100,116,139,.1)', borderColor: 'rgba(100,116,139,.3)', borderWidth: 1.5, borderRadius: 5 },
-        ]
-      },
-      options: {
-        responsive: true, maintainAspectRatio: false,
-        scales: {
-          y: { display: false, max: 1.4 },
-          x: { grid: { display: false }, ticks: { color: '#6B7A99', font: { size: 11 } } }
-        },
-        plugins: { legend: { position: 'bottom', labels: { color: '#6B7A99', font: { size: 11 }, padding: 12 } } }
-      }
-    });
+  // Milestone timeline
+  var dlEl = document.getElementById('chart-deadlines');
+  if (dlEl) {
+    var _dl = _raw.deadlines;
+    if (!_dl.length) {
+      dlEl.innerHTML = '<p style="color:var(--text-muted);font-size:.82rem;">No milestones set.</p>';
+    } else {
+      var N = _dl.length;
+      var halfPct = (100 / (2 * N)).toFixed(2);
+
+      var dotsHtml = _dl.map(function(d) {
+        var color, dayLabel;
+        if (d.submitted)          { color = '#3b82f6'; dayLabel = 'Submitted'; }
+        else if (d.days === null) { color = '#94a3b8'; dayLabel = 'No date'; }
+        else if (d.days < 0)     { color = '#8b5cf6'; dayLabel = Math.abs(d.days) + 'd overdue'; }
+        else if (d.days < 5)     { color = '#ef4444'; dayLabel = d.days === 0 ? 'Today' : d.days + 'd left'; }
+        else if (d.days < 10)    { color = '#eab308'; dayLabel = d.days + 'd left'; }
+        else                     { color = '#10b981'; dayLabel = d.days + 'd left'; }
+
+        return '<div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:5px;">' +
+          '<div style="width:14px;height:14px;border-radius:50%;background:' + color + ';box-shadow:0 0 0 4px ' + color + '28;position:relative;z-index:1;flex-shrink:0;"></div>' +
+          '<div style="font-size:.68rem;font-weight:600;color:#1B2D52;text-align:center;max-width:80px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="' + d.label + '">' + d.label + '</div>' +
+          '<div style="font-size:.62rem;color:#6B7A99;text-align:center;">' + (d.due_date || '—') + '</div>' +
+          '<div style="font-size:.62rem;font-weight:700;color:' + color + ';text-align:center;">' + dayLabel + '</div>' +
+          '</div>';
+      }).join('');
+
+      dlEl.innerHTML =
+        '<div style="position:relative;">' +
+          '<div style="position:absolute;top:7px;left:' + halfPct + '%;right:' + halfPct + '%;height:2px;background:rgba(100,116,139,.18);border-radius:1px;z-index:0;"></div>' +
+          '<div style="display:flex;position:relative;">' + dotsHtml + '</div>' +
+        '</div>';
+    }
   }
 })();
 </script>
@@ -1529,6 +1568,36 @@
       c.style.display = (!q || c.dataset.arcText.indexOf(q) !== -1) ? '' : 'none';
     });
   }
+
+  function msDdToggle(pk) {
+    var list = document.getElementById('ms-dd-list-' + pk);
+    var open = list.style.display === 'block';
+    document.querySelectorAll('.ms-dd-list').forEach(function(l) { l.style.display = 'none'; });
+    list.style.display = open ? 'none' : 'block';
+  }
+  function msDdSelect(el) {
+    var pk = el.dataset.dd;
+    document.getElementById('at-val-' + pk).value = el.dataset.val;
+    var lbl = document.getElementById('at-lbl-' + pk);
+    lbl.textContent = el.dataset.lbl;
+    lbl.style.color = 'var(--text)';
+    document.getElementById('ms-dd-list-' + pk).style.display = 'none';
+  }
+  document.addEventListener('click', function(e) {
+    if (!e.target.closest('.ms-dd')) {
+      document.querySelectorAll('.ms-dd-list').forEach(function(l) { l.style.display = 'none'; });
+    }
+  });
+  document.querySelectorAll('.ms-tc').forEach(function(form) {
+    form.addEventListener('submit', function(e) {
+      var hidden = form.querySelector('input[name="assigned_to"]');
+      if (hidden && !hidden.value) {
+        e.preventDefault();
+        var btn = form.querySelector('.ms-dd-btn');
+        if (btn) { btn.style.borderColor = '#ef4444'; setTimeout(function(){ btn.style.borderColor = ''; }, 1500); }
+      }
+    });
+  });
 </script>
 {% endblock %}
 

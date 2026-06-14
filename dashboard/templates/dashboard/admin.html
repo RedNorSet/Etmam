@@ -81,6 +81,11 @@
     .btn-ghost { background: transparent; border: 1px solid var(--border); color: var(--muted); }
     .btn-ghost:hover { background: var(--bg); }
 
+    /* ── Info icon ── */
+    .usr-info { display:inline-flex;align-items:center;justify-content:center;width:16px;height:16px;border-radius:50%;background:#e0e7ff;color:#6366f1;font-size:.62rem;font-weight:700;cursor:default;flex-shrink:0;user-select:none; }
+    #usr-tooltip { position:fixed;z-index:9999;background:#1B2D52;color:#fff;border-radius:8px;padding:9px 12px;font-size:.76rem;line-height:1.6;pointer-events:none;display:none;max-width:240px;box-shadow:0 4px 16px rgba(0,0,0,.18); }
+    #usr-tooltip b { display:block;font-size:.7rem;text-transform:uppercase;letter-spacing:.4px;color:#93c5fd;margin-bottom:3px; }
+
     /* ── Logout ── */
     .logout-btn { background: none; border: none; cursor: pointer; color: var(--red); font-size: .8rem; font-weight: 600; padding: 6px 10px; border-radius: 6px; display: flex; align-items: center; gap: 4px; }
     .logout-btn:hover { background: #fef2f2; }
@@ -387,7 +392,19 @@
             <tr data-name="{{ u.full_name|lower }}" data-username="{{ u.username|lower }}"
                 data-id="{{ u.student_id|default:''|lower }}" data-dept="{{ u.department|lower }}"
                 data-gender="{{ u.gender }}">
-              <td><div style="font-weight:600;">{{ u.full_name|default:"—" }}</div><div style="font-size:.75rem;color:var(--muted);">{{ u.email }}</div></td>
+              <td>
+                <div style="display:flex;align-items:center;gap:6px;">
+                  <div>
+                    <div style="font-weight:600;">{{ u.full_name|default:"—" }}</div>
+                    <div style="font-size:.75rem;color:var(--muted);">{{ u.email }}</div>
+                  </div>
+                  <span class="usr-info"
+                    data-kind="student"
+                    data-team="{{ u.team_info|default:'' }}"
+                    onmouseenter="showUsrTip(event,this)"
+                    onmouseleave="hideUsrTip()">i</span>
+                </div>
+              </td>
               <td>{{ u.username }}</td>
               <td>{{ u.student_id|default:"—" }}</td>
               <td>{{ u.department|default:"—" }}</td>
@@ -447,7 +464,20 @@
             {% for u in staff %}
             <tr data-name="{{ u.full_name|lower }}" data-username="{{ u.username|lower }}"
                 data-id="" data-dept="{{ u.department|lower }}" data-gender="{{ u.gender }}">
-              <td><div style="font-weight:600;">{{ u.full_name|default:"—" }}</div><div style="font-size:.75rem;color:var(--muted);">{{ u.email }}</div></td>
+              <td>
+                <div style="display:flex;align-items:center;gap:6px;">
+                  <div>
+                    <div style="font-weight:600;">{{ u.full_name|default:"—" }}</div>
+                    <div style="font-size:.75rem;color:var(--muted);">{{ u.email }}</div>
+                  </div>
+                  <span class="usr-info"
+                    data-kind="staff"
+                    data-supervising="{{ u.supervising_teams|join:'||' }}"
+                    data-reviewing="{{ u.reviewing_teams|join:'||' }}"
+                    onmouseenter="showUsrTip(event,this)"
+                    onmouseleave="hideUsrTip()">i</span>
+                </div>
+              </td>
               <td>{{ u.username }}</td>
               <td>{{ u.department|default:"—" }}</td>
               <td>
@@ -539,6 +569,45 @@
         </div>
       </div>
     </div>
+
+    <!-- Singleton tooltip for user info icons -->
+    <div id="usr-tooltip"></div>
+    <script>
+      function showUsrTip(e, el) {
+        var tip = document.getElementById('usr-tooltip');
+        var html = '';
+        if (el.dataset.kind === 'student') {
+          var team = el.dataset.team;
+          html = '<b>Team</b>' + (team ? team : '<span style="color:#94a3b8;">No team assigned</span>');
+        } else {
+          var sup = el.dataset.supervising ? el.dataset.supervising.split('||') : [];
+          var rev = el.dataset.reviewing   ? el.dataset.reviewing.split('||')   : [];
+          if (sup.length) html += '<b>Supervising</b>' + sup.join('<br>');
+          else            html += '<b>Supervising</b><span style="color:#94a3b8;">None</span>';
+          html += '<div style="margin-top:6px;"></div>';
+          if (rev.length) html += '<b>Reviewing</b>' + rev.join('<br>');
+          else            html += '<b>Reviewing</b><span style="color:#94a3b8;">None</span>';
+        }
+        tip.innerHTML = html;
+        tip.style.display = 'block';
+        posUsrTip(e);
+      }
+      function posUsrTip(e) {
+        var tip = document.getElementById('usr-tooltip');
+        var x = e.clientX + 12, y = e.clientY + 12;
+        if (x + 250 > window.innerWidth)  x = e.clientX - 260;
+        if (y + tip.offsetHeight > window.innerHeight) y = e.clientY - tip.offsetHeight - 8;
+        tip.style.left = x + 'px';
+        tip.style.top  = y + 'px';
+      }
+      function hideUsrTip() {
+        document.getElementById('usr-tooltip').style.display = 'none';
+      }
+      document.addEventListener('mousemove', function(e) {
+        var tip = document.getElementById('usr-tooltip');
+        if (tip.style.display === 'block') posUsrTip(e);
+      });
+    </script>
 
     <script>
       function confirmDeleteUser(userId, username) {
@@ -1888,39 +1957,192 @@
           • All pending supervision requests are declined<br>
           • Milestone submissions open immediately
         </div>
-        {% if pending_phase2 and phase2_warning %}
-        <div style="background:rgba(245,158,11,.08);border:1px solid rgba(245,158,11,.4);border-radius:12px;padding:20px 24px;margin-bottom:20px;">
-          <div style="font-size:.95rem;font-weight:700;color:#b45309;margin-bottom:10px;">Phase 2 Capacity Warning</div>
-          <div style="font-size:.85rem;color:#92400e;margin-bottom:14px;">
-            Activating Phase 2 would exceed configured limits:
-            <ul style="margin:8px 0 0 16px;line-height:1.8;">
-              {% if phase2_warning.sup_shortage > 0 %}
-              <li><strong>{{ phase2_warning.sup_shortage }} supervisor slot{{ phase2_warning.sup_shortage|pluralize }}</strong> short — {{ phase2_warning.unsupervised }} unsupervised project{{ phase2_warning.unsupervised|pluralize }}, only {{ phase2_warning.sup_capacity }} slot{{ phase2_warning.sup_capacity|pluralize }} available across {{ phase2_warning.num_supervisors }} supervisor{{ phase2_warning.num_supervisors|pluralize }}</li>
-              {% endif %}
-              {% if phase2_warning.rev_shortage > 0 %}
-              <li><strong>{{ phase2_warning.rev_shortage }} reviewer slot{{ phase2_warning.rev_shortage|pluralize }}</strong> short — {{ phase2_warning.rev_slots_needed }} reviewer slot{{ phase2_warning.rev_slots_needed|pluralize }} needed, only {{ phase2_warning.rev_capacity }} available across {{ phase2_warning.num_reviewers }} reviewer{{ phase2_warning.num_reviewers|pluralize }}</li>
-              {% endif %}
-            </ul>
-          </div>
-          <div style="display:flex;gap:10px;flex-wrap:wrap;">
-            <form method="post" action="{% url 'dashboard:admin_confirm_phase2' %}">
-              {% csrf_token %}
-              <button type="submit" class="btn btn-primary" style="background:#d97706;border-color:#d97706;">Proceed — Adjust Limits Automatically</button>
-            </form>
-            <form method="post" action="{% url 'dashboard:admin_cancel_phase2' %}">
-              {% csrf_token %}
-              <button type="submit" class="btn btn-outline" style="border-color:#ef4444;color:#ef4444;">Cancel — Add More Staff First</button>
-            </form>
+        <button type="button" class="btn btn-blue" style="width:100%;justify-content:center;padding:10px;" onclick="openPhase2Modal()">
+          Switch to Phase 2 →
+        </button>
+
+        <!-- Phase 2 Switch Modal -->
+        <div id="p2-modal-backdrop" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:9000;align-items:center;justify-content:center;">
+          <div style="background:#fff;border-radius:14px;padding:28px 30px;max-width:540px;width:calc(100% - 40px);max-height:85vh;overflow-y:auto;box-shadow:0 20px 60px rgba(0,0,0,.25);">
+            <div style="font-size:1.05rem;font-weight:700;color:#1B2D52;margin-bottom:6px;">Switch to Phase 2</div>
+            <div style="font-size:.83rem;color:#6B7A99;margin-bottom:20px;">Running pre-flight check…</div>
+
+            <!-- Loading state -->
+            <div id="p2-loading" style="text-align:center;padding:20px 0;">
+              <div style="display:inline-block;width:28px;height:28px;border:3px solid #e2e8f0;border-top-color:#6366f1;border-radius:50%;animation:p2spin .7s linear infinite;"></div>
+            </div>
+
+            <!-- Results state (hidden until loaded) -->
+            <div id="p2-results" style="display:none;">
+              <!-- No warnings -->
+              <div id="p2-clean" style="display:none;background:#f0fdf4;border:1px solid #bbf7d0;border-radius:9px;padding:14px 16px;margin-bottom:18px;font-size:.85rem;color:#166534;">
+                ✓ No issues found. All supervisors and reviewers are within their limits and department matches are satisfied.
+              </div>
+
+              <!-- Supervisor overloads -->
+              <div id="p2-sup-block" style="display:none;margin-bottom:16px;">
+                <div style="font-size:.8rem;font-weight:700;color:#b45309;margin-bottom:6px;">⚠ Supervisor Capacity — limits will be auto-increased</div>
+                <div style="background:#fffbeb;border:1px solid #fde68a;border-radius:8px;padding:12px 14px;">
+                  <table style="width:100%;font-size:.78rem;border-collapse:collapse;" id="p2-sup-table">
+                    <thead><tr style="color:#92400e;font-weight:600;">
+                      <th style="text-align:left;padding:3px 6px;">Supervisor</th>
+                      <th style="text-align:center;padding:3px 6px;">Current</th>
+                      <th style="text-align:center;padding:3px 6px;">+Adding</th>
+                      <th style="text-align:center;padding:3px 6px;">Total</th>
+                      <th style="text-align:center;padding:3px 6px;">Limit</th>
+                      <th style="text-align:center;padding:3px 6px;">Over by</th>
+                    </tr></thead>
+                    <tbody id="p2-sup-body"></tbody>
+                  </table>
+                </div>
+              </div>
+
+              <!-- Reviewer overloads -->
+              <div id="p2-rev-block" style="display:none;margin-bottom:16px;">
+                <div style="font-size:.8rem;font-weight:700;color:#b45309;margin-bottom:6px;">⚠ Reviewer Capacity — limits will be auto-increased</div>
+                <div style="background:#fffbeb;border:1px solid #fde68a;border-radius:8px;padding:12px 14px;">
+                  <table style="width:100%;font-size:.78rem;border-collapse:collapse;">
+                    <thead><tr style="color:#92400e;font-weight:600;">
+                      <th style="text-align:left;padding:3px 6px;">Reviewer</th>
+                      <th style="text-align:center;padding:3px 6px;">Current</th>
+                      <th style="text-align:center;padding:3px 6px;">+Adding</th>
+                      <th style="text-align:center;padding:3px 6px;">Total</th>
+                      <th style="text-align:center;padding:3px 6px;">Limit</th>
+                      <th style="text-align:center;padding:3px 6px;">Over by</th>
+                    </tr></thead>
+                    <tbody id="p2-rev-body"></tbody>
+                  </table>
+                </div>
+              </div>
+
+              <!-- Department mismatches -->
+              <div id="p2-dept-block" style="display:none;margin-bottom:16px;">
+                <div style="font-size:.8rem;font-weight:700;color:#7c3aed;margin-bottom:6px;">⚠ Cross-Department Assignments — no same-department supervisor available</div>
+                <div style="background:#f5f3ff;border:1px solid #ddd6fe;border-radius:8px;padding:12px 14px;">
+                  <table style="width:100%;font-size:.78rem;border-collapse:collapse;">
+                    <thead><tr style="color:#5b21b6;font-weight:600;">
+                      <th style="text-align:left;padding:3px 6px;">Team</th>
+                      <th style="text-align:left;padding:3px 6px;">Team Dept</th>
+                      <th style="text-align:left;padding:3px 6px;">Assigned Supervisor</th>
+                      <th style="text-align:left;padding:3px 6px;">Sup Dept</th>
+                    </tr></thead>
+                    <tbody id="p2-dept-body"></tbody>
+                  </table>
+                </div>
+              </div>
+
+              <!-- No supervisor available -->
+              <div id="p2-nosup-block" style="display:none;margin-bottom:16px;">
+                <div style="background:#fef2f2;border:1px solid #fecaca;border-radius:8px;padding:12px 14px;font-size:.83rem;color:#991b1b;">
+                  <strong id="p2-nosup-count"></strong> project(s) cannot get a supervisor — no same-gender supervisor exists. These will remain unassigned.
+                </div>
+              </div>
+            </div>
+
+            <!-- Action buttons -->
+            <div id="p2-actions" style="display:none;display:flex;gap:10px;flex-wrap:wrap;margin-top:4px;">
+              <button type="button" onclick="closePhase2Modal()" class="btn btn-outline" style="flex:1;justify-content:center;">Cancel</button>
+              <form method="post" action="{% url 'dashboard:admin_switch_phase2' %}" style="flex:2;" id="p2-confirm-form">
+                {% csrf_token %}
+                <button type="submit" id="p2-confirm-btn" class="btn btn-blue" style="width:100%;justify-content:center;">
+                  Confirm — Switch to Phase 2
+                </button>
+              </form>
+            </div>
           </div>
         </div>
-        {% else %}
-        <form method="post" action="{% url 'dashboard:admin_switch_phase2' %}" onsubmit="return confirm('Switch to Phase 2? This will auto-group teamless students and assign supervisors. This cannot be undone in production.');">
-          {% csrf_token %}
-          <button type="submit" class="btn btn-blue" style="width:100%;justify-content:center;padding:10px;">
-            Switch to Phase 2 →
-          </button>
-        </form>
-        {% endif %}
+        <style>@keyframes p2spin{to{transform:rotate(360deg)}}</style>
+        <script>
+        function openPhase2Modal() {
+          var bd = document.getElementById('p2-modal-backdrop');
+          bd.style.display = 'flex';
+          document.getElementById('p2-loading').style.display = 'block';
+          document.getElementById('p2-results').style.display = 'none';
+          document.getElementById('p2-actions').style.display = 'none';
+          fetch('{% url "dashboard:admin_phase2_preflight" %}')
+            .then(function(r){ return r.json(); })
+            .then(function(d){ renderPhase2Preflight(d); })
+            .catch(function(){ renderPhase2Error(); });
+        }
+        function closePhase2Modal() {
+          document.getElementById('p2-modal-backdrop').style.display = 'none';
+        }
+        document.getElementById('p2-modal-backdrop').addEventListener('click', function(e){
+          if (e.target === this) closePhase2Modal();
+        });
+        function renderPhase2Preflight(d) {
+          document.getElementById('p2-loading').style.display = 'none';
+          document.getElementById('p2-results').style.display = 'block';
+          document.getElementById('p2-actions').style.display = 'flex';
+
+          var hasWarn = d.has_warnings;
+          document.getElementById('p2-clean').style.display = hasWarn ? 'none' : 'block';
+
+          // Supervisor overloads
+          if (d.sup_overloads && d.sup_overloads.length) {
+            document.getElementById('p2-sup-block').style.display = 'block';
+            var tbody = document.getElementById('p2-sup-body');
+            tbody.innerHTML = d.sup_overloads.map(function(x){
+              return '<tr style="border-top:1px solid #fde68a;">' +
+                '<td style="padding:4px 6px;">' + x.name + '</td>' +
+                '<td style="text-align:center;padding:4px 6px;">' + x.current + '</td>' +
+                '<td style="text-align:center;padding:4px 6px;color:#d97706;">+' + x.adding + '</td>' +
+                '<td style="text-align:center;padding:4px 6px;font-weight:700;">' + x.new_total + '</td>' +
+                '<td style="text-align:center;padding:4px 6px;">' + x.max + '</td>' +
+                '<td style="text-align:center;padding:4px 6px;color:#ef4444;font-weight:700;">+' + x.over_by + '</td>' +
+                '</tr>';
+            }).join('');
+          }
+
+          // Reviewer overloads
+          if (d.rev_overloads && d.rev_overloads.length) {
+            document.getElementById('p2-rev-block').style.display = 'block';
+            var tbody2 = document.getElementById('p2-rev-body');
+            tbody2.innerHTML = d.rev_overloads.map(function(x){
+              return '<tr style="border-top:1px solid #fde68a;">' +
+                '<td style="padding:4px 6px;">' + x.name + '</td>' +
+                '<td style="text-align:center;padding:4px 6px;">' + x.current + '</td>' +
+                '<td style="text-align:center;padding:4px 6px;color:#d97706;">+' + x.adding + '</td>' +
+                '<td style="text-align:center;padding:4px 6px;font-weight:700;">' + x.new_total + '</td>' +
+                '<td style="text-align:center;padding:4px 6px;">' + x.max + '</td>' +
+                '<td style="text-align:center;padding:4px 6px;color:#ef4444;font-weight:700;">+' + x.over_by + '</td>' +
+                '</tr>';
+            }).join('');
+          }
+
+          // Dept mismatches
+          if (d.dept_mismatches && d.dept_mismatches.length) {
+            document.getElementById('p2-dept-block').style.display = 'block';
+            var tbody3 = document.getElementById('p2-dept-body');
+            tbody3.innerHTML = d.dept_mismatches.map(function(x){
+              return '<tr style="border-top:1px solid #ddd6fe;">' +
+                '<td style="padding:4px 6px;">' + x.team + '</td>' +
+                '<td style="padding:4px 6px;">' + x.team_dept + '</td>' +
+                '<td style="padding:4px 6px;">' + x.sup_name + '</td>' +
+                '<td style="padding:4px 6px;color:#7c3aed;">' + x.sup_dept + '</td>' +
+                '</tr>';
+            }).join('');
+          }
+
+          // No supervisor
+          if (d.no_sup_count) {
+            document.getElementById('p2-nosup-block').style.display = 'block';
+            document.getElementById('p2-nosup-count').textContent = d.no_sup_count;
+          }
+
+          // Update confirm button label if there are warnings
+          if (hasWarn) {
+            document.getElementById('p2-confirm-btn').textContent = 'Accept & Proceed — Limits Will Be Auto-Adjusted';
+            document.getElementById('p2-confirm-btn').style.background = '#d97706';
+            document.getElementById('p2-confirm-btn').style.borderColor = '#d97706';
+          }
+        }
+        function renderPhase2Error() {
+          document.getElementById('p2-loading').style.display = 'none';
+          document.getElementById('p2-results').style.display = 'block';
+          document.getElementById('p2-results').innerHTML = '<div style="color:#ef4444;font-size:.85rem;">Failed to load pre-flight check. Please refresh and try again.</div>';
+        }
+        </script>
       </div>
 
       {% else %}
@@ -1972,25 +2194,43 @@
   var P = '#1B2D52', A = '#6B8CAE', G = '#10b981', O = '#f97316', R = '#ef4444', PU = '#6366f1';
   var _sr = _raw.submission_rates, _dd = _raw.dept_breakdown, _gd = _raw.grade_distribution, _ts = _raw.team_status;
 
-  // Submission stacked bar
+  // Submission stacked bar — one segment per team
   var srEl = document.getElementById('chart-adm-submissions');
   if (srEl) {
+    var _TC = ['#6366f1','#10b981','#f97316','#0ea5e9','#8b5cf6','#ec4899','#14b8a6','#eab308','#1B2D52','#6B8CAE'];
+    var _srTeams = (_sr.teams || []);
+    var _srDS = _srTeams.map(function(t, i) {
+      var c = _TC[i % _TC.length];
+      return {
+        label: t.name,
+        data: t.submitted.map(function() { return 1; }),
+        backgroundColor: t.submitted.map(function(s) { return s ? c + 'aa' : 'rgba(239,68,68,.15)'; }),
+        borderColor:     t.submitted.map(function(s) { return s ? c       : 'rgba(239,68,68,.4)';  }),
+        borderWidth: 1.5, borderRadius: 3,
+      };
+    });
     new Chart(srEl, {
       type: 'bar',
-      data: {
-        labels: _sr.labels,
-        datasets: [
-          { label: 'Submitted', data: _sr.submitted, backgroundColor: 'rgba(99,102,241,.25)', borderColor: PU, borderWidth: 1.5, borderRadius: 4 },
-          { label: 'Not Submitted', data: _sr.missed, backgroundColor: 'rgba(239,68,68,.12)', borderColor: 'rgba(239,68,68,.35)', borderWidth: 1.5, borderRadius: 4 },
-        ]
-      },
+      data: { labels: _sr.labels, datasets: _srDS },
       options: {
         responsive: true, maintainAspectRatio: false,
         scales: {
           x: { stacked: true, grid: { display: false }, ticks: { color: '#6B7A99', font: { size: 11 } } },
           y: { stacked: true, grid: { color: 'rgba(27,45,82,.06)' }, ticks: { color: '#6B7A99', font: { size: 11 }, stepSize: 1 } }
         },
-        plugins: { legend: { position: 'bottom', labels: { color: '#6B7A99', font: { size: 11 }, padding: 12 } } }
+        plugins: {
+          legend: { display: false },
+          tooltip: {
+            mode: 'index', intersect: false,
+            callbacks: {
+              label: function(item) {
+                var t = _srTeams[item.datasetIndex];
+                var s = t.submitted[item.dataIndex];
+                return ' ' + t.name + ': ' + (s ? '✓ Submitted' : '✗ Not Submitted');
+              }
+            }
+          }
+        }
       }
     });
   }

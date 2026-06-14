@@ -1015,25 +1015,43 @@
   var pendEl = document.getElementById('an-sup-pending');
   if (pendEl) pendEl.textContent = _gs.needs_grade;
 
-  // Submission rate stacked bar
+  // Submission rate stacked bar — one segment per team
   var srEl = document.getElementById('chart-sup-submissions');
   if (srEl) {
+    var _TC = ['#6366f1','#10b981','#f97316','#0ea5e9','#8b5cf6','#ec4899','#14b8a6','#eab308','#1B2D52','#6B8CAE'];
+    var _srTeams = (_sr.teams || []);
+    var _srDS = _srTeams.map(function(t, i) {
+      var c = _TC[i % _TC.length];
+      return {
+        label: t.name,
+        data: t.submitted.map(function() { return 1; }),
+        backgroundColor: t.submitted.map(function(s) { return s ? c + 'aa' : 'rgba(239,68,68,.15)'; }),
+        borderColor:     t.submitted.map(function(s) { return s ? c       : 'rgba(239,68,68,.4)';  }),
+        borderWidth: 1.5, borderRadius: 3,
+      };
+    });
     new Chart(srEl, {
       type: 'bar',
-      data: {
-        labels: _sr.labels,
-        datasets: [
-          { label: 'Submitted', data: _sr.submitted,     backgroundColor: 'rgba(99,102,241,.25)', borderColor: PU, borderWidth: 1.5, borderRadius: 4 },
-          { label: 'Pending',   data: _sr.not_submitted, backgroundColor: 'rgba(100,116,139,.12)', borderColor: 'rgba(100,116,139,.3)', borderWidth: 1.5, borderRadius: 4 },
-        ]
-      },
+      data: { labels: _sr.labels, datasets: _srDS },
       options: {
         responsive: true, maintainAspectRatio: false,
         scales: {
           x: { stacked: true, grid: { display: false }, ticks: { color: '#6B7A99', font: { size: 11 } } },
           y: { stacked: true, grid: { color: 'rgba(27,45,82,.06)' }, ticks: { color: '#6B7A99', font: { size: 11 }, stepSize: 1 } }
         },
-        plugins: { legend: { position: 'bottom', labels: { color: '#6B7A99', font: { size: 11 }, padding: 12 } } }
+        plugins: {
+          legend: { display: false },
+          tooltip: {
+            mode: 'index', intersect: false,
+            callbacks: {
+              label: function(item) {
+                var t = _srTeams[item.datasetIndex];
+                var s = t.submitted[item.dataIndex];
+                return ' ' + t.name + ': ' + (s ? '✓ Submitted' : '✗ Not Submitted');
+              }
+            }
+          }
+        }
       }
     });
   }

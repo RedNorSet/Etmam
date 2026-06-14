@@ -62,11 +62,12 @@ urlpatterns = [
     path('admin/archive/project/<int:project_id>/add-link/',   views.admin_add_archive_link,      name='admin_add_archive_link'),
     path('admin/archive/link/<int:link_id>/delete/',           views.admin_delete_archive_link,   name='admin_delete_archive_link'),
 
-    path('admin/phase/switch/',    views.admin_switch_phase2,   name='admin_switch_phase2'),
-    path('admin/phase/confirm/',   views.admin_confirm_phase2,  name='admin_confirm_phase2'),
-    path('admin/phase/cancel/',    views.admin_cancel_phase2,   name='admin_cancel_phase2'),
-    path('admin/phase/revert/',    views.admin_revert_phase1,   name='admin_revert_phase1'),
-    path('admin/phase/set-date/',  views.admin_set_phase2_date, name='admin_set_phase2_date'),
+    path('admin/phase/preflight/',  views.admin_phase2_preflight, name='admin_phase2_preflight'),
+    path('admin/phase/switch/',    views.admin_switch_phase2,    name='admin_switch_phase2'),
+    path('admin/phase/confirm/',   views.admin_confirm_phase2,   name='admin_confirm_phase2'),
+    path('admin/phase/cancel/',    views.admin_cancel_phase2,    name='admin_cancel_phase2'),
+    path('admin/phase/revert/',    views.admin_revert_phase1,    name='admin_revert_phase1'),
+    path('admin/phase/set-date/',  views.admin_set_phase2_date,  name='admin_set_phase2_date'),
 
     path('student/profile/', views.student_edit_profile, name='student_edit_profile'),
 ]
