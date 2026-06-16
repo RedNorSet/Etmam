@@ -37,6 +37,8 @@ urlpatterns = [
     path('admin/grades/weights/',     views.admin_update_grade_weights, name='admin_update_grade_weights'),
     path('admin/grades/save/',        views.admin_save_all_grades,      name='admin_save_all_grades'),
 
+    path('admin/users/<int:user_id>/toggle-status/', views.admin_toggle_student_status, name='admin_toggle_student_status'),
+
     path('admin/submissions/<int:submission_id>/grade/',  views.admin_grade_submission,       name='admin_grade_submission'),
     path('admin/submissions/<int:submission_id>/status/', views.admin_submission_status,      name='admin_submission_status'),
     path('admin/submissions/<int:submission_id>/delete/', views.admin_delete_submission,      name='admin_delete_submission'),

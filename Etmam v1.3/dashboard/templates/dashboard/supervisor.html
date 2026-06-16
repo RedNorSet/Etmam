@@ -421,8 +421,10 @@
                   {% if sub.supervisor_grade is not None %}
                     <span style="font-size:.78rem;font-weight:700;color:#6B8CAE;white-space:nowrap;">My Grade: {{ sub.supervisor_grade|floatformat:1 }}</span>
                   {% endif %}
-                  {% if item.all_graded and sub.grade is not None %}
+                  {% if sub.grade is not None and item.all_graded %}
                     <span class="sup-ms-grade" style="white-space:nowrap;">Avg: {{ sub.grade|floatformat:1 }}</span>
+                  {% elif sub.grade is not None and item.admin_graded %}
+                    <span class="sup-ms-grade" style="white-space:nowrap;background:#fff7ed;color:#ea580c;border-color:#fed7aa;">Admin: {{ sub.grade|floatformat:1 }}</span>
                   {% endif %}
                   {% if sub.files.exists %}
                   <a href="{{ sub.files.first.file.url }}" target="_blank"
@@ -481,7 +483,7 @@
                     <div style="width:100%;">
                       <div style="font-size:.65rem;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:#64748b;margin-bottom:4px;">Feedback</div>
                       <textarea name="feedback" rows="2"
-                                style="width:100%;background:rgba(27,45,82,.05);border:1px solid rgba(255,255,255,.12);border-radius:6px;padding:5px 8px;color:#e2e8f0;font-size:.78rem;resize:vertical;box-sizing:border-box;">{{ sub.supervisor_feedback }}</textarea>
+                                style="width:100%;background:rgba(27,45,82,.05);border:1px solid var(--border);border-radius:6px;padding:5px 8px;color:var(--text-primary);font-size:.78rem;resize:vertical;box-sizing:border-box;">{{ sub.supervisor_feedback }}</textarea>
                     </div>
                     <div style="display:flex;align-items:center;gap:6px;width:100%;justify-content:flex-end;">
                       <button type="submit" class="btn btn-primary btn-sm">Save</button>
@@ -505,7 +507,7 @@
                     <div style="width:100%;">
                       <div style="font-size:.65rem;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:#64748b;margin-bottom:4px;">Feedback to Team</div>
                       <textarea name="feedback" rows="2"
-                                style="width:100%;background:rgba(27,45,82,.05);border:1px solid rgba(255,255,255,.12);border-radius:6px;padding:5px 8px;color:#e2e8f0;font-size:.78rem;resize:vertical;box-sizing:border-box;">{{ sub.supervisor_feedback }}</textarea>
+                                style="width:100%;background:rgba(27,45,82,.05);border:1px solid var(--border);border-radius:6px;padding:5px 8px;color:var(--text-primary);font-size:.78rem;resize:vertical;box-sizing:border-box;">{{ sub.supervisor_feedback }}</textarea>
                     </div>
                     <div style="display:flex;align-items:center;gap:6px;width:100%;justify-content:flex-end;">
                       <button type="submit" class="btn btn-primary btn-sm">Save</button>
@@ -635,8 +637,10 @@
                   {% else %}
                     {% if my_rgs.single and my_rgs.single.grade is not None %}<span style="font-size:.78rem;font-weight:700;color:#6B8CAE;white-space:nowrap;">My Grade: {{ my_rgs.single.grade|floatformat:1 }}</span>{% endif %}
                   {% endif %}
-                  {% if ms_item.all_graded and sub.grade is not None %}
+                  {% if sub.grade is not None and ms_item.all_graded %}
                     <span class="sup-ms-grade" style="white-space:nowrap;">Avg: {{ sub.grade|floatformat:1 }}</span>
+                  {% elif sub.grade is not None and ms_item.admin_graded %}
+                    <span class="sup-ms-grade" style="white-space:nowrap;background:#fff7ed;color:#ea580c;border-color:#fed7aa;">Admin: {{ sub.grade|floatformat:1 }}</span>
                   {% endif %}
                   {% if sub.files.exists %}
                   <a href="{{ sub.files.first.file.url }}" target="_blank"
@@ -699,7 +703,7 @@
                     <div style="width:100%;">
                       <div style="font-size:.65rem;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:#64748b;margin-bottom:4px;">Feedback</div>
                       <textarea name="feedback" rows="2"
-                                style="width:100%;background:rgba(27,45,82,.05);border:1px solid rgba(255,255,255,.12);border-radius:6px;padding:5px 8px;color:#e2e8f0;font-size:.78rem;resize:vertical;box-sizing:border-box;">{% if my_rgs.report %}{{ my_rgs.report.feedback }}{% endif %}</textarea>
+                                style="width:100%;background:rgba(27,45,82,.05);border:1px solid var(--border);border-radius:6px;padding:5px 8px;color:var(--text-primary);font-size:.78rem;resize:vertical;box-sizing:border-box;">{% if my_rgs.report %}{{ my_rgs.report.feedback }}{% endif %}</textarea>
                     </div>
                     <div style="display:flex;justify-content:flex-end;width:100%;">
                       <button type="submit" class="btn btn-primary btn-sm">Save</button>
@@ -723,7 +727,7 @@
                     <div style="width:100%;">
                       <div style="font-size:.65rem;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:#64748b;margin-bottom:4px;">My Feedback to Team</div>
                       <textarea name="feedback" rows="2"
-                                style="width:100%;background:rgba(27,45,82,.05);border:1px solid rgba(255,255,255,.12);border-radius:6px;padding:5px 8px;color:#e2e8f0;font-size:.78rem;resize:vertical;box-sizing:border-box;">{% if my_rgs.single %}{{ my_rgs.single.feedback }}{% endif %}</textarea>
+                                style="width:100%;background:rgba(27,45,82,.05);border:1px solid var(--border);border-radius:6px;padding:5px 8px;color:var(--text-primary);font-size:.78rem;resize:vertical;box-sizing:border-box;">{% if my_rgs.single %}{{ my_rgs.single.feedback }}{% endif %}</textarea>
                     </div>
                     <div style="display:flex;justify-content:flex-end;width:100%;">
                       <button type="submit" class="btn btn-primary btn-sm">Save</button>

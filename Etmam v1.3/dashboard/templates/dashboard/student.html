@@ -588,7 +588,7 @@
             </div>
             <div class="ms-li-sub">
               {% if m.due_date %}<div class="ms-li-due ms-li-due-js" data-due="{{ m.due_date|date:'Y-m-d' }}"></div>{% endif %}
-              {% if item.all_graded and sub.grade is not None %}<div class="ms-li-grade">{{ sub.grade|floatformat:1 }}</div>{% endif %}
+              {% if sub.grade is not None and item.all_graded or sub.grade is not None and item.admin_graded %}<div class="ms-li-grade">{{ sub.grade|floatformat:1 }}</div>{% endif %}
             </div>
             {% if item.task_total > 0 %}
             <div class="ms-tbar"><div class="ms-tbar-label"><span>Tasks</span><span>{{ item.task_done }}/{{ item.task_total }}</span></div><div class="ms-tbar-track"><div class="ms-tbar-fill" style="width:{% widthratio item.task_done item.task_total 100 %}%"></div></div></div>
@@ -658,9 +658,9 @@
                 {% endif %}
 
                 
-                {% if sub and sub.grade is not None and item.all_graded %}
+                {% if sub and sub.grade is not None and item.all_graded or sub and sub.grade is not None and item.admin_graded %}
                 <div class="ms-grade">
-                  <div class="ms-grade-lbl">Final Grade</div>
+                  <div class="ms-grade-lbl">Final Grade{% if item.admin_graded and not item.all_graded %} <span style="font-size:.68rem;background:#fff7ed;color:#ea580c;border:1px solid #fed7aa;border-radius:4px;padding:1px 5px;vertical-align:middle;">Admin</span>{% endif %}</div>
                   <div class="ms-grade-score">{{ sub.grade|floatformat:1 }}<span> / 100</span></div>
                   <div class="ms-fb">
                     {% if sub.supervisor_feedback %}<div class="ms-fb-card ms-fb-sup"><div class="ms-fb-lbl">Supervisor Feedback</div><div class="ms-fb-text">{{ sub.supervisor_feedback }}</div></div>{% endif %}
@@ -1218,9 +1218,9 @@
   </div>
 </div>
 
-<div id="request-modal" style="display:none;position:fixed;inset:0;z-index:1000;background:rgba(0,0,0,.6);align-items:center;justify-content:center;">
-  <div style="background:#1e2433;border:1px solid rgba(255,255,255,.1);border-radius:14px;padding:28px;width:100%;max-width:480px;margin:20px;">
-    <h3 style="font-size:1rem;font-weight:700;margin-bottom:4px;">Request Supervision</h3>
+<div id="request-modal" style="display:none;position:fixed;inset:0;z-index:1000;background:rgba(0,0,0,.5);align-items:center;justify-content:center;">
+  <div style="background:var(--bg-card);border:1px solid var(--border);border-radius:14px;padding:28px;width:100%;max-width:480px;margin:20px;box-shadow:var(--shadow);">
+    <h3 style="font-size:1rem;font-weight:700;margin-bottom:4px;color:var(--primary);">Request Supervision</h3>
     <p id="modal-supervisor-name" style="font-size:.83rem;color:var(--text-muted);margin-bottom:20px;"></p>
 
     <form id="request-form" method="post" action="">
@@ -1234,7 +1234,7 @@
       <div class="form-group" style="margin-top:12px;">
         <label>Pitch — why this supervisor?</label>
         <textarea name="pitch" rows="4" placeholder="Describe your project idea and why you'd like this supervisor..." required
-          style="width:100%;background:rgba(27,45,82,.05);border:1px solid rgba(255,255,255,.1);border-radius:10px;padding:.75rem 1rem;color:var(--text-primary);font-family:inherit;font-size:.875rem;resize:vertical;outline:none;"></textarea>
+          style="width:100%;background:rgba(27,45,82,.04);border:1px solid var(--border);border-radius:10px;padding:.75rem 1rem;color:var(--text-primary);font-family:inherit;font-size:.875rem;resize:vertical;outline:none;"></textarea>
       </div>
       <div style="display:flex;gap:.75rem;margin-top:20px;">
         <button type="submit" class="btn btn-primary">Send Request</button>

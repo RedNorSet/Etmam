@@ -416,8 +416,14 @@
               <td>{% if u.is_active %}<span class="badge b-green">Active</span>{% else %}<span class="badge b-red">Inactive</span>{% endif %}</td>
               <td>{{ u.date_joined|date:"M d, Y" }}</td>
               <td style="white-space:nowrap;">
-                <a href="{% url 'accounts:edit_user' u.pk %}" class="btn btn-out">Edit</a>
-                <button type="button" class="btn btn-del-user" onclick="confirmDeleteUser({{ u.pk }}, '{{ u.username|escapejs }}')">Delete</button>
+                <a href="{% url 'accounts:edit_user' u.pk %}" class="btn btn-out btn-sm">Edit</a>
+                <form method="post" action="{% url 'dashboard:admin_toggle_student_status' u.pk %}" style="display:inline;">
+                  {% csrf_token %}
+                  <button type="submit" class="btn btn-sm {% if u.is_active %}btn-out{% else %}btn-blue{% endif %}">
+                    {% if u.is_active %}Deactivate{% else %}Activate{% endif %}
+                  </button>
+                </form>
+                <button type="button" class="btn btn-del-user btn-sm" onclick="confirmDeleteUser({{ u.pk }}, '{{ u.username|escapejs }}')">Delete</button>
               </td>
             </tr>
             {% empty %}
@@ -1542,7 +1548,7 @@
               {% empty %}
               <tr>
                 <td colspan="99" style="padding:36px;">
-                  <div class="empty"><div class="ei">📊</div>No active projects yet.</div>
+                  <div class="empty">No active projects yet.</div>
                 </td>
               </tr>
               {% endfor %}

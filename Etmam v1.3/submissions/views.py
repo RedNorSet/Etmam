@@ -8,6 +8,7 @@ from django.utils import timezone
 
 from .models import Submission, ReviewerGrade
 from milestones.models import ProjectGrade
+from notifications.models import Notification
 
 _log = logging.getLogger('gpms.grades')
 
@@ -81,6 +82,35 @@ def _recalculate_submission_grade(sub):
 
     sub.save(update_fields=['grade'])
 
+def _notify_all_graded(sub):
+    """Send a notification to students when every grader has submitted their grade."""
+    milestone = sub.milestone
+    project   = sub.project
+    if not project:
+        return
+    num_reviewers = project.reviewers.count()
+    if milestone.has_split:
+        sup_done = (sub.supervisor_report_grade is not None and
+                    sub.supervisor_presentation_grade is not None)
+        rev_done = (sub.reviewer_grades
+                    .filter(component='report', grade__isnull=False)
+                    .values('reviewer').distinct().count())
+    else:
+        sup_done = sub.supervisor_grade is not None
+        rev_done = (sub.reviewer_grades
+                    .filter(component='single', grade__isnull=False)
+                    .values('reviewer').distinct().count())
+    if not (sup_done and rev_done >= num_reviewers):
+        return
+    grade_str = f"{sub.grade:.1f}/100" if sub.grade is not None else "—"
+    title   = f'All Grades Submitted — {milestone.title}'
+    message = f'Your submission for "{milestone.title}" has been fully graded. Final grade: {grade_str}.'
+    for tm in project.team.memberships.filter(status='active').select_related('user'):
+        Notification.objects.create(
+            recipient=tm.user, type='feedback',
+            title=title, message=message, link='/dashboard/',
+        )
+
 @login_required
 @require_POST
 def supervisor_grade_submission(request, submission_id):
@@ -118,6 +148,7 @@ def supervisor_grade_submission(request, submission_id):
     ])
 
     _recalculate_submission_grade(sub)
+    _notify_all_graded(sub)
     _log.info(
         'SUP_GRADE user=%s project=%s milestone=%s grade=%s',
         request.user.username,
@@ -163,6 +194,7 @@ def reviewer_grade_submission(request, submission_id):
         return redirect(reverse('dashboard:supervisor') + '#sec-teams')
 
     _recalculate_submission_grade(sub)
+    _notify_all_graded(sub)
     messages.success(request, 'Grade saved.')
     return redirect(reverse('dashboard:supervisor') + '#sec-teams')
 

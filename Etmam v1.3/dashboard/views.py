@@ -188,10 +188,15 @@ def student_dashboard(request):
         for t in Task.objects.filter(project=project).select_related('assigned_to', 'created_by'):
             task_map.setdefault(t.milestone_id, []).append(t)
         num_reviewers = project.reviewers.count()
+        admin_graded_ms_ids = set(
+            ProjectGrade.objects.filter(project=project, graded_by__role='administrator')
+            .values_list('milestone_id', flat=True)
+        )
     else:
-        sub_map       = {}
-        task_map      = {}
-        num_reviewers = 0
+        sub_map             = {}
+        task_map            = {}
+        num_reviewers       = 0
+        admin_graded_ms_ids = set()
     global_milestones = []
     running_total  = 0.0
     graded_weight  = 0
@@ -213,7 +218,8 @@ def student_dashboard(request):
                                 if rg.component == 'single' and rg.grade is not None})
             all_graded = sup_done and rev_done >= num_reviewers
 
-        if all_graded and sub and sub.grade is not None and m.weight:
+        admin_graded = m.pk in admin_graded_ms_ids
+        if (all_graded or admin_graded) and sub and sub.grade is not None and m.weight:
             running_total += float(sub.grade) * (m.weight / 100)
             graded_weight += m.weight
 
@@ -226,6 +232,7 @@ def student_dashboard(request):
             'task_total':     len(tasks),
             'task_done':      sum(1 for t in tasks if t.status == 'done'),
             'all_graded':     all_graded,
+            'admin_graded':   admin_graded,
             'subs_used':      _subs_used,
             'subs_remaining': max(0, _max_subs - _subs_used),
             'subs_maxed':     _subs_used >= _max_subs,
@@ -352,6 +359,10 @@ def supervisor_dashboard(request):
             )
             sub_map = {s.milestone_id: s for s in subs_qs}
             num_reviewers = proj.reviewers.count()
+            admin_pg_ms_ids = set(
+                ProjectGrade.objects.filter(project=proj, graded_by__role='administrator')
+                .values_list('milestone_id', flat=True)
+            )
             milestone_items = []
             for m in global_ms_list:
                 sub = sub_map.get(m.pk)
@@ -369,10 +380,11 @@ def supervisor_dashboard(request):
                                         if rg.component == 'single' and rg.grade is not None})
                     all_graded = sup_done and rev_done >= num_reviewers
                 milestone_items.append({
-                'milestone':  m,
-                'submission': sub,
-                'all_graded': all_graded,
-                'is_overdue': bool(m.due_date and m.due_date < timezone.now().date()),
+                'milestone':   m,
+                'submission':  sub,
+                'all_graded':  all_graded,
+                'admin_graded': m.pk in admin_pg_ms_ids,
+                'is_overdue':  bool(m.due_date and m.due_date < timezone.now().date()),
             })
 
             needs_my_grade = any(
@@ -408,6 +420,10 @@ def supervisor_dashboard(request):
         rg_by_sub = {}
         for rg in ReviewerGrade.objects.filter(submission__in=subs_qs, reviewer=user):
             rg_by_sub.setdefault(rg.submission_id, {})[rg.component] = rg
+        rev_admin_pg_ms_ids = set(
+            ProjectGrade.objects.filter(project=proj, graded_by__role='administrator')
+            .values_list('milestone_id', flat=True)
+        )
         milestones_data = []
         for m in global_ms_list:
             sub = sub_map.get(m.pk)
@@ -429,6 +445,7 @@ def supervisor_dashboard(request):
                 'submission':         sub,
                 'my_reviewer_grades': rg_by_sub.get(sub.pk, {}) if sub else {},
                 'all_graded':         all_graded,
+                'admin_graded':       m.pk in rev_admin_pg_ms_ids,
                 'is_overdue':         bool(m.due_date and m.due_date < timezone.now().date()),
             })
 
@@ -1534,9 +1551,10 @@ def admin_update_grade_weights(request):
 def admin_save_all_grades(request):
     if not _require_admin(request):
         return redirect('dashboard:index')
-    saved  = 0
-    skipped = 0
-    now = timezone.now()
+    saved    = 0
+    skipped  = 0
+    affected = {}
+    now      = timezone.now()
     for key, val in request.POST.items():
         if not key.startswith('grade-'):
             continue
@@ -1568,7 +1586,47 @@ def admin_save_all_grades(request):
             project=project, milestone=milestone, component=comp,
             defaults={'score': score, 'graded_by': request.user, 'graded_at': now},
         )
+        affected[(project.pk, milestone.pk)] = (project, milestone)
         saved += 1
+
+    # Propagate admin grades to Submission.grade so all dashboards see them
+    for (pid, mid), (project, milestone) in affected.items():
+        sub = Submission.objects.filter(project=project, milestone=milestone, is_latest=True).first()
+        if not sub:
+            continue
+        pgs = {pg.component: pg for pg in ProjectGrade.objects.filter(project=project, milestone=milestone)}
+        if milestone.has_split:
+            r_pg = pgs.get('report')
+            p_pg = pgs.get('presentation')
+            if r_pg and r_pg.score is not None and p_pg and p_pg.score is not None:
+                grade = round(float(r_pg.score) * (milestone.report_weight / 100) + float(p_pg.score) * (milestone.presentation_weight / 100), 2)
+            elif r_pg and r_pg.score is not None:
+                grade = round(float(r_pg.score) * (milestone.report_weight / 100), 2)
+            elif p_pg and p_pg.score is not None:
+                grade = round(float(p_pg.score) * (milestone.presentation_weight / 100), 2)
+            else:
+                grade = None
+        else:
+            s_pg = pgs.get('single')
+            grade = float(s_pg.score) if (s_pg and s_pg.score is not None) else None
+        sub.grade = grade
+        sub.save(update_fields=['grade'])
+        if grade is not None:
+            ms_title  = milestone.title
+            team_name = project.team.name
+            grade_str = f"{grade:.1f}/100"
+            for tm in project.team.memberships.filter(status='active').select_related('user'):
+                Notification.objects.create(
+                    recipient=tm.user, type='feedback',
+                    title=f'Grade Updated — {ms_title}',
+                    message=f'Admin has set your grade for "{ms_title}": {grade_str}.',
+                )
+            if project.supervisor:
+                Notification.objects.create(
+                    recipient=project.supervisor, type='feedback',
+                    title=f'Grade Updated — {ms_title}',
+                    message=f'Admin set grade for team "{team_name}" · {ms_title}: {grade_str}.',
+                )
 
     if saved:
         _log_grade.info('GRADES_SAVED admin=%s count=%d skipped=%d', request.user.username, saved, skipped)
@@ -1673,6 +1731,19 @@ def archive_view(request):
         archive_data.append({'project': p, 'members': active_members, 'final_files': final_files})
 
     return render(request, 'dashboard/archive.html', {'archive_data': archive_data})
+
+@login_required
+@require_POST
+def admin_toggle_student_status(request, user_id):
+    if not _require_admin(request):
+        return redirect('dashboard:index')
+    student = get_object_or_404(User, pk=user_id, role='student')
+    student.is_active = not student.is_active
+    student.save(update_fields=['is_active'])
+    status_label = 'activated' if student.is_active else 'deactivated'
+    _log_admin.info('STUDENT_STATUS admin=%s student=%s status=%s', request.user.username, student.username, status_label)
+    messages.success(request, f'Student "{student.full_name or student.username}" {status_label}.')
+    return redirect(reverse('dashboard:admin') + '?panel=users')
 
 @login_required
 @require_POST
